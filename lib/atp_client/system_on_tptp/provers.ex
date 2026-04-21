@@ -58,7 +58,7 @@ defmodule AtpClient.SystemOnTptp.Provers do
     "lazyCoP",
     "leanCoP",
     "LEO-II",
-    "LEO-III",
+    "Leo-III",
     "LisaTT",
     "Mace4",
     "MeadMax",
