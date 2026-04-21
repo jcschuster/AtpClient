@@ -1,0 +1,79 @@
+# Demo of the AtpClient Package
+
+```elixir
+Mix.install([
+  {:atp_client, path: Path.join(__DIR__, "..")}
+])
+```
+
+## Setup
+
+```elixir
+alias AtpClient.{SystemOnTptp, Isabelle, StarExec}
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## SystemOnTPTP
+
+```elixir
+SystemOnTptp.list_provers() |> Enum.join("\n") |> IO.puts()
+```
+
+```elixir
+thf_problem = "thf(conj,conjecture, ![X: $o]: (X | ~X))."
+```
+
+When querying a system, setting the `:raw` option to `true` returns the raw system output. Per default, results are interpreted and returned in standardized format.
+
+```elixir
+{:ok, result} = SystemOnTptp.query_system(thf_problem, "Vampire-FMo---5.0")
+```
+
+```elixir
+{:ok, result} = SystemOnTptp.query_system(thf_problem, "Vampire-FMo---5.0", raw: true)
+IO.puts(result)
+```
+
+It is also possible to query more than one (`query_selected_systems`) or all available systems. Results from provers that errored out (e.g. pure first-order provers that received a higher-order problem) are automatically rejected. Querying multiple systems might take a while as this is bundled in a single HTTP request. Parallelizing this task would risk overwhelming the SystemOnTPTP server because of its limited resources.
+
+```elixir
+{:ok, result} = SystemOnTptp.query_all_systems(thf_problem)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Isabelle/HOL
+
+Using the functionality for Isabelle/HOL requires a running Isabelle server. Locally, this can be achieved via the [`isabelle_elixir`](https://hex.pm/packages/isabelle_elixir) package or by running `isabelle server` with the desired configuration in the command line. This information can either be passed directly to the function calls as keyword list or be permanently set in a `config/config.exs` file.
+
+```elixir
+my_server_info = [
+  host: "127.0.0.1",
+  port: 9999,
+  password: "b50ee944-e3a0-4553-adae-7b3c6fb45970"
+]
+```
+
+The Isabelle API also needs information about where to store the intermediate `.thy` files (`local_dir`). When operating cross-platform (e.g. via containerized instances or Windows + Cygwin terminal) this path needs to be encoded correspondingly from the other side (`isabelle_dir`).
+
+```elixir
+theory = ~S"""
+theory Example imports Main
+begin
+lemma "\<forall>x. P x \<longrightarrow> P x"
+  by auto
+end
+"""
+
+AtpClient.Isabelle.query(theory, "Example",
+  my_server_info ++ [
+    local_dir:    "C:/Users/johan/atp_thy",
+    isabelle_dir: "/cygdrive/c/Users/johan/atp_thy"
+  ]
+)
+```
+
+```elixir
+AtpClient.StarExec.
+```
