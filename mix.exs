@@ -1,7 +1,7 @@
 defmodule AtpClient.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @source_url "https://github.com/jcschuster/AtpClient"
 
   def project do
@@ -55,7 +55,7 @@ defmodule AtpClient.MixProject do
 
   defp deps do
     [
-      {:jason, "~>1.4"},
+      {:jason, "~> 1.4"},
       {:req, "~> 0.5"},
       {:isabelle_elixir, "~> 0.1"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},

@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:atp_client, path: Path.join(__DIR__, "..")}
+  {:atp_client, "~> 0.1"}
 ])
 ```
 
@@ -58,6 +58,11 @@ my_server_info = [
 The Isabelle API also needs information about where to store the intermediate `.thy` files (`local_dir`). When operating cross-platform (e.g. via containerized instances or Windows + Cygwin terminal) this path needs to be encoded correspondingly from the other side (`isabelle_dir`).
 
 ```elixir
+local_dir = "/shared/problems"
+isabelle_dir = "/shared/problems" # defaults to local_dir if not specified
+```
+
+```elixir
 theory = ~S"""
 theory Example imports Main
 begin
@@ -68,12 +73,24 @@ end
 
 AtpClient.Isabelle.query(theory, "Example",
   my_server_info ++ [
-    local_dir:    "C:/Users/johan/atp_thy",
-    isabelle_dir: "/cygdrive/c/Users/johan/atp_thy"
+    local_dir:    local_dir,
+    isabelle_dir: isabelle_dir
   ]
 )
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
+## StarExec (needs testing)
+
 ```elixir
-AtpClient.StarExec.
+{:ok, session} AtpClient.StarExec.login(
+  base_url: "http://your-server-url:port",
+  username: "user",
+  password: "password"
+)
+```
+
+```elixir
+AtpClient.StarExec.logout(session)
 ```
