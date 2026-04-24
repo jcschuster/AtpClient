@@ -21,7 +21,7 @@ defmodule AtpClient.Lint.Tptp4x do
   alias AtpClient.Config
   alias AtpClient.Lint.Diagnostic
 
-  # Matches TPTP4x diagnostic lines of the form
+  # Matches TPTP4X diagnostic lines of the form
   #
   #     ERROR: <message> at line <N>, column <M>
   #     WARNING: <message> at line <N>
@@ -32,14 +32,14 @@ defmodule AtpClient.Lint.Tptp4x do
   @szs_re ~r/SZS\s+status\s+(?<status>\w+)/
 
   @doc """
-  Runs TPTP4x on `problem` via the configured SystemOnTPTP endpoint.
+  Runs TPTP4X on `problem` via the configured SystemOnTPTP endpoint.
 
   ## Options
 
     * `:url` — override the endpoint URL. Defaults to the value configured
       under `config :atp_client, :sotptp, :url`;
-    * `:tptp4x_system` — override the TPTP4x system identifier (default
-      `"TPTP4x---0.0"`). Configurable because the identifier occasionally
+    * `:tptp4x_system` — override the TPTP4X system identifier (default
+      `"TPTP4X---0.0"`). Configurable because the identifier occasionally
       shifts with TPTP deployments;
     * `:tptp4x_time_limit_sec` — server-side time limit (default `10`);
     * `:request_timeout_ms` — HTTP receive timeout (default
@@ -48,7 +48,7 @@ defmodule AtpClient.Lint.Tptp4x do
   @spec check(String.t(), keyword()) :: {:ok, [Diagnostic.t()]} | {:error, term()}
   def check(problem, opts \\ []) when is_binary(problem) do
     url = Config.fetch!(:sotptp, :url, opts)
-    system = Config.fetch(:sotptp, :tptp4x_system, "TPTP4x---0.0", opts)
+    system = Config.fetch(:sotptp, :tptp4x_system, "TPTP4X---0.0", opts)
     time_limit = Config.fetch(:sotptp, :tptp4x_time_limit_sec, 10, opts)
 
     timeout_ms =
@@ -143,7 +143,7 @@ defmodule AtpClient.Lint.Tptp4x do
           String.match?(line, ~r/\b(ERROR|error)\b/)
       end)
       |> case do
-        nil -> "TPTP4x reported an issue (see server output for details)"
+        nil -> "TPTP4X reported an issue (see server output for details)"
         line -> String.trim(line)
       end
 

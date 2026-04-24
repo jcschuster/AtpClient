@@ -9,7 +9,7 @@ defmodule AtpClient.Lint do
       in-process, catches common typos (unknown role, missing dot,
       mismatched brackets) and extracts type declarations for hover and
       completion data.
-    * `AtpClient.Lint.Tptp4x` — delegates to TPTP4x on the configured
+    * `AtpClient.Lint.Tptp4x` — delegates to TPTP4X on the configured
       SystemOnTPTP deployment for authoritative syntax and type analysis.
 
   The default configuration runs both: the local pass is essentially
@@ -46,7 +46,7 @@ defmodule AtpClient.Lint do
 
   When both backends run and the local pass reports any `:error`
   diagnostic, the remote pass is skipped: the user will fix the obvious
-  issue first, and a failing TPTP4x result on top of a local error adds
+  issue first, and a failing TPTP4X result on top of a local error adds
   noise without new information. Warnings do not suppress the remote
   pass.
   """

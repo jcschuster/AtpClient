@@ -4,7 +4,7 @@ defmodule AtpClient.Lint.Local do
 
   Runs in microseconds on typical problem sizes, so it can drive the
   editor feedback loop on every keystroke without going through the
-  network. Catches the common classes of errors that TPTP4x would
+  network. Catches the common classes of errors that TPTP4X would
   otherwise flag after a round-trip:
 
     * unmatched / mismatched brackets (`(`, `[`, `{`);
@@ -16,7 +16,7 @@ defmodule AtpClient.Lint.Local do
   The checker is intentionally forgiving inside formula bodies: it does
   not try to parse the logical content, only the TPTP framing around
   it. That keeps the code small and lets us delegate the authoritative
-  syntactic and type analysis to TPTP4x.
+  syntactic and type analysis to TPTP4X.
 
   `analyze/1` additionally walks `type`-role statements and returns a
   list of `AtpClient.Lint.Symbol`s — used by the Smart Cell to power
