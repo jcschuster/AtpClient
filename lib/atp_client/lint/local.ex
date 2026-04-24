@@ -65,33 +65,22 @@ defmodule AtpClient.Lint.Local do
     {:ok, diags}
   end
 
-  # =========================================================================
-  # Tokenizer
-  #
-  # Tokens are 3- or 4-tuples `{type, line, column}` or `{type, line, column,
-  # value}`. Line and column are 1-based.
-  # =========================================================================
-
   defp tokenize(source), do: tok(source, 1, 1, [])
 
   defp tok("", _l, _c, acc), do: {:ok, Enum.reverse(acc)}
 
-  # Newlines (CRLF first to avoid double-counting).
   defp tok("\r\n" <> rest, l, _c, acc), do: tok(rest, l + 1, 1, acc)
   defp tok("\n" <> rest, l, _c, acc), do: tok(rest, l + 1, 1, acc)
   defp tok("\r" <> rest, l, _c, acc), do: tok(rest, l + 1, 1, acc)
 
-  # Whitespace.
   defp tok(" " <> rest, l, c, acc), do: tok(rest, l, c + 1, acc)
   defp tok("\t" <> rest, l, c, acc), do: tok(rest, l, c + 1, acc)
 
-  # Line comment: `% ... <newline>`.
   defp tok("%" <> rest, l, c, acc) do
     {rest, c2} = skip_line_comment(rest, c + 1)
     tok(rest, l, c2, acc)
   end
 
-  # Block comment: `/* ... */` (can span lines).
   defp tok("/*" <> rest, l, c, acc) do
     case skip_block(rest, l, c + 2) do
       {:ok, rest, l2, c2} ->
@@ -109,7 +98,6 @@ defmodule AtpClient.Lint.Local do
     end
   end
 
-  # Punctuation.
   defp tok("(" <> rest, l, c, acc), do: tok(rest, l, c + 1, [{:lparen, l, c} | acc])
   defp tok(")" <> rest, l, c, acc), do: tok(rest, l, c + 1, [{:rparen, l, c} | acc])
   defp tok("[" <> rest, l, c, acc), do: tok(rest, l, c + 1, [{:lbracket, l, c} | acc])
@@ -120,7 +108,6 @@ defmodule AtpClient.Lint.Local do
   defp tok(":" <> rest, l, c, acc), do: tok(rest, l, c + 1, [{:colon, l, c} | acc])
   defp tok("." <> rest, l, c, acc), do: tok(rest, l, c + 1, [{:dot, l, c} | acc])
 
-  # Single-quoted atom: `'foo bar'`.
   defp tok("'" <> rest, l, c, acc) do
     case scan_quoted(rest, ?', l, c + 1, []) do
       {:ok, str, rest2, l2, c2} ->
@@ -138,7 +125,6 @@ defmodule AtpClient.Lint.Local do
     end
   end
 
-  # Double-quoted distinct symbol: `"foo"`.
   defp tok("\"" <> rest, l, c, acc) do
     case scan_quoted(rest, ?", l, c + 1, []) do
       {:ok, str, rest2, l2, c2} ->
@@ -156,36 +142,26 @@ defmodule AtpClient.Lint.Local do
     end
   end
 
-  # Dollar-word: `$true`, `$i`, `$tType`, ...
   defp tok("$" <> rest, l, c, acc) do
     {tail, rest2, c2} = scan_word_body(rest, c + 1, [])
     tok(rest2, l, c2, [{:lident, l, c, "$" <> tail} | acc])
   end
 
-  # Lowercase-starting identifier.
   defp tok(<<ch, _::binary>> = str, l, c, acc) when ch in ?a..?z do
     {name, rest, c2} = scan_word_body(str, c, [])
     tok(rest, l, c2, [{:lident, l, c, name} | acc])
   end
 
-  # Uppercase / underscore identifier (TPTP variable).
   defp tok(<<ch, _::binary>> = str, l, c, acc) when ch in ?A..?Z or ch == ?_ do
     {name, rest, c2} = scan_word_body(str, c, [])
     tok(rest, l, c2, [{:uident, l, c, name} | acc])
   end
 
-  # Integer — we don't lex decimals/exponents precisely; `.` stops the scan
-  # so that `3.` tokenises as `3` followed by `.` (same shape a TPTP parser
-  # would see in a malformed trailing number).
   defp tok(<<ch, _::binary>> = str, l, c, acc) when ch in ?0..?9 do
     {num, rest, c2} = scan_number(str, c, [])
     tok(rest, l, c2, [{:number, l, c, num} | acc])
   end
 
-  # Any other character becomes an `:other` token carrying its text.
-  # Operators (`&`, `|`, `=>`, ...) fall into this bucket; the structural
-  # checker only cares about brackets, commas, and dots, so finer-grained
-  # operator lexing would buy us nothing.
   defp tok(<<ch::utf8, rest::binary>>, l, c, acc) do
     tok(rest, l, c + 1, [{:other, l, c, <<ch::utf8>>} | acc])
   end
@@ -206,7 +182,6 @@ defmodule AtpClient.Lint.Local do
 
   defp scan_quoted("", _q, _l, _c, _acc), do: :error
 
-  # Backslash escape: consume the escape + the next char verbatim.
   defp scan_quoted(<<?\\, ch, rest::binary>>, q, l, c, acc) do
     scan_quoted(rest, q, l, c + 2, [<<?\\, ch>> | acc])
   end
@@ -243,17 +218,8 @@ defmodule AtpClient.Lint.Local do
   defp scan_number(rest, c, acc),
     do: {acc |> Enum.reverse() |> List.to_string(), rest, c}
 
-  # =========================================================================
-  # Bracket matching
-  #
-  # Runs independently of the statement-structure check — both walks emit
-  # their own diagnostics, and `analyze/1` concatenates and sorts the
-  # results. This is fine because the two checks target disjoint issues.
-  # =========================================================================
-
   defp check_brackets(tokens), do: do_check_brackets(tokens, [], [])
 
-  # EOF: every remaining opener is unmatched.
   defp do_check_brackets([], stack, acc) do
     dangling =
       Enum.map(stack, fn {ch, l, c} ->
@@ -310,9 +276,6 @@ defmodule AtpClient.Lint.Local do
               "opened at line #{ol}, column #{oc}"
         }
 
-        # Treat the closer as if it had matched the most recent opener, so
-        # the rest of the file parses against a sensible stack instead of
-        # accumulating an avalanche of cascading errors.
         do_check_brackets(rest, rest_stack, [diag | acc])
     end
   end
@@ -332,14 +295,6 @@ defmodule AtpClient.Lint.Local do
   defp open_of(:rbracket), do: "["
   defp open_of(:rbrace), do: "{"
 
-  # =========================================================================
-  # Statement structure
-  #
-  # Walks the token stream one top-level statement at a time. On any issue
-  # it resyncs by skipping past the next top-level dot, so a single broken
-  # statement doesn't hide the ones that follow.
-  # =========================================================================
-
   defp check_statements(tokens), do: walk_top(tokens, [])
 
   defp walk_top([], acc), do: Enum.reverse(acc)
@@ -355,7 +310,6 @@ defmodule AtpClient.Lint.Local do
         consume_lang_stmt(name, l, c, rest)
 
       name == "include" ->
-        # We don't validate include contents; just skip to the next statement.
         {_, rest2} = skip_past_dot(rest, 0)
         {[], rest2}
 
@@ -377,8 +331,6 @@ defmodule AtpClient.Lint.Local do
     end
   end
 
-  # Stray dot at top-level is harmless (e.g. empty trailing line after a
-  # statement); silently consume it.
   defp consume_statement([{:dot, _l, _c} | rest]), do: {[], rest}
 
   defp consume_statement([{_type, l, c} = _tok | rest]) do
@@ -406,6 +358,8 @@ defmodule AtpClient.Lint.Local do
     {_, rest2} = skip_past_dot(rest, 0)
     {[diag], rest2}
   end
+
+  defp consume_statement([]), do: {[], []}
 
   defp consume_lang_stmt(lang, ll, lc, [{:lparen, _pl, _pc} | rest]) do
     {body_diags, rest2} = walk_body(rest, 1, 0, ll, lc, lang, [])
@@ -473,13 +427,6 @@ defmodule AtpClient.Lint.Local do
     {[diag], rest2}
   end
 
-  # walk_body: walk tokens inside `lang( ... )`.
-  #
-  # `depth` starts at 1 (we've already consumed the outer `(`). When we see
-  # `:rparen` at depth 1 we've reached the end of the body.
-  # `field_idx` counts commas encountered at depth 1 — the role lives in
-  # field 2 (after two commas).
-
   defp walk_body([], _depth, _fi, ll, lc, lang, acc) do
     diag = %Diagnostic{
       line: ll,
@@ -503,9 +450,6 @@ defmodule AtpClient.Lint.Local do
 
   defp walk_body([{kind, _, _} | rest], depth, fi, ll, lc, lang, acc)
        when kind in [:rparen, :rbracket, :rbrace] do
-    # `max(depth - 1, 1)` guards against stray closers inside a body —
-    # the bracket checker has already flagged them, and we don't want a
-    # stray `]` at depth 1 to prematurely exit the body.
     walk_body(rest, max(depth - 1, 1), fi, ll, lc, lang, acc)
   end
 
@@ -514,26 +458,9 @@ defmodule AtpClient.Lint.Local do
 
     acc =
       if new_fi == 1 do
-        # Just crossed into field 1 — the role. Peek the next lident.
-        case peek_role_token(rest) do
-          {:lident, rl, rc, role} when role not in @roles ->
-            [
-              %Diagnostic{
-                line: rl,
-                column: rc,
-                end_line: rl,
-                end_column: rc + String.length(role),
-                severity: :warning,
-                source: "local",
-                message:
-                  "unknown TPTP role `#{role}`; expected one of: " <>
-                    Enum.join(@roles, ", ")
-              }
-              | acc
-            ]
-
-          _ ->
-            acc
+        case role_diagnostic(rest) do
+          nil -> acc
+          diag -> [diag | acc]
         end
       else
         acc
@@ -546,10 +473,39 @@ defmodule AtpClient.Lint.Local do
     walk_body(rest, depth, fi, ll, lc, lang, acc)
   end
 
-  defp peek_role_token([{:lident, _, _, _} = t | _]), do: t
-  defp peek_role_token(_), do: nil
+  defp role_diagnostic([{:lident, _, _, name} | _]) when name in @roles, do: nil
 
-  # Resync helper: consume tokens until we move past a top-level `.`.
+  defp role_diagnostic([{kind, l, c, name} | _]) when kind in [:lident, :uident] do
+    %Diagnostic{
+      line: l,
+      column: c,
+      end_line: l,
+      end_column: c + String.length(name),
+      severity: :warning,
+      source: "local",
+      message: role_message(name)
+    }
+  end
+
+  defp role_diagnostic(_), do: nil
+
+  defp role_message(name) do
+    stripped = String.trim_leading(name, "_")
+    downcased = String.downcase(name)
+
+    cond do
+      stripped != name and stripped in @roles ->
+        "TPTP roles cannot start with `_`; did you mean `#{stripped}`?"
+
+      downcased != name and downcased in @roles ->
+        "TPTP roles are lowercase; did you mean `#{downcased}`?"
+
+      true ->
+        "unknown TPTP role `#{name}`; expected one of: " <>
+          Enum.join(@roles, ", ")
+    end
+  end
+
   defp skip_past_dot([], _depth), do: {:none, []}
   defp skip_past_dot([{:dot, _, _} | rest], 0), do: {:found, rest}
 
@@ -564,14 +520,6 @@ defmodule AtpClient.Lint.Local do
   end
 
   defp skip_past_dot([_ | rest], depth), do: skip_past_dot(rest, depth)
-
-  # =========================================================================
-  # Symbol extraction
-  #
-  # Walks the token stream top-level statement by top-level statement, and
-  # for each `type`-role statement reconstructs the `name : type_expr`
-  # declaration as a `Symbol`.
-  # =========================================================================
 
   defp extract_symbols(tokens), do: do_extract(tokens, [])
 
@@ -646,7 +594,6 @@ defmodule AtpClient.Lint.Local do
   defp split_depth0([t | rest], cur, acc, depth),
     do: split_depth0(rest, [t | cur], acc, depth)
 
-  # `name : type_expr` — name can be a plain lident or a single-quoted atom.
   defp type_decl_from_formula([{:lident, l, c, name}, {:colon, _, _} | rest]) do
     %Symbol{
       name: name,
@@ -669,9 +616,6 @@ defmodule AtpClient.Lint.Local do
 
   defp type_decl_from_formula(_), do: nil
 
-  # Reconstruct a human-readable string from a list of tokens. Whitespace
-  # handling is best-effort — we drop spaces around punctuation that
-  # typically doesn't want them. Good enough for Monaco hover cards.
   defp reconstruct(tokens) do
     tokens
     |> Enum.map(&token_text/1)
@@ -714,11 +658,6 @@ defmodule AtpClient.Lint.Local do
     |> IO.iodata_to_binary()
   end
 
-  # Heuristic: collapse whitespace where typical TPTP style does, so
-  # `nat > nat` stays readable and `foo(x)` stays compact. The tricky
-  # case is `(`: we only want to glue it to the previous token when that
-  # token is word-like (identifier, number, closing bracket) — i.e. a
-  # function application — not after an operator like `>`.
   defp no_space_between?(prev, next) do
     cond do
       next in [")", "]", "}", ",", "."] -> true
