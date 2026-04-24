@@ -359,8 +359,6 @@ defmodule AtpClient.Lint.Local do
     {[diag], rest2}
   end
 
-  defp consume_statement([]), do: {[], []}
-
   defp consume_lang_stmt(lang, ll, lc, [{:lparen, _pl, _pc} | rest]) do
     {body_diags, rest2} = walk_body(rest, 1, 0, ll, lc, lang, [])
 
