@@ -12,10 +12,6 @@ All backends return results normalized to
 `AtpClient.ResultNormalization.atp_result` so that comparing provers across
 backends is straightforward and can be used in downstream tasks.
 
-This package was developed at the
-[University of Bamberg](https://www.uni-bamberg.de/en/) with the
-[Chair for AI Systems Engineering](https://www.uni-bamberg.de/en/aise/).
-
 ## Installation
 
 Add `:atp_client` to your dependencies in `mix.exs`:

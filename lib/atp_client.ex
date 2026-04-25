@@ -14,10 +14,6 @@ defmodule AtpClient do
   `config/config.exs` on top of the library defaults and lets per-call options
   override everything. See the `AtpClient.Config` module docs for details.
 
-  This package was developed at the
-  [University of Bamberg](https://www.uni-bamberg.de/en/) with the
-  [Chair for AI Systems Engineering](https://www.uni-bamberg.de/en/aise/).
-
 
   ## Configuration
 
@@ -56,6 +52,6 @@ defmodule AtpClient do
 
   Any setting may be overridden for a single call:
 
-      AtpClient.Isabelle.query(theory, "Example", session: "Main", raw: true)
+      AtpClient.Isabelle.query(theory, session: "Main", raw: true)
   """
 end
