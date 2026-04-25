@@ -135,7 +135,7 @@ theory = ~S"""
 theory Example imports Main
 begin
 
-lemma "\<forall>x. P x \<longrightarrow> P x"
+lemma "! x. P x --> P x"
   by auto
 
 end
@@ -144,17 +144,17 @@ end
 # The first result in the output is interpreted. "Successful" tool calls, e.g.
 # finding a proof or countermodel, take precedence. Multiple formulae are not
 # supported.
-AtpClient.Isabelle.query(theory, "Example")
+AtpClient.Isabelle.query(theory)
 # => {:ok, {:ok, :thm}}
 
 # With an existing session, reuse the socket for multiple theories:
 {:ok, session} = AtpClient.Isabelle.open_session()
-AtpClient.Isabelle.prove_theory(session, theory, "Example")
-AtpClient.Isabelle.prove_theory(session, other_theory, "Example2")
+AtpClient.Isabelle.prove_theory(session, theory)
+AtpClient.Isabelle.prove_theory(session, other_theory)
 AtpClient.Isabelle.close_session(session)
 
 # Pass `raw: true` to inspect the full Isabelle status list instead:
-{:ok, status} = AtpClient.Isabelle.query(theory, "Example", raw: true)
+{:ok, status} = AtpClient.Isabelle.query(theory, raw: true)
 AtpClient.ResultNormalization.extract_isabelle_text(status)
 # => "...\nSledgehammering...\nverit found a proof...\n..."
 ```

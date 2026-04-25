@@ -52,20 +52,22 @@ defmodule AtpClient.Isabelle do
       end
       \"\"\"
 
-      {:ok, result} = AtpClient.Isabelle.query(theory, "Example")
+      {:ok, result} = AtpClient.Isabelle.query(theory)
       # => {:ok, :thm}
 
   For fine-grained workflows, open a session once and reuse it:
 
       {:ok, session} = AtpClient.Isabelle.open_session()
-      {:ok, result1} = AtpClient.Isabelle.prove_theory(session, theory1, "T1")
-      {:ok, result2} = AtpClient.Isabelle.prove_theory(session, theory2, "T2")
+      {:ok, result1} = AtpClient.Isabelle.prove_theory(session, theory1)
+      {:ok, result2} = AtpClient.Isabelle.prove_theory(session, theory2)
       :ok = AtpClient.Isabelle.close_session(session)
   """
 
   alias AtpClient.Config
   alias AtpClient.Isabelle.Session
   alias AtpClient.ResultNormalization
+
+  @theory_name_re ~r/^\s*theory\s+([A-Za-z][A-Za-z0-9_']*)/m
 
   @typedoc """
   The result of a call to `prove_theory/4` or `query/3`:
@@ -156,38 +158,33 @@ defmodule AtpClient.Isabelle do
     * `:poll_interval_ms` — how long to wait between polls (default from
       config, `500`).
   """
-  @spec prove_theory(Session.t(), String.t(), String.t(), keyword()) :: result()
-  def prove_theory(%Session{} = session, theory_text, theory_name, opts \\ [])
-      when is_binary(theory_text) and is_binary(theory_name) do
-    config = Keyword.merge(session.config, opts)
-    raw? = Keyword.get(opts, :raw, false)
+  @spec prove_theory(Session.t(), String.t(), keyword()) :: result()
+  def prove_theory(%Session{} = session, theory_text, opts \\ []) when is_binary(theory_text) do
+    with {:ok, theory_name} <- extract_theory_name(theory_text) do
+      config = Keyword.merge(session.config, opts)
+      raw? = Keyword.get(opts, :raw, false)
 
-    # Paths are expanded to absolute up-front. `local_dir` is where this
-    # BEAM node writes the .thy file; `isabelle_dir` (a.k.a. `master_dir`
-    # for the Isabelle server) is the same directory from the server's
-    # perspective. When the two are on the same filesystem, a single
-    # absolute path works for both; when they differ (e.g. the server
-    # runs in a container), the user sets `isabelle_dir` explicitly.
-    local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
+      local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
 
-    isabelle_dir =
-      case Keyword.get(config, :isabelle_dir) do
-        nil -> local_dir
-        explicit -> explicit
-      end
+      isabelle_dir =
+        case Keyword.get(config, :isabelle_dir) do
+          nil -> local_dir
+          explicit -> explicit
+        end
 
-    result =
-      with :ok <- File.mkdir_p(local_dir),
-           :ok <-
-             File.write(Path.join(local_dir, theory_name <> ".thy"), theory_text),
-           :ok <- invoke_use_theories(session, theory_name, isabelle_dir),
-           {:ok, status} <- wait_for_finished(session.socket, config) do
-        if raw?,
-          do: {:ok, status},
-          else: {:ok, ResultNormalization.interpret_isabelle_status(status)}
-      end
+      result =
+        with :ok <- File.mkdir_p(local_dir),
+             :ok <-
+               File.write(Path.join(local_dir, theory_name <> ".thy"), theory_text),
+             :ok <- invoke_use_theories(session, theory_name, isabelle_dir),
+             {:ok, status} <- wait_for_finished(session.socket, config) do
+          if raw?,
+            do: {:ok, status},
+            else: {:ok, ResultNormalization.interpret_isabelle_status(status)}
+        end
 
-    annotate_path_error(result, local_dir, isabelle_dir, theory_name)
+      annotate_path_error(result, local_dir, isabelle_dir, theory_name)
+    end
   end
 
   # "Cannot load theory file" almost always means `local_dir` and
@@ -222,15 +219,15 @@ defmodule AtpClient.Isabelle do
   defp annotate_path_error(other, _local_dir, _isabelle_dir, _theory_name), do: other
 
   @doc """
-  Convenience wrapper: opens a session, calls `prove_theory/4`, and
+  Convenience wrapper: opens a session, calls `prove_theory/3`, and
   unconditionally closes the session afterwards (even on error).
   """
-  @spec query(String.t(), String.t(), keyword()) :: result()
-  def query(theory_text, theory_name, opts \\ []) do
+  @spec query(String.t(), keyword()) :: result()
+  def query(theory_text, opts \\ []) do
     case open_session(opts) do
       {:ok, session} ->
         try do
-          prove_theory(session, theory_text, theory_name, opts)
+          prove_theory(session, theory_text, opts)
         after
           close_session(session)
         end
@@ -241,6 +238,13 @@ defmodule AtpClient.Isabelle do
   end
 
   # --- internal -------------------------------------------------------
+
+  defp extract_theory_name(theory_text) do
+    case Regex.run(@theory_name_re, theory_text) do
+      [_, name] -> {:ok, name}
+      _ -> {:error, :missing_theory_header}
+    end
+  end
 
   defp connect(config) do
     host = Config.fetch!(:isabelle, :host, config)
