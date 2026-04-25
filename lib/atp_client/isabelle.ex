@@ -332,9 +332,7 @@ defmodule AtpClient.Isabelle do
       end
 
     # `poll_status/1` returns `{:error, "nothing in buffer... wait a bit"}`
-    # every time the socket has nothing pending. These are not real errors,
-    # just a "not-ready-yet" signal, so we drop them before they flood the
-    # accumulator.
+    # every time the socket has nothing pending (not real errors).
     filtered =
       new_messages
       |> List.wrap()
@@ -350,10 +348,6 @@ defmodule AtpClient.Isabelle do
         {:ok, combined}
 
       Keyword.has_key?(combined, :failed) ->
-        # Terminal failure from Isabelle (e.g. theory file not found,
-        # session build failed). Surface it as an infrastructure-level
-        # error rather than routing it through result normalization — it
-        # isn't a prover verdict on the problem.
         {:error, {:isabelle_failed, Keyword.get(combined, :failed), combined}}
 
       System.monotonic_time(:millisecond) >= deadline ->

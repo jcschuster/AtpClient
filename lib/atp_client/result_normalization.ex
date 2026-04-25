@@ -158,8 +158,8 @@ defmodule AtpClient.ResultNormalization do
   defp check_tool_signals(text) do
     cond do
       nitpick_found?(text, "counterexample") -> :csat
-      nitpick_found?(text, "model") -> :sat
       String.contains?(text, "found a proof") -> :thm
+      nitpick_found?(text, "model") -> :sat
       gave_up?(text) -> :gave_up
       timeout?(text) -> :timeout
       String.contains?(text, "Out of memory") -> :out_of_resources
