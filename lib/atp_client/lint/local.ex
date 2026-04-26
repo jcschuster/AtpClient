@@ -12,6 +12,7 @@ defmodule AtpClient.Lint.Local do
     * unknown TPTP language prefix (e.g. `fff` instead of `fof`);
     * unknown formula role (e.g. `axim` instead of `axiom`);
     * a statement body that never sees its closing `)` and `.`.
+    * juxtaposed identifiers (e.g. `F X` in THF where `F @ X` is required).
 
   The checker is intentionally forgiving inside formula bodies: it does
   not try to parse the logical content, only the TPTP framing around
@@ -360,7 +361,7 @@ defmodule AtpClient.Lint.Local do
   end
 
   defp consume_lang_stmt(lang, ll, lc, [{:lparen, _pl, _pc} | rest]) do
-    {body_diags, rest2} = walk_body(rest, 1, 0, ll, lc, lang, [])
+    {body_diags, rest2} = walk_body(rest, 1, 0, ll, lc, lang, [], nil)
 
     case rest2 do
       [{:dot, _, _} | rest3] ->
@@ -425,7 +426,7 @@ defmodule AtpClient.Lint.Local do
     {[diag], rest2}
   end
 
-  defp walk_body([], _depth, _fi, ll, lc, lang, acc) do
+  defp walk_body([], _depth, _fi, ll, lc, lang, acc, _prev_id) do
     diag = %Diagnostic{
       line: ll,
       column: lc,
@@ -437,21 +438,21 @@ defmodule AtpClient.Lint.Local do
     {Enum.reverse([diag | acc]), []}
   end
 
-  defp walk_body([{:rparen, _, _} | rest], 1, _fi, _ll, _lc, _lang, acc) do
+  defp walk_body([{:rparen, _, _} | rest], 1, _fi, _ll, _lc, _lang, acc, _prev_id) do
     {Enum.reverse(acc), rest}
   end
 
-  defp walk_body([{kind, _, _} | rest], depth, fi, ll, lc, lang, acc)
+  defp walk_body([{kind, _, _} | rest], depth, fi, ll, lc, lang, acc, _prev_id)
        when kind in [:lparen, :lbracket, :lbrace] do
-    walk_body(rest, depth + 1, fi, ll, lc, lang, acc)
+    walk_body(rest, depth + 1, fi, ll, lc, lang, acc, nil)
   end
 
-  defp walk_body([{kind, _, _} | rest], depth, fi, ll, lc, lang, acc)
+  defp walk_body([{kind, _, _} | rest], depth, fi, ll, lc, lang, acc, _prev_id)
        when kind in [:rparen, :rbracket, :rbrace] do
-    walk_body(rest, max(depth - 1, 1), fi, ll, lc, lang, acc)
+    walk_body(rest, max(depth - 1, 1), fi, ll, lc, lang, acc, nil)
   end
 
-  defp walk_body([{:comma, _cl, _cc} | rest], 1, fi, ll, lc, lang, acc) do
+  defp walk_body([{:comma, _cl, _cc} | rest], 1, fi, ll, lc, lang, acc, _prev_id) do
     new_fi = fi + 1
 
     acc =
@@ -464,12 +465,67 @@ defmodule AtpClient.Lint.Local do
         acc
       end
 
-    walk_body(rest, 1, new_fi, ll, lc, lang, acc)
+    walk_body(rest, 1, new_fi, ll, lc, lang, acc, nil)
   end
 
-  defp walk_body([_ | rest], depth, fi, ll, lc, lang, acc) do
-    walk_body(rest, depth, fi, ll, lc, lang, acc)
+  defp walk_body(
+         [{kind, _l, _c, _name} = tok | rest],
+         depth,
+         fi,
+         ll,
+         lc,
+         lang,
+         acc,
+         prev_id
+       )
+       when kind in [:lident, :uident, :number, :sqstring, :dqstring] do
+    acc =
+      case adjacency_diagnostic(prev_id, tok, fi, lang) do
+        nil -> acc
+        diag -> [diag | acc]
+      end
+
+    walk_body(rest, depth, fi, ll, lc, lang, acc, tok)
   end
+
+  defp walk_body([_ | rest], depth, fi, ll, lc, lang, acc, _prev_id) do
+    walk_body(rest, depth, fi, ll, lc, lang, acc, nil)
+  end
+
+  defp adjacency_diagnostic(_prev, _tok, fi, _lang) when fi < 2, do: nil
+  defp adjacency_diagnostic(nil, _tok, _fi, _lang), do: nil
+
+  defp adjacency_diagnostic(prev, {_kind, l, c, _name} = tok, _fi, lang) do
+    prev_text = adjacency_token_text(prev)
+    cur_text = adjacency_token_text(tok)
+
+    msg =
+      if lang == "thf" do
+        "missing `@` between `#{prev_text}` and `#{cur_text}`; " <>
+          "THF application requires `@`"
+      else
+        "unexpected `#{cur_text}` after `#{prev_text}`; " <>
+          "expected an operator or punctuation between them"
+      end
+
+    %Diagnostic{
+      line: l,
+      column: c,
+      end_line: l,
+      end_column: c + token_display_length(tok),
+      severity: :error,
+      source: "local",
+      message: msg
+    }
+  end
+
+  defp adjacency_token_text({:sqstring, _, _, s}), do: "'" <> s <> "'"
+  defp adjacency_token_text({:dqstring, _, _, s}), do: "\"" <> s <> "\""
+  defp adjacency_token_text({_, _, _, n}), do: n
+
+  defp token_display_length({:sqstring, _, _, s}), do: String.length(s) + 2
+  defp token_display_length({:dqstring, _, _, s}), do: String.length(s) + 2
+  defp token_display_length({_, _, _, n}), do: String.length(n)
 
   defp role_diagnostic([{:lident, _, _, name} | _]) when name in @roles, do: nil
 
