@@ -21,7 +21,7 @@ defmodule AtpClient.Lint.Tptp4x do
   alias AtpClient.Config
   alias AtpClient.Lint.Diagnostic
 
-  @diag_re ~r/^(?<sev>ERROR|WARNING|INFO)\s*:\s*Line\s+(?<line>\d+)\s+Char\s+(?<col>\d+)\s+(?<msg>.+?)\s*$/
+  @diag_re ~r/^%?\s*(?<sev>ERROR|WARNING|INFO)\s*:\s*Line\s+(?<line>\d+)\s+Char\s+(?<col>\d+)\s+(?<msg>.+?)\s*$/
 
   @doc """
   Runs TPTP4X on `problem` via the configured SystemOnTPTP endpoint.
