@@ -21,15 +21,7 @@ defmodule AtpClient.Lint.Tptp4x do
   alias AtpClient.Config
   alias AtpClient.Lint.Diagnostic
 
-  # Matches TPTP4X diagnostic lines of the form
-  #
-  #     ERROR: <message> at line <N>, column <M>
-  #     WARNING: <message> at line <N>
-  #     ERROR: <message>
-  @diag_re ~r/^(?<sev>ERROR|WARNING|INFO)\s*:\s*(?<msg>.+?)(?:\s+at\s+line\s+(?<line>\d+)(?:\s*,\s*column\s+(?<col>\d+))?)?\s*$/
-
-  # SZS status signalling a (non-)successful parse.
-  @szs_re ~r/SZS\s+status\s+(?<status>\w+)/
+  @diag_re ~r/^(?<sev>ERROR|WARNING|INFO)\s*:\s*Line\s+(?<line>\d+)\s+Char\s+(?<col>\d+)\s+(?<msg>.+?)\s*$/
 
   @doc """
   Runs TPTP4X on `problem` via the configured SystemOnTPTP endpoint.
@@ -84,22 +76,8 @@ defmodule AtpClient.Lint.Tptp4x do
   # Exposed for tests — not part of the public API.
   @spec parse_output(String.t()) :: [Diagnostic.t()]
   def parse_output(body) when is_binary(body) do
-    lines = String.split(body, ~r/\r?\n/)
-
-    structured =
-      lines
-      |> Enum.flat_map(&parse_line/1)
-
-    cond do
-      structured != [] ->
-        structured
-
-      syntax_error_status?(body) ->
-        [fallback_diagnostic(body)]
-
-      true ->
-        []
-    end
+    String.split(body, ~r/\r?\n/)
+    |> Enum.flat_map(&parse_line/1)
   end
 
   defp parse_line(line) do
@@ -110,7 +88,7 @@ defmodule AtpClient.Lint.Tptp4x do
             line: parse_int(l, 1),
             column: parse_int(c, 1),
             severity: severity(sev),
-            message: String.trim(msg),
+            message: clean_message(msg),
             source: "tptp4x"
           }
         ]
@@ -120,40 +98,11 @@ defmodule AtpClient.Lint.Tptp4x do
     end
   end
 
-  defp syntax_error_status?(body) do
-    case Regex.named_captures(@szs_re, body) do
-      %{"status" => status} ->
-        status in ~w(SyntaxError InputError Error)
-
-      _ ->
-        false
+  defp clean_message(msg) do
+    case Regex.run(~r/^Token\s+.+?\s+:\s+(.+)$/, msg) do
+      [_, tail] -> String.trim(tail)
+      _ -> String.trim(msg)
     end
-  end
-
-  # Build a single diagnostic from the most "interesting" line of the
-  # response body — either the SZS status line or the first line
-  # containing `ERROR`/`error` — so the user sees *something* even when
-  # the output format doesn't match our regex.
-  defp fallback_diagnostic(body) do
-    message =
-      body
-      |> String.split(~r/\r?\n/)
-      |> Enum.find(fn line ->
-        String.contains?(line, "SZS status") or
-          String.match?(line, ~r/\b(ERROR|error)\b/)
-      end)
-      |> case do
-        nil -> "TPTP4X reported an issue (see server output for details)"
-        line -> String.trim(line)
-      end
-
-    %Diagnostic{
-      line: 1,
-      column: 1,
-      severity: :error,
-      message: message,
-      source: "tptp4x"
-    }
   end
 
   defp parse_int("", default), do: default
