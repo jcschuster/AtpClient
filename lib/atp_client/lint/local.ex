@@ -695,18 +695,16 @@ defmodule AtpClient.Lint.Local do
 
   defp join_smart(parts) do
     parts
-    |> Enum.reduce([], fn part, acc ->
-      case acc do
-        [] ->
-          [part]
+    |> Enum.reduce([], fn
+      part, [] ->
+        [part]
 
-        [prev | _] ->
-          if no_space_between?(prev, part) do
-            [part | acc]
-          else
-            [part, " " | acc]
-          end
-      end
+      part, [prev | _] = acc ->
+        if no_space_between?(prev, part) do
+          [part | acc]
+        else
+          [part, " " | acc]
+        end
     end)
     |> Enum.reverse()
     |> IO.iodata_to_binary()
