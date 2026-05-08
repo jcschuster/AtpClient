@@ -4,7 +4,8 @@ defmodule AtpClient.ResultNormalization do
 
   The TPTP-oriented prover outputs (used by SystemOnTPTP and StarExec backends
   when solvers follow the SZS Ontology) are interpreted by `interpret_result/1`.
-  Isabelle `use_theories` results are interpreted by `interpret_isabelle_status/1`.
+  Isabelle `use_theories` results are interpreted by
+  `interpret_isabelle_result/1`.
   """
 
   @typedoc "Standardized format for ATP outputs."
@@ -107,49 +108,35 @@ defmodule AtpClient.ResultNormalization do
   end
 
   @doc """
-  Interprets an Isabelle `use_theories` poll result (the keyword list returned
-  by `IsabelleClientMini.poll_status/1` once a `:finished` tuple is present).
+  Interprets the `result` payload of a finished `use_theories` task — the map
+  returned in `%IsabelleClient.Task{status: :finished, result: ...}`, with
+  top-level keys `"ok"`, `"errors"`, `"nodes"`, etc.
 
-  Classification combines structural and textual signals from the finished
-  payload:
+  Classification combines structural and textual signals from the payload:
 
     * a "Nitpick found a counterexample" message yields `{:ok, :csat}`;
     * a "Nitpick found a model" message yields `{:ok, :sat}`;
     * a Sledgehammer "found a proof" message yields `{:ok, :thm}`;
     * a "timed out" / "TIMEOUT" message yields `{:ok, :timeout}`;
     * a "Out of memory" message yields `{:ok, :out_of_resources}`;
-    * otherwise, if the finished payload reports `ok: true` with no top-level
-      errors and every theory node's `status.ok` is true, all proofs were
-      discharged → `{:ok, :thm}`. This covers plain `by auto`, `by simp`,
-      structured `proof ... qed` blocks, and anything else that closes the
-      goal without going through Sledgehammer or Nitpick;
+    * otherwise, if the payload reports `ok: true` with no top-level errors and
+      every theory node's `status.ok` is true, all proofs were discharged →
+      `{:ok, :thm}`. This covers plain `by auto`, `by simp`, structured
+      `proof ... qed` blocks, and anything else that closes the goal without
+      going through Sledgehammer or Nitpick;
     * remaining cases (finished with errors, or unclassifiable text) yield
       `{:ok, :gave_up}`.
 
-  A `:failed` entry in the status list yields `{:error, :malformed_input}`
-  as a defensive fallback; normally `prove_theory/4` surfaces those as
-  `{:error, {:isabelle_failed, _, _}}` before this function is called.
+  Failed tasks should be surfaced through `AtpClient.Isabelle.prove_theory/4`'s
+  `{:error, {:isabelle_failed, _, _}}` channel and never reach this function.
   """
-  @spec interpret_isabelle_status(keyword()) :: atp_result()
-  def interpret_isabelle_status(status) when is_list(status) do
-    cond do
-      Keyword.has_key?(status, :failed) ->
-        {:error, :malformed_input}
-
-      (finished = Keyword.get(status, :finished)) != nil ->
-        interpret_finished(finished)
-
-      true ->
-        {:error, {:unrecognized_output, inspect(status)}}
-    end
-  end
-
-  defp interpret_finished(finished) do
-    text = extract_text(finished)
+  @spec interpret_isabelle_result(map()) :: atp_result()
+  def interpret_isabelle_result(payload) when is_map(payload) do
+    text = extract_text(payload)
 
     status =
       check_tool_signals(text) ||
-        check_structural_signals(finished) ||
+        check_structural_signals(payload) ||
         :gave_up
 
     {:ok, status}
@@ -158,8 +145,8 @@ defmodule AtpClient.ResultNormalization do
   defp check_tool_signals(text) do
     cond do
       nitpick_found?(text, "counterexample") -> :csat
-      String.contains?(text, "found a proof") -> :thm
       nitpick_found?(text, "model") -> :sat
+      String.contains?(text, "found a proof") -> :thm
       gave_up?(text) -> :gave_up
       timeout?(text) -> :timeout
       String.contains?(text, "Out of memory") -> :out_of_resources
@@ -176,11 +163,11 @@ defmodule AtpClient.ResultNormalization do
   defp timeout?(text),
     do: String.contains?(text, "timed out") or String.contains?(text, "TIMEOUT")
 
-  defp check_structural_signals(finished) do
-    ok? = Map.get(finished, "ok", false)
-    no_errors? = Map.get(finished, "errors", []) == []
+  defp check_structural_signals(payload) do
+    ok? = Map.get(payload, "ok", false)
+    no_errors? = Map.get(payload, "errors", []) == []
 
-    if ok? and no_errors? and all_nodes_ok?(finished) do
+    if ok? and no_errors? and all_nodes_ok?(payload) do
       :thm
     else
       nil
@@ -200,19 +187,16 @@ defmodule AtpClient.ResultNormalization do
   defp all_nodes_ok?(_), do: false
 
   @doc """
-  Concatenates all `"message"` strings from a finished Isabelle `use_theories`
-  payload into a single newline-separated string, mirroring what the
-  `IsabelleClientMini.extract_results/1` helper produces.
-  """
-  @spec extract_isabelle_text(keyword() | map()) :: String.t()
-  def extract_isabelle_text(status) when is_list(status) do
-    case Keyword.get(status, :finished) do
-      nil -> ""
-      finished -> extract_text(finished)
-    end
-  end
+  Concatenates all `"message"` strings from a `use_theories` payload (the
+  `result` field of a finished `%IsabelleClient.Task{}`) into a single
+  newline-separated string.
 
-  def extract_isabelle_text(%{} = finished), do: extract_text(finished)
+  Walks all nodes in the payload, not just the first — useful when a theory
+  transitively imports others and the server reports messages against multiple
+  nodes.
+  """
+  @spec extract_isabelle_text(map()) :: String.t()
+  def extract_isabelle_text(payload) when is_map(payload), do: extract_text(payload)
 
   defp extract_text(%{"nodes" => nodes}) when is_list(nodes) do
     nodes

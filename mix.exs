@@ -1,7 +1,7 @@
 defmodule AtpClient.MixProject do
   use Mix.Project
 
-  @version "0.1.7"
+  @version "0.2.0"
   @source_url "https://github.com/jcschuster/AtpClient"
 
   def project do
@@ -46,8 +46,8 @@ defmodule AtpClient.MixProject do
           port: 9999,
           # password, local_dir, isabelle_dir are required at call time
           session: "HOL",
-          use_theories_timeout_ms: 120_000,
-          poll_interval_ms: 500
+          session_start_timeout_ms: 120_000,
+          use_theories_timeout_ms: 120_000
         ]
       ]
     ]
@@ -57,7 +57,7 @@ defmodule AtpClient.MixProject do
     [
       {:jason, "~> 1.4"},
       {:req, "~> 0.5"},
-      {:isabelle_elixir, "~> 0.1"},
+      {:isabelle_elixir, "~> 0.2"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}

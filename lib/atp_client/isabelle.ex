@@ -1,14 +1,13 @@
 defmodule AtpClient.Isabelle do
   @moduledoc """
-  Client for Isabelle servers, built on top of `IsabelleClientMini` from the
+  Client for Isabelle servers, built on top of `IsabelleClient` from the
   `:isabelle_elixir` package.
 
   The Isabelle server cannot accept theory text over the wire — theories have
   to live as `.thy` files on a filesystem that both the BEAM node running
   AtpClient and the Isabelle server can see. This module handles the file
-  bookkeeping for you: you pass the theory body as a string, and it is
-  written into a configured shared directory before `use_theories` is
-  invoked.
+  bookkeeping for you: you pass the theory body as a string, and it is written
+  into a configured shared directory before `use_theories` is invoked.
 
   ## Configuration
 
@@ -37,12 +36,12 @@ defmodule AtpClient.Isabelle do
       the Isabelle server container has the same volume mounted at
       `/data/problems`. Set `local_dir: "/shared/problems"` and
       `isabelle_dir: "/data/problems"`.
-    * **Windows + Cygwin:** BEAM on Windows sees `C:/Users/you/thy`;
-      Isabelle started from a Cygwin shell sees the same directory as
+    * **Windows + Cygwin:** BEAM on Windows sees `C:/Users/you/thy`; Isabelle
+      started from a Cygwin shell sees the same directory as
       `/cygdrive/c/Users/you/thy`. Set both accordingly.
 
-  Paths given via `isabelle_dir` are passed through verbatim — the library
-  does not try to translate Windows paths to POSIX or vice-versa.
+  Paths given via `isabelle_dir` are passed through verbatim — the library does
+  not try to translate Windows paths to POSIX or vice-versa.
 
   ## Example
 
@@ -52,147 +51,189 @@ defmodule AtpClient.Isabelle do
       end
       \"\"\"
 
-      {:ok, result} = AtpClient.Isabelle.query(theory)
+      {:ok, result} = AtpClient.Isabelle.query(theory, "Example")
       # => {:ok, :thm}
 
   For fine-grained workflows, open a session once and reuse it:
 
       {:ok, session} = AtpClient.Isabelle.open_session()
-      {:ok, result1} = AtpClient.Isabelle.prove_theory(session, theory1)
-      {:ok, result2} = AtpClient.Isabelle.prove_theory(session, theory2)
+      {:ok, result1} = AtpClient.Isabelle.prove_theory(session, theory1, "T1")
+      {:ok, result2} = AtpClient.Isabelle.prove_theory(session, theory2, "T2")
       :ok = AtpClient.Isabelle.close_session(session)
   """
 
   alias AtpClient.Config
   alias AtpClient.Isabelle.Session
   alias AtpClient.ResultNormalization
-
-  @theory_name_re ~r/^\s*theory\s+([A-Za-z][A-Za-z0-9_']*)/m
+  alias IsabelleClient.Task, as: IsabelleTask
 
   @typedoc """
   The result of a call to `prove_theory/4` or `query/3`:
 
-    * `{:ok, result}` where `result` is either the normalized ATP result or
-      the raw Isabelle status list, depending on the `:raw` option;
-    * `{:error, {:isabelle_failed, payload, status}}` when the server
-      reports a terminal `failed:` message (e.g. a theory file that
-      Isabelle could not load);
-    * `{:error, {:timeout, status}}` when polling did not observe a
-      `:finished` or `:failed` message before the deadline, with `status`
-      being the accumulated poll output so far;
-    * other `{:error, reason}` for connection and I/O issues.
+    * `{:ok, result}` where `result` is either the normalized ATP result or the
+      raw `use_theories` payload (a map with `"nodes"`, `"errors"`, `"ok"`, …),
+      depending on the `:raw` option;
+    * `{:error, {:isabelle_failed, payload, notes}}` when the server reports a
+      `FAILED` message for the task (e.g. a theory file that Isabelle could not
+      load). `notes` is the list of intermediate `NOTE` payloads accumulated by
+      `IsabelleClient.Task` before the failure;
+    * `{:error, {:isabelle_failed, payload, hints}}` — same shape, but with
+      `hints` carrying diagnostic suggestions and the `local_dir` /
+      `isabelle_dir` actually used. Currently emitted when the server reports
+      "Cannot load theory file";
+    * other `{:error, reason}` for connection, session-start, and I/O issues.
   """
   @type result ::
           {:ok, ResultNormalization.atp_result()}
-          | {:ok, keyword()}
+          | {:ok, map()}
           | {:error, term()}
 
   @doc """
-  Connects to the Isabelle server, starts a session (typically `HOL` or
-  `Main`), and returns a `Session` handle. The caller is responsible for
-  eventually passing the handle to `close_session/1`.
+  Connects to the Isabelle server, starts a session (typically `HOL` or `Main`),
+  and returns a `Session` handle. The caller is responsible for eventually
+  passing the handle to `close_session/1`.
 
   ## Options
 
     * `:host`, `:port`, `:password` — override config;
-    * `:session` — name of the Isabelle session to start (default from
-      config, typically `"HOL"`);
+    * `:session` — name of the Isabelle session to start (default from config,
+      typically `"HOL"`);
     * `:session_start_timeout_ms` — how long to wait for the initial
-      `session_start` to emit a `:finished` message (default `120_000`).
+      `session_start` to complete (default `120_000`).
   """
   @spec open_session(keyword()) :: {:ok, Session.t()} | {:error, term()}
   def open_session(opts \\ []) do
     config = Config.get(:isabelle, opts)
 
-    with {:ok, socket} <- connect(config),
-         {:ok, session_id} <- start_session(socket, config) do
-      {:ok, %Session{socket: socket, session_id: session_id, config: config}}
+    host = Config.fetch!(:isabelle, :host, config)
+    port = Config.fetch!(:isabelle, :port, config)
+    password = Config.fetch!(:isabelle, :password, config)
+    session_name = Config.fetch(:isabelle, :session, "HOL", config)
+    timeout_ms = Config.fetch(:isabelle, :session_start_timeout_ms, 120_000, config)
+
+    case IsabelleClient.connect(password, host: host, port: port) do
+      {:ok, client} ->
+        start_session_or_close(client, session_name, timeout_ms, config)
+
+      {:error, reason} ->
+        {:error, {:connect_failed, reason}}
+    end
+  end
+
+  defp start_session_or_close(client, session_name, timeout_ms, config) do
+    case IsabelleClient.start_session(client, %{"session" => session_name}, timeout_ms) do
+      {:ok, started_client, _task} ->
+        {:ok, %Session{client: started_client, config: config}}
+
+      {:error, %IsabelleTask{} = task} ->
+        _ = safe_close(client)
+        {:error, {:session_start_failed, task}}
+
+      {:error, reason} ->
+        _ = safe_close(client)
+        {:error, {:session_start_failed, reason}}
+
+      other ->
+        _ = safe_close(client)
+        {:error, {:session_start_failed, other}}
     end
   end
 
   @doc """
-  Stops the session and closes the socket. Any errors from the server-side
+  Stops the session and closes the socket. Errors from the server-side
   `session_stop` are swallowed, since the socket is torn down regardless.
   """
   @spec close_session(Session.t()) :: :ok
-  def close_session(%Session{socket: socket, session_id: session_id}) do
-    try do
-      IsabelleClientMini.stop_session(socket, session_id)
-    rescue
-      _ -> :ok
-    catch
-      _, _ -> :ok
-    end
-
-    # Drain any outstanding messages before closing the port so the server
-    # doesn't see a half-written command.
-    try do
-      IsabelleClientMini.poll_status(socket)
-    rescue
-      _ -> :ok
-    catch
-      _, _ -> :ok
-    end
-
-    if is_port(socket) and Port.info(socket) != nil do
-      Port.close(socket)
-    end
-
+  def close_session(%Session{client: client}) do
+    _ = safe_stop_session(client)
+    _ = safe_close(client)
     :ok
+  end
+
+  defp safe_stop_session(%IsabelleClient{session_id: nil}), do: :ok
+
+  defp safe_stop_session(%IsabelleClient{} = client) do
+    try do
+      IsabelleClient.stop_session(client)
+      :ok
+    rescue
+      _ -> :ok
+    catch
+      _, _ -> :ok
+    end
+  end
+
+  defp safe_close(%IsabelleClient{} = client) do
+    try do
+      IsabelleClient.close(client)
+    rescue
+      _ -> :ok
+    catch
+      _, _ -> :ok
+    end
   end
 
   @doc """
   Writes `theory_text` to `<local_dir>/<theory_name>.thy`, asks the Isabelle
-  server to process it in the given session, and blocks until results are in.
+  server to process it in the given session, and blocks until the task finishes
+  or fails.
 
   By default the result is interpreted by
-  `AtpClient.ResultNormalization.interpret_isabelle_status/1`. Pass
-  `raw: true` to get back the full status keyword list returned by
-  `IsabelleClientMini.poll_status/1`.
+  `AtpClient.ResultNormalization.interpret_isabelle_result/1`. Pass `raw: true`
+  to get back the full `use_theories` payload (a map with `"nodes"`, `"ok"`,
+  `"errors"`, …) returned by the Isabelle server.
 
   ## Options
 
-    * `:raw` — return the raw status list (default `false`);
-    * `:use_theories_timeout_ms` — overall deadline for polling (default
-      from config, `120_000`);
-    * `:poll_interval_ms` — how long to wait between polls (default from
-      config, `500`).
+    * `:raw` — return the raw payload map (default `false`);
+    * `:use_theories_timeout_ms` — overall deadline for the task (default from
+      config, `120_000`).
   """
-  @spec prove_theory(Session.t(), String.t(), keyword()) :: result()
-  def prove_theory(%Session{} = session, theory_text, opts \\ []) when is_binary(theory_text) do
-    with {:ok, theory_name} <- extract_theory_name(theory_text) do
-      config = Keyword.merge(session.config, opts)
-      raw? = Keyword.get(opts, :raw, false)
+  @spec prove_theory(Session.t(), String.t(), String.t(), keyword()) :: result()
+  def prove_theory(%Session{} = session, theory_text, theory_name, opts \\ [])
+      when is_binary(theory_text) and is_binary(theory_name) do
+    config = Keyword.merge(session.config, opts)
+    raw? = Keyword.get(opts, :raw, false)
 
-      local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
+    local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
 
-      isabelle_dir =
-        case Keyword.get(config, :isabelle_dir) do
-          nil -> local_dir
-          explicit -> explicit
-        end
+    isabelle_dir =
+      case Keyword.get(config, :isabelle_dir) do
+        nil -> local_dir
+        explicit -> explicit
+      end
 
-      result =
-        with :ok <- File.mkdir_p(local_dir),
-             :ok <-
-               File.write(Path.join(local_dir, theory_name <> ".thy"), theory_text),
-             :ok <- invoke_use_theories(session, theory_name, isabelle_dir),
-             {:ok, status} <- wait_for_finished(session.socket, config) do
-          if raw?,
-            do: {:ok, status},
-            else: {:ok, ResultNormalization.interpret_isabelle_status(status)}
-        end
+    timeout_ms = Config.fetch(:isabelle, :use_theories_timeout_ms, 120_000, config)
 
-      annotate_path_error(result, local_dir, isabelle_dir, theory_name)
-    end
+    result =
+      with :ok <- File.mkdir_p(local_dir),
+           :ok <-
+             File.write(Path.join(local_dir, theory_name <> ".thy"), theory_text),
+           {:ok, %IsabelleTask{result: payload}} <-
+             IsabelleClient.use_theories(
+               session.client,
+               %{
+                 "theories" => [theory_name],
+                 "master_dir" => ensure_trailing_slash(isabelle_dir)
+               },
+               timeout_ms
+             ) do
+        if raw?,
+          do: {:ok, payload},
+          else: {:ok, ResultNormalization.interpret_isabelle_result(payload)}
+      else
+        {:error, %IsabelleTask{status: :failed, result: payload, notes: notes}} ->
+          {:error, {:isabelle_failed, payload, notes}}
+
+        {:error, _} = err ->
+          err
+      end
+
+    annotate_path_error(result, local_dir, isabelle_dir, theory_name)
   end
 
-  # "Cannot load theory file" almost always means `local_dir` and
-  # `isabelle_dir` point at places the BEAM and Isabelle see differently
-  # (typical when Isabelle runs in a container). Enrich the error so the
-  # user sees both paths side by side.
   defp annotate_path_error(
-         {:error, {:isabelle_failed, %{"message" => msg} = payload, _status}} = err,
+         {:error, {:isabelle_failed, %{"message" => msg} = payload, _notes}} = err,
          local_dir,
          isabelle_dir,
          theory_name
@@ -219,15 +260,15 @@ defmodule AtpClient.Isabelle do
   defp annotate_path_error(other, _local_dir, _isabelle_dir, _theory_name), do: other
 
   @doc """
-  Convenience wrapper: opens a session, calls `prove_theory/3`, and
+  Convenience wrapper: opens a session, calls `prove_theory/4`, and
   unconditionally closes the session afterwards (even on error).
   """
-  @spec query(String.t(), keyword()) :: result()
-  def query(theory_text, opts \\ []) do
+  @spec query(String.t(), String.t(), keyword()) :: result()
+  def query(theory_text, theory_name, opts \\ []) do
     case open_session(opts) do
       {:ok, session} ->
         try do
-          prove_theory(session, theory_text, opts)
+          prove_theory(session, theory_text, theory_name, opts)
         after
           close_session(session)
         end
@@ -235,131 +276,6 @@ defmodule AtpClient.Isabelle do
       {:error, _} = err ->
         err
     end
-  end
-
-  # --- internal -------------------------------------------------------
-
-  defp extract_theory_name(theory_text) do
-    case Regex.run(@theory_name_re, theory_text) do
-      [_, name] -> {:ok, name}
-      _ -> {:error, :missing_theory_header}
-    end
-  end
-
-  defp connect(config) do
-    host = Config.fetch!(:isabelle, :host, config)
-    port = Config.fetch!(:isabelle, :port, config)
-    password = Config.fetch!(:isabelle, :password, config)
-
-    try do
-      socket = IsabelleClientMini.connect(password, host, port)
-      {:ok, socket}
-    rescue
-      e -> {:error, {:connect_failed, Exception.message(e)}}
-    catch
-      kind, reason -> {:error, {:connect_failed, {kind, reason}}}
-    end
-  end
-
-  defp start_session(socket, config) do
-    session_name = Config.fetch(:isabelle, :session, "HOL", config)
-
-    timeout_ms = Config.fetch(:isabelle, :session_start_timeout_ms, 120_000, config)
-
-    poll_ms = Config.fetch(:isabelle, :poll_interval_ms, 500, config)
-
-    try do
-      IsabelleClientMini.start_session(socket, %{session: session_name})
-    rescue
-      e -> {:error, {:session_start_failed, Exception.message(e)}}
-    catch
-      kind, reason -> {:error, {:session_start_failed, {kind, reason}}}
-    else
-      _ ->
-        case wait_for_finished_raw(socket, poll_ms, deadline(timeout_ms)) do
-          {:ok, status} ->
-            case Keyword.get(status, :finished) do
-              %{"session_id" => session_id} -> {:ok, session_id}
-              other -> {:error, {:session_start_failed, other}}
-            end
-
-          err ->
-            err
-        end
-    end
-  end
-
-  defp invoke_use_theories(
-         %Session{socket: socket, session_id: session_id},
-         theory_name,
-         master_dir
-       ) do
-    args = %{
-      "session_id" => session_id,
-      "theories" => [theory_name],
-      "master_dir" => ensure_trailing_slash(master_dir)
-    }
-
-    try do
-      case IsabelleClientMini.use_theories(socket, args) do
-        {:ok, _} -> :ok
-        :ok -> :ok
-        other -> {:error, {:use_theories_failed, other}}
-      end
-    rescue
-      e -> {:error, {:use_theories_failed, Exception.message(e)}}
-    catch
-      kind, reason -> {:error, {:use_theories_failed, {kind, reason}}}
-    end
-  end
-
-  defp wait_for_finished(socket, config) do
-    timeout_ms = Config.fetch(:isabelle, :use_theories_timeout_ms, 120_000, config)
-    poll_ms = Config.fetch(:isabelle, :poll_interval_ms, 500, config)
-    wait_for_finished_raw(socket, poll_ms, deadline(timeout_ms))
-  end
-
-  defp wait_for_finished_raw(socket, poll_ms, deadline, acc \\ []) do
-    Process.sleep(poll_ms)
-
-    new_messages =
-      try do
-        IsabelleClientMini.poll_status(socket)
-      rescue
-        _ -> []
-      catch
-        _, _ -> []
-      end
-
-    # `poll_status/1` returns `{:error, "nothing in buffer... wait a bit"}`
-    # every time the socket has nothing pending (not real errors).
-    filtered =
-      new_messages
-      |> List.wrap()
-      |> Enum.reject(fn
-        {:error, msg} when is_binary(msg) -> String.starts_with?(msg, "nothing in buffer")
-        _ -> false
-      end)
-
-    combined = acc ++ filtered
-
-    cond do
-      Keyword.has_key?(combined, :finished) ->
-        {:ok, combined}
-
-      Keyword.has_key?(combined, :failed) ->
-        {:error, {:isabelle_failed, Keyword.get(combined, :failed), combined}}
-
-      System.monotonic_time(:millisecond) >= deadline ->
-        {:error, {:timeout, combined}}
-
-      true ->
-        wait_for_finished_raw(socket, poll_ms, deadline, combined)
-    end
-  end
-
-  defp deadline(timeout_ms) do
-    System.monotonic_time(:millisecond) + timeout_ms
   end
 
   defp ensure_trailing_slash(path) do

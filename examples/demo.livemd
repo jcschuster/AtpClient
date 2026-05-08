@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:atp_client, "~> 0.1"}
+  {:atp_client, "~> 0.2"}
 ])
 ```
 
@@ -27,11 +27,11 @@ thf_problem = "thf(conj,conjecture, ![X: $o]: (X | ~X))."
 When querying a system, setting the `:raw` option to `true` returns the raw system output. Per default, results are interpreted and returned in standardized format.
 
 ```elixir
-{:ok, result} = SystemOnTptp.query_system(thf_problem, "Vampire-FMo---5.0")
+{:ok, result} = SystemOnTptp.query_system(thf_problem, "Vampire---5.0.1")
 ```
 
 ```elixir
-{:ok, result} = SystemOnTptp.query_system(thf_problem, "Vampire-FMo---5.0", raw: true)
+{:ok, result} = SystemOnTptp.query_system(thf_problem, "Vampire---5.0.1", raw: true)
 IO.puts(result)
 ```
 
@@ -51,7 +51,7 @@ Using the functionality for Isabelle/HOL requires a running Isabelle server. Loc
 my_server_info = [
   host: "127.0.0.1",
   port: 9999,
-  password: "b50ee944-e3a0-4553-adae-7b3c6fb45970"
+  password: "isabelle-server's-password-you-get-on-startup"
 ]
 ```
 

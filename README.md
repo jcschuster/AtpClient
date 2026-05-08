@@ -19,7 +19,7 @@ Add `:atp_client` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:atp_client, "~> 0.1"}
+    {:atp_client, "~> 0.2"}
   ]
 end
 ```
