@@ -1,0 +1,270 @@
+\documentclass[]{ceurart}
+
+\sloppy
+
+\usepackage{listings}
+\lstset{breaklines=true}
+
+\usepackage{cleveref}
+\usepackage{minted}
+\usepackage{xcolor}
+\definecolor{LightGray}{gray}{0.95}
+
+\newminted[elixir]{elixir}{frame=lines,framesep=2mm,baselinestretch=1.2,bgcolor=LightGray,fontsize=\footnotesize,linenos}
+
+\begin{document}
+
+\copyrightyear{2026}
+\copyrightclause{Copyright for this paper by its authors.
+  Use permitted under Creative Commons License Attribution 4.0
+  International (CC BY 4.0).}
+
+\conference{10th Workshop on Practical Aspects of Automated Reasoning}
+
+\title{Elixir meets TPTP}
+
+\author[1]{Johannes Schuster}[%
+orcid=0009-0003-5339-7216,
+email=johannes.c.schuster@proton.me
+]
+\address[1]{University of Bamberg, Kapuzinerstraße 16, 96047 Bamberg, Germany}
+
+\author[1]{David Fuenmayor}[%
+orcid=0000-0002-0042-4538,
+email=david.fuenmayor@uni-bamberg.de,
+]
+
+\author[1,2]{Christoph Benzmüller}[%
+orcid=0000-0002-3392-3039,
+email=christoph.benzmueller@uni-bamberg.de,
+url=https://page.mi.fu-berlin.de/cbenzmueller/,
+]
+\cormark[1]
+\address[2]{Freie Universität Berlin, Keiserswerther Str. 16-18, 14195 Berlin, Germany}
+
+\cortext[1]{Corresponding author.}
+
+\begin{abstract}
+    Automated theorem provers (ATPs) are powerful tools for formal reasoning, yet integrating them into larger software systems remains cumbersome. Existing interfaces are typically script-based, tightly coupled, or limited in their ability to work across multiple backends in a uniform way. We present AtpClient, an Elixir library that provides a unified, extensible interface to ATP services, with initial support for SystemOnTPTP, StarExec, and Isabelle using TPTP standards. The library exposes a consistent API across backends, abstracting over differences in communication protocols, result formats, and termination semantics. Built on the BEAM virtual machine, AtpClient benefits from robust process isolation and fault-tolerant result polling, making it well-suited to multi-prover experimentation and portfolio solving. We describe the architecture of AtpClient, discuss key design decisions, and reflect on challenges encountered when bridging the gap between ATP services and a functional runtime. AtpClient is open source and available on Hex, the Elixir package registry.
+\end{abstract}
+
+\begin{keywords}
+  Automated Theorem Proving \sep
+  Elixir \sep
+  Livebook \sep
+  SystemOnTPTP \sep
+  Isabelle/HOL
+\end{keywords}
+
+\maketitle
+
+\section{Introduction}
+
+Automated theorem provers (ATPs) remain essential for guaranteed correctness in verification pipelines and have gained renewed relevance as a complement to neural reasoning systems. However, they often lack usability, requiring shell scripts, bespoke wrappers or one-off adapters for integration into larger systems, limiting their potential as plug-and-play solutions for formal verification in multi-agent systems or logic education. Tools like SystemOnTPTP~\citep{sutcliffe2000sotptp} and the \texttt{sledgehammer} tool in the interactive proof assistant Isabelle/HOL~\citep{nipkow2002isabelle} address this by using a standardized language for communicating problems to a collection of provers. While both tools offer a broad portfolio of various ATPs and configuration options, they are ultimately designed for human experts. And even for advanced users, utilizing both systems for evaluating new provers against a ground truth of established results requires the effort of building dedicated evaluation environments for both backends. Furthermore, while virtually all ATPs accept TPTP syntax as input, their output format and termination status is generally not standardized\footnote{Even though the TPTP World~\citep{sutcliffe2024tptpworld} promotes the SZS status ontology, this convention is not respected by all provers, e.g. the first-order theorem prover SPASS~\citep{weidenbach2009spass}.}. Our contribution can be summarized in three bullet points:
+
+\begin{itemize}
+    \item A unified, backend-agnostic API\footnote{\url{https://hexdocs.pm/atp_client/index.html}} across SystemOnTPTP, StarExec, and Isabelle servers, with shared configuration layering and uniform error semantics;
+    \item A normalized result type grounded in the SZS ontology, with prover-specific fallbacks and a structural classifier for Isabelle's \texttt{use\_theories} output;
+    \item A Livebook Smart Cell\footnote{\url{https://hexdocs.pm/kino_atp_client/index.html}} that turns the library into an interactive TPTP IDE, with debounced live linting, hover-card type information and one-click evaluation via SystemOnTPTP.
+\end{itemize}
+
+The remainder of this paper will address some background information about the employed technologies (\cref{sec:2}), discuss the architecture of the AtpClient library (\cref{sec:3}), highlight the advantages of using the Elixir programming language for this process (\cref{sec:4}), explain the Livebook integration (\cref{sec:5}), promote different application scenarios (\cref{sec:6}), reflect on design decisions and challenges (\cref{sec:7}) and close with sections on related (\cref{sec:8}) and future work  (\cref{sec:9}).
+
+\section{Background}\label{sec:2}
+
+\paragraph{Elixir}
+
+Elixir is a functional, dynamically-typed language that runs on the BEAM virtual machine. BEAM provides lightweight preemptive processes (millions can coexist on one machine), supervision trees for fault tolerance, and pattern matching as a primary control-flow construct. These features will be relevant in \cref{sec:4}.
+
+\paragraph{TPTP Syntax Layers and SZS Ontology}
+
+The TPTP language~\cite{sutcliffe2024tptpworld} has long been the standard for encoding problems in first- and higher-order logics, and is widely supported across different ATPs. It defines several syntax layers and corresponding formula annotations. The most important are \texttt{fof} (first-order form) for standard first-order formulas, \texttt{tff} (typed first-order form) which enriches first-order formulas with monomorphic or polymorphic types, e.g.\ for arithmetic, and \texttt{thf} (typed higher-order form), which defines syntax for higher-order logics with various type systems. Terms with these annotations can assume different roles which either introduce new symbols (\texttt{type} or \texttt{definition}), axiomatize statements (\texttt{axiom}), or define a proof goal (\texttt{conjecture}).
+
+The SZS ontology standardizes prover results and status messages. Systems following this ontology log status messages such as ``\texttt{\% SZS status Theorem}'' or ``\texttt{\% SZS status Timeout}.'' Tools like \texttt{sledgehammer} then scan prover outputs for these messages and report solutions.
+
+\paragraph{SystemOnTPTP, StarExec, and Isabelle Backends}
+
+The web interface of SystemOnTPTP~\cite{sutcliffe2000sotptp} allows users to query various state-of-the-art ATPs with native integration of the TPTP problem library. It is also addressable programmatically\footnote{via the URL \url{https://tptp.org/cgi-bin/SystemOnTPTPFormReply}}, accepting HTTP requests that mirror the functionality of the web interface. Programmatic access enables, for instance, listing all available systems or running selected systems on a problem, and forms the core of our SystemOnTPTP API.
+
+StarExec~\cite{stump2017starexec} is at its heart a job scheduler for benchmarking provers, and relies on Apache Tomcat to run as a web service. Its goals involve maintaining benchmark libraries, providing a unified infrastructure for ATP competitions, and allowing researchers to evaluate their own systems against benchmarks. Self-hosted instances can in principle also be utilized for evaluating problems when trusted logic solvers are deployed.
+
+The interactive theorem prover Isabelle/HOL~\cite{nipkow2002isabelle} ships with a TCP server that exposes the full functionality of the proof assistant. This allows for calls to established tools such as \texttt{sledgehammer}, which queries a portfolio of trusted provers for proof search, or the finite model-finder \texttt{nitpick}. The Elixir library \texttt{isabelle\_elixir}\footnote{\url{https://hexdocs.pm/isabelle_elixir/index.html}} additionally streamlines session management and the evaluation of Isabelle theories.
+
+\section{Architecture of AtpClient}\label{sec:3}
+
+AtpClient is designed as an API for truth grounding across different application scenarios. As such it has three responsibilities: provide a unified API surface to the user, enable layered configuration supporting custom deployments, and handle polling and termination semantics across backends.
+
+\paragraph{Result Normalization}
+
+\begin{figure}[t]
+\centering
+\begin{elixir}
+problem = "thf(ext,conjecture, ![F:$i>$i, G:$i>$i]: ((![X:$i]: ((F @ X) = (G @ X))) => (F = G)))."
+AtpClient.SystemOnTptp.query_system(problem, "Leo-III---1.7.20")
+# => {:ok, :thm}
+AtpClient.SystemOnTptp.query_selected_systems(problem, ["cvc5---1.3.0", "Vampire---5.0"])
+# => {:ok, [{"cvc5---1.3.0", {:ok, :thm}}, {"Vampire---5.0", {:ok, :thm}}]}
+problem_isabelle = """
+theory Example imports Main begin
+theorem "(! X. F X = G X) --> F = G" sledgehammer oops
+end
+"""
+AtpClient.Isabelle.query(problem_isabelle, my_server_info)
+# => {:ok, {:ok, :thm}}
+\end{elixir}
+\caption{High-level showcase of the API and the unified results.}
+\label{fig:unified-api}
+\end{figure}
+
+\begin{table}[t]
+    \centering
+    \caption{Mapping of SZS statuses to our \texttt{atp\_result}}
+    \label{tab:szs-mapping}
+    \begin{tabular}{l l}
+        \toprule
+        SZS Status & \texttt{atp\_result} \\
+        \midrule        
+        Theorem & \texttt{\{:ok, :thm\}} \\
+        Unsatisfiable & \texttt{\{:ok, :thm\}} \\
+        CounterSatisfiable & \texttt{\{:ok, :csat\}} \\
+        Satisfiable & \texttt{\{:ok, :csat\}} \\
+        GaveUp & \texttt{\{:ok, :gave\_up\}} \\
+        Unknown & \texttt{\{:ok, :gave\_up\}} \\
+        Timeout & \texttt{\{:ok, :timeout\}} \\
+        ResourceOut & \texttt{\{:ok, :out\_of\_resources\}} \\
+        MemoryOut & \texttt{\{:ok, :out\_of\_resources\}} \\
+        Forced & \texttt{\{:ok, :interrupted\}} \\
+        User & \texttt{\{:ok, :interrupted\}} \\
+        Inappropriate & \texttt{\{:error, :malformed\_input\}} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+We provide a unified result type \texttt{atp\_result} across all backends, defined as a tuple of two fields: an error status (\texttt{:ok} or \texttt{:error}), following Elixir conventions, and the inferred problem status. The problem status is based on the SZS ontology and is one of \texttt{:thm}, \texttt{:csat}, \texttt{:sat}\footnote{deviation from SZS ontology to support \texttt{nitpick[satisfy]} calls}, \texttt{:timeout}, \texttt{:out\_of\_resources}, \texttt{:gave\_up}, or \texttt{:interrupted}. In the error case, the second element of the returned tuple represents the reason for the error (e.g.\ \texttt{:malformed\_input} or HTTP errors). A high-level demonstration of this API is shown in \cref{fig:unified-api}.
+
+To extract this result from TPTP-style provers, we define a mapping of the SZS ontology to our result type, and use prover-specific fallbacks for systems that use other formats. \Cref{tab:szs-mapping} describes the mapping for the standardized cases. Following the approach used in \texttt{sledgehammer}'s source code, we also define custom mappings for status messages from Alt-Ergo~\cite{conchon2018altergo}, E~\cite{schulz2019e}, SPASS~\cite{weidenbach2009spass}, Vampire~\cite{kovacs2013first}, and Waldmeister~\cite{hillenbrand1997waldmeister}. These systems either do not use the SZS ontology at all, or fall back to custom messages for some error and termination cases.
+
+For the Isabelle backend, we are especially interested in results from \texttt{sledgehammer}, \texttt{nitpick}, and internal proof procedures like \texttt{auto}. The API for Isabelle is designed to evaluate a single proof problem, while supporting multiple tool calls within that problem. This allows, for example, a combination of \texttt{nitpick} for checking counter-satisfiability, \texttt{sledgehammer} for calling a portfolio of provers, and \texttt{nitpick[satisfy]} to check satisfiability. Concrete design decisions for the Isabelle backend will be discussed in \cref{sec:7}. Result extraction matches on the same tool outputs that the Isabelle GUI would display to the user. For multiple tool calls a strict precedence applies: counter-satisfiability, provability, and satisfiability are reported in that order before other status messages.
+
+Result interpretation can be disabled by passing \texttt{raw: true} to the function calls. This returns the raw output of the queried systems, e.g.\ including inference steps.
+
+\paragraph{Configuration and Termination Semantics}
+
+We opt for layered and dynamic configuration of the different backends, as it promotes flexibility and a clear structure for custom backends. Users can either specify their targeted infrastructure in a configuration file, or pass this information in the API calls. The SystemOnTPTP integration works out of the box, while Isabelle and StarExec require configuration (URLs, authentication, etc.). Configuring Isabelle requires some care, since the Isabelle server expects concrete \texttt{.thy} files rather than raw strings. A directory shared by client and server must therefore be specified. This typically includes the path from the client process to this directory (\texttt{local\_dir}) and the path from the server side (\texttt{isabelle\_dir}), which becomes the \texttt{master\_dir} of the Isabelle server.
+
+Calls to SystemOnTPTP are synchronous HTTP requests and do not require special handling. Both the Isabelle and StarExec backends, however, need status polling to make the API synchronous, each with its own quirks. The Isabelle server returns a pseudo-error message ``nothing in buffer'' that must be ignored until an actual result is sent. For StarExec, a completion predicate can be configured by the user. The BEAM facilitates enforcing timeouts with \mintinline{elixir}{System.monotonic_time/1}, which provides a monotonic clock for computing deadlines and is unaffected by wall-clock adjustments.
+
+\section{Advantages of Elixir}\label{sec:4}
+
+The choice of Elixir for AtpClient is motivated by three properties of the BEAM runtime that map naturally onto the requirements of multi-backend ATP integration: lightweight concurrency, fault isolation, and pattern matching as a primary control-flow construct.
+
+\paragraph{Concurrency for Portfolio Solving}
+
+Querying multiple provers on a single problem is the canonical form of ATP usage in benchmarking and proof exploration. On the BEAM, each prover query naturally lives in its own preemptively scheduled process, so a portfolio call reduces to a single combinator.
+
+\begin{elixir}
+problem = "thf(ext,conjecture, ![F:$i>$i, G:$i>$i]: ((![X:$i]: ((F @ X) = (G @ X))) => (F = G)))."
+AtpClient.SystemOnTptp.list_provers()
+|> Task.async_stream(
+     fn sys -> {sys, AtpClient.SystemOnTptp.query_system(problem, sys)} end,
+     max_concurrency: 16, timeout: 30_000, on_timeout: :kill_task)
+|> Enum.find(fn {_sys, res} -> match?({:ok, {:ok, :thm}}, res) end)
+\end{elixir}
+
+\noindent A straggling prover is killed at the deadline without affecting its peers, and the result of the first successful proof can be returned while the others are still running.
+
+\paragraph{Fault Isolation}
+
+External provers may segfault, return malformed output, hang on ill-formed input, or simply disappear after network issues. The BEAM's ``let it crash'' philosophy, combined with supervision trees, lets AtpClient treat each backend interaction as a process that may fail without taking the host application with it. A long-lived Isabelle session that dies during a benchmark run is restarted by its supervisor, and a single failed HTTP call to SystemOnTPTP propagates as an \mintinline{elixir}|{:error, reason}| value rather than as an exception that the caller must remember to catch.
+
+\paragraph{Pattern Matching as Parser}
+
+Both the SZS classifier (\cref{tab:szs-mapping}) and the Isabelle status decoder are at heart big case analyses on heterogeneous data. Elixir's pattern matching turns these into compact, syntactically checked tables. The classifier for Isabelle's \texttt{use\_theories} output, for example, dispatches on the structure of the finished payload (presence of \texttt{:failed}, shape of \texttt{nodes}, contents of textual messages) in a single \texttt{cond} expression. Adding a new prover-specific fallback just means adding an entry to a list, not extending an imperative parser.
+
+Together, these features make the library small (under 2{,}000 lines of Elixir) while remaining robust enough to drive long-running multi-prover experiments. The Livebook integration described in \cref{sec:5} follows from the same runtime. A Smart Cell is a live Elixir process sharing the notebook's BEAM node, so the same concurrency primitives that power portfolio solving also drive the debounced live-linting feedback loop in the editor.
+
+\section{Livebook Integration}\label{sec:5}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.85\linewidth]{screenshot_smart_cell.png}
+    \caption{Screenshot of the SystemOnTPTP Smart Cell inside a Livebook. It provides quick evaluation with the selected prover on the SystemOnTPTP server, syntax highlighting for the TPTP language, debounced hybrid syntax checking (locally and via TPTP4X), tooltips on hover, colored brackets and configuration options.}
+    \label{fig:smart_cell}
+\end{figure}
+
+Elixir's Livebook lets users define their own Smart Cells, which we use to implement a code editor for TPTP with SystemOnTPTP backend integration. This is available to every Livebook user via the open-source library KinoAtpClient\footnote{\url{https://hexdocs.pm/kino_atp_client/index.html}}. Our Smart Cell is designed as an improvement on the SystemOnTPTP web interface, for users who want to access external provers or to create and edit TPTP problems. A screenshot is provided in \cref{fig:smart_cell}.
+
+The Smart Cell uses the Monaco editor\footnote{\url{https://microsoft.github.io/monaco-editor/}} to implement syntax highlighting for the full TPTP language. This feature relies on a tokenizer with regular expressions matching the keywords and symbols of the TPTP language\footnote{The full BNF for the TPTP language is defined under \url{https://tptp.org/UserDocs/TPTPLanguage/SyntaxBNF.html}}. Furthermore, it provides live linting via a two-tier \mintinline{elixir}{AtpClient.Lint} pipeline. It combines a cheap local structural checker with a request to TPTP4X\footnote{\url{https://github.com/TPTPWorld/TPTP4X}} (the canonical TPTP syntax checker and pretty-printer from the TPTP World), routed via the SystemOnTPTP backend for harder cases. Syntax checking is invoked only after a brief period of inactivity, to avoid overwhelming the backend. Monaco markers show issues in the code based on these checks (e.g., underlining an unknown formula role). When users hover over built-in symbols of the TPTP language, the editor displays a hover card with explanatory text, which is especially valuable for novice users. During linting, the system also collects user-defined symbols. Together with built-ins, these will show up in a completion menu when the user starts typing. Lastly, the output panel at the bottom of the cell shows the raw system output rather than our normalized return type, to avoid making assumptions about the specific use case.
+
+Using Livebook over Jupyter Notebooks in this scenario offers various advantages. Jupyter kernels are opaque, whereas a Smart Cell is a live Elixir process sharing the notebook's BEAM node. Hover data, lint results, and solver output flow over the same \mintinline{javascript}|ctx.pushEvent| / \mintinline{elixir}{broadcast_event} channel, and cells can introspect each other's bindings. Jupyter's \texttt{ipywidgets} are far less powerful. Livebook is also superior for reactivity and reproducibility. It tracks cell dependencies and pins package versions through a one-line \mintinline{elixir}|Mix.install| directive. A notebook is a single \texttt{.livemd} Markdown file that is diff-friendly in git, unlike the JSON representation with embedded base64 outputs used by Jupyter. Furthermore, Smart Cells are first-class UI surfaces, not just a widget on top of a code cell. Each Smart Cell has its own serialized attributes and a \mintinline{elixir}{to_source/1} function that generates the Elixir code it represents. This gives the user a powerful GUI for modifying data and logic. Jupyter does not have an equivalent concept.
+
+\section{Application Scenarios}\label{sec:6}
+
+Our envisioned use cases involve a mix of teaching, research experimentation, and embedding ATP services in larger Elixir applications.
+
+\paragraph{Logic Education}
+
+The SystemOnTPTP Smart Cell turns a Livebook into a zero-install TPTP IDE. Students get syntax highlighting, live linting, hover documentation for built-ins, and one-click access to a portfolio of state-of-the-art provers via SystemOnTPTP, all from inside a browser. The same notebook can interleave explanatory Markdown, worked examples, and exercises, and is shared as a single \texttt{.livemd} file.
+
+\paragraph{Portfolio and Comparison Experiments}
+
+Researchers comparing solver performance across a set of problems typically write ad-hoc shell scripts that handle authentication, output parsing, and timeout bookkeeping. With AtpClient, the same experiment is a few lines of Elixir.
+
+\begin{elixir}
+for problem <- benchmarks, sys <- systems, into: %{} do
+  {{problem.id, sys}, AtpClient.SystemOnTptp.query_system(problem.body, sys)}
+end
+\end{elixir}
+
+\noindent Because the result type is uniform across backends, a problem can be sent to a prover on SystemOnTPTP and the same problem solved as an Isabelle theory in a single experiment, without post-processing the results.
+
+\paragraph{Embedding in Elixir Systems}
+
+Elixir is a popular choice for distributed and web-facing systems, typically via the Phoenix framework\footnote{\url{https://www.phoenixframework.org/}}. AtpClient is designed to be embedded in such systems. A Phoenix LiveView application could expose a TPTP editor to end users, dispatch problems to a prover portfolio in the background, and stream results back to the browser as they arrive, all without leaving the BEAM. The same applies to multi-agent systems where individual agents need to discharge proof obligations against an external solver.
+
+\paragraph{Isabelle-Driven Proof Exploration}
+
+The Isabelle session API exposes \mintinline{elixir}{open_session/1}, \mintinline{elixir}{prove_theory/4}, and \mintinline{elixir}{close_session/1} as separate operations, so that many theories can be checked against a single long-lived \texttt{HOL} session without paying the startup cost each time. This is particularly useful in interactive workflows where a \texttt{nitpick}/\texttt{sledgehammer}/\texttt{auto} cycle is repeated tens or hundreds of times during the development of a formalization.
+
+\section{Design Decisions and Challenges}\label{sec:7}
+
+\paragraph{Path Translation}
+
+The Isabelle server cannot accept the raw theory text. Theories must exist as \texttt{.thy} files on a filesystem visible to both the client and the server. When the two run on the same machine this is invisible to the user, but in containerised or remote setups the BEAM node and the Isabelle process see the shared directory under different paths. We chose not to translate paths automatically, since that would require encoding container-vs-host conventions into the library, and instead expose two configuration keys, \texttt{local\_dir} and \texttt{isabelle\_dir}. The latter is passed verbatim to the server as \texttt{master\_dir}. When Isabelle reports ``Cannot load theory file'', AtpClient enriches the error with both paths side by side, so the user can see where the mismatch lies.
+
+\paragraph{Single-Formula Scope for Isabelle}
+
+The Isabelle API exposes one proof problem per call. A theory file contains a single goal, optionally discharged through a sequence of tool invocations such as \texttt{nitpick}, \texttt{sledgehammer}, and \texttt{auto}. We deliberately do not surface multi-lemma theories, locale machinery, or structured \texttt{Isar} proof state, even though the underlying \texttt{isabelle\_elixir} package would permit it. AtpClient is positioned as a truth-grounding service for host applications such as portfolio solving, benchmark evaluation, or embedding in larger Elixir systems, rather than as a programmatic Isabelle IDE. Restricting the API to single-formula problems keeps the result type uniform across backends, since a SystemOnTPTP query and an Isabelle query both yield exactly one \texttt{atp\_result}. It also avoids committing the library to a partial reimplementation of Isabelle's proof-document model. Users who need richer Isabelle interaction can either chain multiple \texttt{prove\_theory/4} calls within a single session, or drop down to \texttt{isabelle\_elixir} directly.
+
+\paragraph{Two-Tier Linting}
+
+Live syntax checking on every keystroke is incompatible with a round-trip to TPTP4X over HTTP. We therefore split the linter into two tiers, a pure-Elixir structural checker that runs in microseconds and catches the common errors (unmatched brackets, unknown role, missing terminator), and an authoritative TPTP4X pass that runs only when the local pass is clean. Local errors suppress the remote pass to avoid stacking a TPTP4X error on top of an obvious local issue, while local warnings do not. This keeps the editor responsive while still giving users the benefit of TPTP4X's full syntactic analysis.
+
+\paragraph{Imperfect SZS Normalization}
+
+Although the SZS ontology gives a principled target for normalization, in practice several mainstream provers either ignore it for some termination paths (E, Vampire) or never emit it at all (SPASS). We follow the same compromise as \texttt{sledgehammer}'s source code. We maintain a small table of prover-specific output patterns alongside the SZS table, and accept that the table will need new entries as new provers are added. This normalization can be bypassed with \texttt{raw: true}, which returns the unprocessed prover output for callers that need to disagree with our classification.
+
+\paragraph{StarExec Validation Status}
+
+The StarExec backend is implemented against the documented form-authentication and JSON-job endpoints, but we have not been able to validate it end-to-end against a live deployment during development. The API surface, cookie handling, and polling logic are in place, but callers should treat the integration as an early prototype and are warmly invited to report issues against the public repository.
+
+\section{Related Work}\label{sec:8}
+
+The most direct point of comparison is the source of SZS-handling code in Isabelle's \texttt{sledgehammer}~\citep{blanchette2011sledgehammer}, which we explicitly draw on for the prover-specific output mappings in \cref{sec:3}. Where \texttt{sledgehammer} is tightly integrated with Isabelle, AtpClient generalizes the same normalization strategy to arbitrary host applications. Why3~\citep{filliatre2013why3} provides a multi-prover backend with sophisticated transformations between proof obligations and prover-specific input formats. AtpClient is narrower in scope (no goal transformation), but supports a different class of host language and integrates an interactive notebook front-end.
+
+On the editor side, the closest existing tool is the TPTP Editor extension for VS Code~\citep{li2024tptpeditor}, which provides syntax highlighting for \texttt{.p} and \texttt{.s} files, and a webview front-end to SystemOnTPTP. KinoAtpClient differs in two main respects. First, live linting goes beyond regex tokenization through a two-tier pipeline that combines a structural checker with TPTP4X. Second, the editor lives inside a Livebook notebook, where it shares runtime state with surrounding cells and enables programmatic experiment composition around the same problem.
+
+\section{Conclusion and Future Work}\label{sec:9}
+
+We have presented AtpClient, an Elixir library that unifies access to SystemOnTPTP, StarExec, and Isabelle behind a single result type grounded in the SZS ontology, and KinoAtpClient, a Livebook Smart Cell that turns the library into an interactive TPTP editor with live linting and one-click prover invocation. The combination demonstrates that a functional, BEAM-based runtime is a surprisingly good fit for multi-backend ATP integration. Portfolio solving becomes a one-liner, fault isolation comes for free, and the same notebook surface that drives student exercises also drives research experimentation.
+
+Future work falls along three lines. First, end-to-end validation of the StarExec backend against a live deployment. Second, additional backends, including bridges to non-TPTP provers. Third, the present infrastructure paves the way for a next-generation interactive proof assistant on the BEAM. We do not intend to wrap Isabelle's proof-document model. Instead, we see two more promising directions: a TPTP-native proof assistant that builds structured proof terms on top of the same backends AtpClient already supports, or the design of a new specification language better suited to programmatic, multi-backend reasoning. In either direction, AtpClient's uniform result type and Livebook integration provide a foundation for tool-use by LLM-based multi-agent systems, where individual agents can dispatch proof obligations, model-finding queries, and counter-satisfiability checks to a portfolio of provers and reason over the unified responses.
+
+
+\section*{Declaration on Generative AI}
+
+During the preparation of this work, the authors used Claude Opus 4.7 in order to: Grammar and spelling check as well as to support code generation in the corresponding prototype and drafting of section content. After using this tool, the authors reviewed and edited the content as needed and takes full responsibility for the publication’s content.
+
+\bibliography{main}
+
+\end{document}

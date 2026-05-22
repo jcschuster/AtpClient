@@ -1,0 +1,124 @@
+PAAR'26 Paper #16 Reviews and Comments
+===========================================================================
+Paper #16 Elixir meets TPTP
+
+
+Review #16A
+===========================================================================
+
+Overall merit
+-------------
+3. Weak accept
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+Paper summary
+-------------
+The paper introduces an elixir package for accessing SystemOnTPTP and Isabelle
+interactively via an API. The inputs are mostly standard TPTP / Isabelle syntax with only the results mapping the TPTP ontology and Isabelle results into ATP results. The use of Elixir allows for parallelism and easier integration into an interactive lifebook.
+w
+
+Comments for authors
+--------------------
+The paper is well written and is in the scope of PAAR.
+
+My main issue would be with the depth of the contribution.
+Many reasoning systems are already able to use multiple provers,
+typically directly (e.g. the cited Why3). The use of system on
+tptp does add one intermediate layer, but the only advantage is
+that the TPTP syntax is passed as a string rather than in a file.
+This is not a very big difference. Similarly, when it comes to
+Isabelle, as it already provides RPC via a socket, the paper's
+contribution is again little - the string is passed there and
+the output is parsed into one of the states, without all the
+original information.
+
+One major error:
+
+In Figure 1, the Isabelle example calls sledgehammer but then withdraws the theorem with an 'oops'. However, the system answers with 'thm', this is clearly a problem.
+
+
+
+Review #16B
+===========================================================================
+
+Overall merit
+-------------
+4. Accept
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+Paper summary
+-------------
+This paper presents AtpClient, an Elixir library that provides a unified API for querying automated theorem provers (ATPs) via three backends: SystemOnTPTP, StarExec, and Isabelle/HOL. The library normalises prover results into a common type grounded in the SZS ontology and offers prover-specific fallbacks for systems that do not comply. Alongside it, KinoAtpClient provides a Livebook Smart Cell functioning as an interactive TPTP editor with live two-tier linting, hover documentation, and one-click prover invocation. The library is open source and immediately available on Hex.
+
+This is a timely and valuable contribution. Elixir's BEAM runtime is increasingly adopted for building AI agent infrastructure and LLM orchestration pipelines, contexts where reliable, concurrent communication with external reasoning tools is exactly the kind of problem BEAM excels at. Bringing ATP access into this ecosystem is a natural and well-motivated step. The architecture and design choices are sound: the layered configuration system, the SZS-grounded result normalisation with prover-specific fallbacks, and the use of OTP supervision for fault-tolerant backend polling all reflect good Elixir practice and make the library genuinely suitable for production use in larger systems.
+
+There are some issues that should be addressed before or in the final version: (1) Livebook is not introduced for readers unfamiliar with it, and the comparison with Jupyter is one-sided, the adoption cost of switching to an Elixir-native notebook is not acknowledged; (2) the `:sat` deviation from the SZS ontology is noted only in a footnote and deserves a brief explanation; (3) the StarExec backend is listed as a primary contribution in §1 but described as an unvalidated prototype in §7, the two should be made consistent; (4) the default SystemOnTPTP endpoint URL is not loaded automatically, causing silent failure on first install without documentation of the required configuration; (5) `list_provers/0` returns an empty list immediately after startup due to an async race condition, with no indication to the caller and no mention of the synchronous fix in the docs; (6) `online-atps` (Haskell, Prieto) and related Haskell ATP tools are not cited in §8, despite partially overlapping with the SystemOnTPTP contribution claim; (7) the SZS fallback coverage is not quantified; (8) Figure 2's caption omits OS and browser context.
+
+Comments for authors
+--------------------
+Livebook needs introduction; Jupyter comparison is one-sided (Section 5)
+The paper assumes familiarity with Livebook but most ATP researchers know Jupyter. A brief introduction explaining what Livebook is and how Smart Cells differ from regular notebook cells is needed. The comparison with Jupyter also omits the adoption cost: using this tool requires learning Elixir. Please clarify whether KinoAtpClient is usable as a black-box GUI without writing Elixir.
+
+:sat deviation from SZS is unexplained (Section 3, footnote 6)
+Footnote 6 mentions a deviation from the SZS ontology for :sat but gives no explanation. Since satisfiability is a distinct outcome in ATP workflows, please clarify what the deviation is and whether it affects SystemOnTPTP results or only the Isabelle backend.
+
+Default config not loaded automatically (Section 4)
+The default SystemOnTPTP URL is declared in mix.exs but is not loaded into the OTP application env. On first install, calls silently return {:unrecognized_output, ""} with no error. Either load the defaults at application start or document the required config.exs entry in the README.
+
+list_provers/0 returns [] on startup (Section 3)
+The prover list is populated asynchronously, so list_provers/0 returns an empty list immediately after startup. The synchronous fix (refresh_systems_list/0) is not documented. Please add a note in the docs.
+
+online-atps not cited (Section 8)
+The Haskell online-atps tool (Prieto, https://github.com/jonaprieto/online-atps) provides a similar interface to SystemOnTPTP and should be cited and briefly compared in the related work. The aztek/atp and tptp Haskell packages are also worth mentioning.
+
+
+
+Review #16C
+===========================================================================
+
+Overall merit
+-------------
+3. Weak accept
+
+Reviewer expertise
+------------------
+3. Knowledgeable
+
+Paper summary
+-------------
+The paper describes the library AtpClient, which provides a uniform interface
+for invoking ATP solvers and Isabelle. ATP provers can be accessed via
+SystemOnTPTP, Isabelle through a TCP interface, and support for evaluation on
+StarExec is currently under development. The library is implemented in the
+Elixir programming language and designed to run on the BEAM virtual machine.
+Using this library, the authors develop a simple TPTP editor capable of calling
+solvers and displaying their results. The editor is intended for educational
+use in logic classes, while the library itself can also be used for portfolio
+evaluation.
+
+Regarding portfolio evaluation, the main weakness is the currently untested
+support for StarExec. This significantly limits the practical applicability of
+the library, since large-scale evaluation through SystemOnTPTP alone is not
+feasible.
+
+I recommend accepting the paper, provided that the StarExec functionality is
+tested before the conference.
+
+Comments for authors
+--------------------
+1. Normalize figure and table references, like "fig. 1" => "Figure 1", etc.
+
+2. It would be nice to also support calls locally installed solvers so that one
+can run evaluation on a local machine.
+
+3. Also tptp4X speed can be improved by running it locally.
+
+4. One could also want more detailed results from the solvers, e.g., the
+runtime, proof length, proof clauses, and other solver-specific proof
+statistics.

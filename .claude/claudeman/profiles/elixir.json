@@ -1,0 +1,16 @@
+{
+  "name": "elixir",
+  "description": "Elixir development",
+  "features": {
+    "ghcr.io/rabdulwahhab/devcontainer-features/erlang-asdf:1": {
+      "version": "latest"
+    },
+    "ghcr.io/rabdulwahhab/devcontainer-features/elixir-asdf:1": {
+      "version": "latest"
+    },
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "packages": "nodejs,npm,git,curl,zsh,sudo,fzf,ripgrep,fd-find,ncurses-base"
+    }
+  },
+  "postCreateCommand": "npm install --global @ast-grep/cli"
+}
