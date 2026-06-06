@@ -65,7 +65,7 @@ defmodule AtpClient.Isabelle do
   alias AtpClient.Config
   alias AtpClient.Isabelle.Session
   alias AtpClient.ResultNormalization
-  alias IsabelleClient.Task, as: IsabelleTask
+  alias IsabelleClient.Task
 
   @typedoc """
   The result of a call to `prove_theory/4` or `query/3`:
@@ -125,7 +125,7 @@ defmodule AtpClient.Isabelle do
       {:ok, started_client, _task} ->
         {:ok, %Session{client: started_client, config: config}}
 
-      {:error, %IsabelleTask{} = task} ->
+      {:error, %Task{} = task} ->
         _ = safe_close(client)
         {:error, {:session_start_failed, task}}
 
@@ -150,7 +150,7 @@ defmodule AtpClient.Isabelle do
     :ok
   end
 
-  defp safe_stop_session(%IsabelleClient{session_id: nil}), do: :ok
+  defp safe_stop_session(%IsabelleClient{sessions: []}), do: :ok
 
   defp safe_stop_session(%IsabelleClient{} = client) do
     try do
@@ -207,22 +207,18 @@ defmodule AtpClient.Isabelle do
 
     result =
       with :ok <- File.mkdir_p(local_dir),
-           :ok <-
-             File.write(Path.join(local_dir, theory_name <> ".thy"), theory_text),
-           {:ok, %IsabelleTask{result: payload}} <-
+           :ok <- File.write(Path.join(local_dir, theory_name <> ".thy"), theory_text),
+           {:ok, %Task{result: payload}} <-
              IsabelleClient.use_theories(
                session.client,
-               %{
-                 "theories" => [theory_name],
-                 "master_dir" => ensure_trailing_slash(isabelle_dir)
-               },
+               %{"theories" => [theory_name], "master_dir" => isabelle_dir},
                timeout_ms
              ) do
         if raw?,
           do: {:ok, payload},
           else: {:ok, ResultNormalization.interpret_isabelle_result(payload)}
       else
-        {:error, %IsabelleTask{status: :failed, result: payload, notes: notes}} ->
+        {:error, %Task{status: :failed, result: payload, notes: notes}} ->
           {:error, {:isabelle_failed, payload, notes}}
 
         {:error, _} = err ->
@@ -276,9 +272,5 @@ defmodule AtpClient.Isabelle do
       {:error, _} = err ->
         err
     end
-  end
-
-  defp ensure_trailing_slash(path) do
-    if String.ends_with?(path, "/"), do: path, else: path <> "/"
   end
 end

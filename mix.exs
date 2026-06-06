@@ -57,7 +57,7 @@ defmodule AtpClient.MixProject do
     [
       {:jason, "~> 1.4"},
       {:req, "~> 0.5"},
-      {:isabelle_elixir, "~> 0.2"},
+      {:isabelle_elixir, "~> 0.3"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
