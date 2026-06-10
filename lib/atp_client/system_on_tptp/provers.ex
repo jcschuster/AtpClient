@@ -3,10 +3,11 @@ defmodule AtpClient.SystemOnTptp.Provers do
   Stateful `Agent` that caches the list of prover identifiers currently
   advertised by a SystemOnTPTP deployment.
 
-  The initial refresh is triggered in the background once the agent starts, so
-  application boot is never blocked on an HTTP call. Callers can force a
-  synchronous refresh via `refresh_systems_list/0` before using
-  `get_systems_list/0`.
+  The initial refresh is triggered in the background once the agent starts.
+  `get_systems_list/0` blocks on the first call until the initial refresh
+  completes or `refresh_timeout_ms` elapses. Subsequent calls return the
+  cached list immediately. Callers can force a re-fetch via
+  `refresh_systems_list/0`.
   """
   use Agent
 
@@ -14,88 +15,58 @@ defmodule AtpClient.SystemOnTptp.Provers do
 
   alias AtpClient.Config
 
-  # The "ListSystems" request also includes type checkers etc.
-  # We keep a whitelist for filtering.
-  @known_systems [
-    "Alt-Ergo",
-    "Beagle",
-    "Bliksem",
-    "ConnectPP",
-    "CSE_E",
-    "CSI_Enigma",
-    "CLI_V",
-    "cvc5",
-    "cvc5-SAT",
-    "Darwin",
-    "DarwinFM",
-    "DLash",
-    "Drodi",
-    "DT2H2X",
-    "Duper",
-    "E",
-    "E-Darwin",
-    "E-SAT",
-    "Enigma",
-    "EQP",
-    "Equinox",
-    "Etableau",
-    "FEST",
-    "G4Plus",
-    "Geo-III",
-    "GKC",
-    "Goeland",
-    "GrAnDe",
-    "HOLyHammer",
-    "hopCoP",
-    "Imogen",
-    "Infinox",
-    "iProver",
-    "iProver-Eq",
-    "iProver-SAT",
-    "iProverMo",
-    "KSP",
-    "Lash",
-    "lazyCoP",
-    "leanCoP",
-    "LEO-II",
-    "Leo-III",
-    "LisaTT",
-    "Mace4",
-    "MeadMax",
-    "Matita",
-    "Metis",
-    "Moca",
-    "MoMo",
-    "Muscadet",
-    "nanoCoP",
-    "Otter",
-    "Paradox",
-    "Princess",
-    "Prover9",
-    "PyRes",
-    "RPx",
-    "Satallax",
-    "SATCoP",
-    "Scavenger",
-    "SnakeForV",
-    "SnakeForV-SAT",
-    "SNARK",
-    "SPASS+T",
-    "SPASS",
-    "ToFoF",
-    "ToFoF-SAT",
-    "Toma",
-    "Twee",
-    "Vampire",
-    "Vampire-FMo",
-    "Vampire-LIT",
-    "Vampire-SAT",
-    "Vampire-SATLIT",
-    "Waldmeister",
-    "Z3",
-    "Zenon",
-    "ZenonModulo",
-    "Zipperpin"
+  # The "ListSystems" request returns all online systems, including format
+  # converters, type-checking modes, statistics tools, and other non-prover
+  # infrastructure. We exclude those by name prefix; everything else is
+  # treated as a prover (including model finders, SAT solvers, etc.).
+  @excluded_systems [
+    "ACE2TPTP",
+    "AGMV",
+    "AGInTRater",
+    "ATFLET",
+    "BNFParser",
+    "BNFParserTree",
+    "CheckTyping",
+    "CHewTPTP",
+    "cvc5-STC",
+    "Dedukti",
+    "DFG2TPTP",
+    "ECNF",
+    "EGround",
+    "GDV",
+    "GDV-LP",
+    "GetSymbols",
+    "Horn2UEQ",
+    "IDV",
+    "IIV",
+    "InterpretByATP",
+    "Isabelle",
+    "LADR2TPTP",
+    "LambdaPi",
+    "Leo-III-STC",
+    "Monotonox",
+    "Monotonox-2CNF",
+    "Monotonox-2FOF",
+    "Otter2TPTP",
+    "PProofSummary",
+    "ProblemStats",
+    "ProofStats",
+    "ProofSummary",
+    "SC-TPTP",
+    "SInE",
+    "SInE-LTB",
+    "SInE-XDB",
+    "SMT2TPTP",
+    "SolutionStats",
+    "SPCForProblem",
+    "TPII",
+    "TPTP2JSON",
+    "TPTP2X",
+    "TPTP4X",
+    "VCNF",
+    "VSelect",
+    "Why3-FOF",
+    "Why3-TF0"
   ]
 
   @doc """
@@ -104,9 +75,8 @@ defmodule AtpClient.SystemOnTptp.Provers do
   """
   @spec start_link(any()) :: {:ok, pid()} | {:error, any()}
   def start_link(_args) do
-    with {:ok, pid} <- Agent.start_link(fn -> [] end, name: __MODULE__) do
+    with {:ok, pid} <- Agent.start_link(fn -> nil end, name: __MODULE__) do
       Task.start(&refresh_or_warn/0)
-
       {:ok, pid}
     end
   end
@@ -118,17 +88,47 @@ defmodule AtpClient.SystemOnTptp.Provers do
 
       {:error, reason} ->
         Logger.warning("AtpClient.TptpSystems: initial refresh failed: #{inspect(reason)}")
+        Agent.update(__MODULE__, fn
+          nil -> []
+          existing -> existing
+        end)
     end
   end
 
   @doc """
-  Returns a cached list of the available provers (e.g. "cvc5---1.3.0").
+  Returns the list of available provers (e.g. `"cvc5---1.3.0"`).
 
-  Returns `[]` until the first successful refresh completes.
+  Blocks on the first call until the background refresh triggered at startup
+  completes or `refresh_timeout_ms` elapses; subsequent calls return the
+  cached list immediately.
   """
   @spec get_systems_list() :: [String.t()]
   def get_systems_list do
-    Agent.get(__MODULE__, & &1)
+    case Agent.get(__MODULE__, & &1) do
+      nil ->
+        timeout = Config.fetch(:sotptp, :refresh_timeout_ms, 15_000)
+        wait_until_loaded(System.monotonic_time(:millisecond) + timeout)
+
+      list ->
+        list
+    end
+  end
+
+  defp wait_until_loaded(deadline) do
+    case Agent.get(__MODULE__, & &1) do
+      nil ->
+        remaining = deadline - System.monotonic_time(:millisecond)
+
+        if remaining > 0 do
+          Process.sleep(min(50, remaining))
+          wait_until_loaded(deadline)
+        else
+          []
+        end
+
+      list ->
+        list
+    end
   end
 
   @doc """
@@ -144,15 +144,19 @@ defmodule AtpClient.SystemOnTptp.Provers do
     url = Config.fetch!(:sotptp, :url, opts)
     timeout_ms = Config.fetch(:sotptp, :refresh_timeout_ms, 15_000, opts)
 
-    payload =
-      URI.encode_query(%{
-        "SubmitButton" => "ListSystems",
-        "ListStatus" => "READY",
-        "QuietFlag" => "-q0",
-        "NoHTML" => "1"
-      })
-
-    case Req.post(url, body: payload, receive_timeout: timeout_ms) do
+    case Req.post(url,
+           form: %{
+             "SubmitButton" => "ListSystems",
+             "ListStatus" => "READY",
+             "QuietFlag" => "-q0",
+             "NoHTML" => "1"
+           },
+           finch: AtpClient.TptpFinch,
+           compressed: false,
+           receive_timeout: timeout_ms,
+           retry: :transient,
+           retry_delay: fn _ -> 500 end
+         ) do
       {:ok, %{status: 200, body: body}} ->
         systems_online =
           body
@@ -160,8 +164,8 @@ defmodule AtpClient.SystemOnTptp.Provers do
           |> Enum.map(&String.trim/1)
           |> Enum.filter(&String.contains?(&1, "---"))
           |> Enum.uniq()
-          |> Enum.filter(fn system ->
-            Enum.any?(@known_systems, &String.starts_with?(system, &1 <> "---"))
+          |> Enum.reject(fn system ->
+            Enum.any?(@excluded_systems, &String.starts_with?(system, &1 <> "---"))
           end)
           |> Enum.sort_by(&String.upcase/1)
 

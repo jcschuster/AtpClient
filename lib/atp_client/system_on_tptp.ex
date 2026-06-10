@@ -18,7 +18,8 @@ defmodule AtpClient.SystemOnTptp do
       ).
       \"\"\"
 
-      {:ok, result} = AtpClient.SystemOnTptp.query_system(thf_problem, "Vampire-FMo---5.0")
+      # system IDs returned by list_provers/0, e.g. "Vampire-FMo---5.0.1"
+      {:ok, result} = AtpClient.SystemOnTptp.query_system(thf_problem, "Vampire-FMo---5.0.1")
       # => {:ok, :thm}
   """
 
@@ -57,22 +58,23 @@ defmodule AtpClient.SystemOnTptp do
 
     return_raw = Keyword.get(opts, :raw, false)
 
-    payload =
-      URI.encode_query(%{
-        "SubmitButton" => "RunSelectedSystems",
-        "ProblemSource" => "FORMULAE",
-        "FORMULAEProblem" => problem,
-        "NoHTML" => "1",
-        "QuietFlag" => "-q01",
-        "X2TPTP" => "-S",
-        ("System___" <> system_id) => system_id,
-        ("TimeLimit___" <> system_id) => Kernel.to_string(time_limit_sec)
-      })
-
     case Req.post(
            url,
-           body: payload,
-           receive_timeout: (time_limit_sec + 5) * 1000
+           form: %{
+             "SubmitButton" => "RunSelectedSystems",
+             "ProblemSource" => "FORMULAE",
+             "FORMULAEProblem" => problem,
+             "NoHTML" => "1",
+             "QuietFlag" => "-q01",
+             "X2TPTP" => "-S",
+             ("System___" <> system_id) => system_id,
+             ("TimeLimit___" <> system_id) => Integer.to_string(time_limit_sec)
+           },
+           finch: AtpClient.TptpFinch,
+           compressed: false,
+           receive_timeout: (time_limit_sec + 5) * 1000,
+           retry: :transient,
+           retry_delay: fn _ -> 500 end
          ) do
       {:ok, %{status: 200, body: body}} ->
         if return_raw, do: {:ok, body}, else: RN.interpret_result(body)
@@ -104,10 +106,12 @@ defmodule AtpClient.SystemOnTptp do
 
     system_fields =
       system_ids
-      |> Enum.flat_map(&[{"System___" <> &1, &1}, {"TimeLimit___" <> &1, time_limit_sec}])
+      |> Enum.flat_map(
+        &[{"System___" <> &1, &1}, {"TimeLimit___" <> &1, Integer.to_string(time_limit_sec)}]
+      )
       |> Map.new()
 
-    payload =
+    form =
       Map.merge(system_fields, %{
         "SubmitButton" => "RunSelectedSystems",
         "ProblemSource" => "FORMULAE",
@@ -116,12 +120,15 @@ defmodule AtpClient.SystemOnTptp do
         "QuietFlag" => "-q01",
         "X2TPTP" => "-S"
       })
-      |> URI.encode_query()
 
     case Req.post(
            url,
-           body: payload,
-           receive_timeout: (time_limit_sec + 5) * 1000 * length(system_ids)
+           form: form,
+           finch: AtpClient.TptpFinch,
+           compressed: false,
+           receive_timeout: (time_limit_sec + 5) * 1000 * length(system_ids),
+           retry: :transient,
+           retry_delay: fn _ -> 500 end
          ) do
       {:ok, %{status: 200, body: body}} ->
         outputs =
