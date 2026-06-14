@@ -45,14 +45,23 @@ defmodule AtpClient.Isabelle do
 
   ## Example
 
+  Pass a full theory or just the body — bare text is automatically wrapped in
+  `theory <name> imports Main begin ... end`:
+
+      # Full theory
       theory = ~S\"\"\"
       theory Example imports Main begin
       lemma "P \\<or> \\<not> P" by auto
       end
       \"\"\"
 
-      {:ok, result} = AtpClient.Isabelle.query(theory, "Example")
-      # => {:ok, :thm}
+      # Or just the body (equivalent)
+      body = ~S\"\"\"
+      lemma "P \\<or> \\<not> P" by auto
+      \"\"\"
+
+      {:ok, :thm} = AtpClient.Isabelle.query(theory, "Example")
+      {:ok, :thm} = AtpClient.Isabelle.query(body, "Example")
 
   For fine-grained workflows, open a session once and reuse it:
 
@@ -65,7 +74,9 @@ defmodule AtpClient.Isabelle do
   alias AtpClient.Config
   alias AtpClient.Isabelle.Session
   alias AtpClient.ResultNormalization
+  alias IsabelleClient.Shared
   alias IsabelleClient.Task
+  alias IsabelleClient.Theory
 
   @typedoc """
   The result of a call to `prove_theory/4` or `query/3`:
@@ -90,8 +101,8 @@ defmodule AtpClient.Isabelle do
 
   @doc """
   Connects to the Isabelle server, starts a session (typically `HOL` or `Main`),
-  and returns a `Session` handle. The caller is responsible for eventually
-  passing the handle to `close_session/1`.
+  and returns a `Session` handle backed by an `IsabelleClient.Shared` GenServer.
+  The caller is responsible for eventually passing the handle to `close_session/1`.
 
   ## Options
 
@@ -111,72 +122,41 @@ defmodule AtpClient.Isabelle do
     session_name = Config.fetch(:isabelle, :session, "HOL", config)
     timeout_ms = Config.fetch(:isabelle, :session_start_timeout_ms, 120_000, config)
 
-    case IsabelleClient.connect(password, host: host, port: port) do
-      {:ok, client} ->
-        start_session_or_close(client, session_name, timeout_ms, config)
+    case Shared.start_link(
+           password: password,
+           host: host,
+           port: port,
+           session: session_name,
+           connect_timeout: 30_000,
+           timeout: timeout_ms
+         ) do
+      {:ok, pid} ->
+        {:ok, %Session{client: pid, config: config}}
 
       {:error, reason} ->
-        {:error, {:connect_failed, reason}}
-    end
-  end
-
-  defp start_session_or_close(client, session_name, timeout_ms, config) do
-    case IsabelleClient.start_session(client, %{"session" => session_name}, timeout_ms) do
-      {:ok, started_client, _task} ->
-        {:ok, %Session{client: started_client, config: config}}
-
-      {:error, %Task{} = task} ->
-        _ = safe_close(client)
-        {:error, {:session_start_failed, task}}
-
-      {:error, reason} ->
-        _ = safe_close(client)
-        {:error, {:session_start_failed, reason}}
-
-      other ->
-        _ = safe_close(client)
-        {:error, {:session_start_failed, other}}
+        {:error, reason}
     end
   end
 
   @doc """
-  Stops the session and closes the socket. Errors from the server-side
-  `session_stop` are swallowed, since the socket is torn down regardless.
+  Stops the active Isabelle session and shuts down the underlying
+  `IsabelleClient.Shared` GenServer, closing its TCP socket.
   """
   @spec close_session(Session.t()) :: :ok
-  def close_session(%Session{client: client}) do
-    _ = safe_stop_session(client)
-    _ = safe_close(client)
-    :ok
-  end
-
-  defp safe_stop_session(%IsabelleClient{sessions: []}), do: :ok
-
-  defp safe_stop_session(%IsabelleClient{} = client) do
-    try do
-      IsabelleClient.stop_session(client)
-      :ok
-    rescue
-      _ -> :ok
-    catch
-      _, _ -> :ok
-    end
-  end
-
-  defp safe_close(%IsabelleClient{} = client) do
-    try do
-      IsabelleClient.close(client)
-    rescue
-      _ -> :ok
-    catch
-      _, _ -> :ok
-    end
+  def close_session(%Session{client: pid}) do
+    Shared.close(pid)
   end
 
   @doc """
   Writes `theory_text` to `<local_dir>/<theory_name>.thy`, asks the Isabelle
   server to process it in the given session, and blocks until the task finishes
   or fails.
+
+  If `theory_text` does not begin with `theory`, it is automatically wrapped:
+
+      theory <theory_name> imports <imports> begin
+      <theory_text>
+      end
 
   By default the result is interpreted by
   `AtpClient.ResultNormalization.interpret_isabelle_result/1`. Pass `raw: true`
@@ -186,6 +166,7 @@ defmodule AtpClient.Isabelle do
   ## Options
 
     * `:raw` — return the raw payload map (default `false`);
+    * `:imports` — session/theory to import when auto-wrapping (default `"Main"`);
     * `:use_theories_timeout_ms` — overall deadline for the task (default from
       config, `120_000`).
   """
@@ -194,6 +175,7 @@ defmodule AtpClient.Isabelle do
       when is_binary(theory_text) and is_binary(theory_name) do
     config = Keyword.merge(session.config, opts)
     raw? = Keyword.get(opts, :raw, false)
+    imports = Keyword.get(opts, :imports, "Main")
 
     local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
 
@@ -204,12 +186,13 @@ defmodule AtpClient.Isabelle do
       end
 
     timeout_ms = Config.fetch(:isabelle, :use_theories_timeout_ms, 120_000, config)
+    theory_source = Theory.source(theory_name, theory_text, imports)
 
     result =
       with :ok <- File.mkdir_p(local_dir),
-           :ok <- File.write(Path.join(local_dir, theory_name <> ".thy"), theory_text),
+           :ok <- File.write(Path.join(local_dir, theory_name <> ".thy"), theory_source),
            {:ok, %Task{result: payload}} <-
-             IsabelleClient.use_theories(
+             Shared.use_theories(
                session.client,
                %{"theories" => [theory_name], "master_dir" => isabelle_dir},
                timeout_ms
@@ -254,6 +237,71 @@ defmodule AtpClient.Isabelle do
   end
 
   defp annotate_path_error(other, _local_dir, _isabelle_dir, _theory_name), do: other
+
+  @doc """
+  Like `prove_theory/4`, but returns one result per lemma instead of a single
+  consolidated result.
+
+  Calls `prove_theory/4` internally with `raw: true` and parses the payload via
+  `AtpClient.ResultNormalization.per_lemma_results/2`. Returns
+  `{:ok, [lemma_result]}` for a finished task, where each entry is:
+
+      %{
+        line:   non_neg_integer() | nil,  # line in the caller's text (1-based)
+        name:   String.t() | nil,          # lemma name, or nil for anonymous
+        result: {:ok, :thm} | {:ok, :gave_up}
+      }
+
+  The list is sorted by line number. When auto-wrapping is applied (the text
+  does not begin with `theory`), Isabelle's reported line numbers are adjusted
+  so that the first line of the body is line 1.
+
+  Returns `{:error, term()}` for connection failures and for tasks that fail
+  before producing any messages (e.g. unreadable theory files).
+
+  ## Options
+
+  Same as `prove_theory/4` except `:raw`, which is always overridden.
+  """
+  @spec prove_lemmas(Session.t(), String.t(), String.t(), keyword()) ::
+          {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
+  def prove_lemmas(%Session{} = session, theory_text, theory_name, opts \\ [])
+      when is_binary(theory_text) and is_binary(theory_name) do
+    line_offset = if needs_wrap?(theory_text), do: 1, else: 0
+
+    case prove_theory(session, theory_text, theory_name, Keyword.put(opts, :raw, true)) do
+      {:ok, payload} ->
+        {:ok, ResultNormalization.per_lemma_results(payload, line_offset: line_offset)}
+
+      {:error, {:isabelle_failed, _, _}} = err ->
+        err
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  defp needs_wrap?(text), do: not Regex.match?(~r/\A\s*theory\s+/u, text)
+
+  @doc """
+  Convenience wrapper: opens a session, calls `prove_lemmas/4`, and
+  unconditionally closes the session afterwards (even on error).
+  """
+  @spec query_lemmas(String.t(), String.t(), keyword()) ::
+          {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
+  def query_lemmas(theory_text, theory_name, opts \\ []) do
+    case open_session(opts) do
+      {:ok, session} ->
+        try do
+          prove_lemmas(session, theory_text, theory_name, opts)
+        after
+          close_session(session)
+        end
+
+      {:error, _} = err ->
+        err
+    end
+  end
 
   @doc """
   Convenience wrapper: opens a session, calls `prove_theory/4`, and

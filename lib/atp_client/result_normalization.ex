@@ -112,20 +112,18 @@ defmodule AtpClient.ResultNormalization do
   returned in `%IsabelleClient.Task{status: :finished, result: ...}`, with
   top-level keys `"ok"`, `"errors"`, `"nodes"`, etc.
 
-  Classification combines structural and textual signals from the payload:
+  Classification is driven by the messages Isabelle emits, not by whether the
+  task finished without errors:
 
     * a "Nitpick found a counterexample" message yields `{:ok, :csat}`;
     * a "Nitpick found a model" message yields `{:ok, :sat}`;
     * a Sledgehammer "found a proof" message yields `{:ok, :thm}`;
+    * any message starting with `"theorem "` (Isabelle's proof-completion
+      notification, emitted for every discharged goal regardless of the tactic
+      used) yields `{:ok, :thm}`;
     * a "timed out" / "TIMEOUT" message yields `{:ok, :timeout}`;
     * a "Out of memory" message yields `{:ok, :out_of_resources}`;
-    * otherwise, if the payload reports `ok: true` with no top-level errors and
-      every theory node's `status.ok` is true, all proofs were discharged →
-      `{:ok, :thm}`. This covers plain `by auto`, `by simp`, structured
-      `proof ... qed` blocks, and anything else that closes the goal without
-      going through Sledgehammer or Nitpick;
-    * remaining cases (finished with errors, or unclassifiable text) yield
-      `{:ok, :gave_up}`.
+    * remaining cases yield `{:ok, :gave_up}`.
 
   Failed tasks should be surfaced through `AtpClient.Isabelle.prove_theory/4`'s
   `{:error, {:isabelle_failed, _, _}}` channel and never reach this function.
@@ -133,13 +131,7 @@ defmodule AtpClient.ResultNormalization do
   @spec interpret_isabelle_result(map()) :: atp_result()
   def interpret_isabelle_result(payload) when is_map(payload) do
     text = extract_text(payload)
-
-    status =
-      check_tool_signals(text) ||
-        check_structural_signals(payload) ||
-        :gave_up
-
-    {:ok, status}
+    {:ok, check_tool_signals(text) || :gave_up}
   end
 
   defp check_tool_signals(text) do
@@ -147,12 +139,21 @@ defmodule AtpClient.ResultNormalization do
       nitpick_found?(text, "counterexample") -> :csat
       nitpick_found?(text, "model") -> :sat
       String.contains?(text, "found a proof") -> :thm
+      theorem_proved?(text) -> :thm
       gave_up?(text) -> :gave_up
       timeout?(text) -> :timeout
       String.contains?(text, "Out of memory") -> :out_of_resources
       true -> nil
     end
   end
+
+  defp theorem_proved?(text),
+    do: theorem_at_start?(text) or
+          String.contains?(text, "\ntheorem ") or
+          String.contains?(text, "\ntheorem:")
+
+  defp theorem_at_start?(text),
+    do: String.starts_with?(text, "theorem ") or String.starts_with?(text, "theorem:")
 
   defp nitpick_found?(text, what),
     do: String.contains?(text, "Nitpick found a") and String.contains?(text, what)
@@ -162,29 +163,6 @@ defmodule AtpClient.ResultNormalization do
 
   defp timeout?(text),
     do: String.contains?(text, "timed out") or String.contains?(text, "TIMEOUT")
-
-  defp check_structural_signals(payload) do
-    ok? = Map.get(payload, "ok", false)
-    no_errors? = Map.get(payload, "errors", []) == []
-
-    if ok? and no_errors? and all_nodes_ok?(payload) do
-      :thm
-    else
-      nil
-    end
-  end
-
-  defp all_nodes_ok?(%{"nodes" => nodes}) when is_list(nodes) and nodes != [] do
-    Enum.all?(nodes, fn node ->
-      case Map.get(node, "status") do
-        %{"ok" => true, "failed" => 0} -> true
-        %{"ok" => true} -> true
-        _ -> false
-      end
-    end)
-  end
-
-  defp all_nodes_ok?(_), do: false
 
   @doc """
   Concatenates all `"message"` strings from a `use_theories` payload (the
@@ -198,11 +176,82 @@ defmodule AtpClient.ResultNormalization do
   @spec extract_isabelle_text(map()) :: String.t()
   def extract_isabelle_text(payload) when is_map(payload), do: extract_text(payload)
 
-  defp extract_text(%{"nodes" => nodes}) when is_list(nodes) do
-    nodes
-    |> Enum.flat_map(fn node -> Map.get(node, "messages", []) end)
+  @typedoc """
+  Per-lemma result returned by `per_lemma_results/2`.
+
+    * `line` — source line in the theory file as reported by Isabelle; `nil`
+      when the message carries no position. If the theory was auto-wrapped by
+      `prove_lemmas/4`, this is already adjusted to the caller's line numbering
+      (body line 1 = 1, not 2).
+    * `name` — lemma name extracted from Isabelle's completion message, or
+      `nil` for anonymous lemmas.
+    * `result` — same values as `atp_result/0`; currently either `{:ok, :thm}`
+      (theorem proved) or `{:ok, :gave_up}` (proof obligation present but
+      Isabelle could not discharge it).
+  """
+  @type lemma_result :: %{
+          line: non_neg_integer() | nil,
+          name: String.t() | nil,
+          result: atp_result()
+        }
+
+  @doc """
+  Parses a finished `use_theories` payload into one entry per lemma.
+
+  Returns a list of `t:lemma_result/0` maps sorted by line number:
+
+    * Every `"theorem …"` writeln message becomes a `{:ok, :thm}` entry;
+    * Every error-kind message at a line not already covered by a theorem
+      completion becomes a `{:ok, :gave_up}` entry (one per distinct line).
+
+  Pass `line_offset: n` to subtract `n` from all Isabelle-reported line
+  numbers. `AtpClient.Isabelle.prove_lemmas/4` uses this to undo the +1 shift
+  introduced by auto-wrapping.
+  """
+  @spec per_lemma_results(map(), keyword()) :: [lemma_result()]
+  def per_lemma_results(payload, opts \\ []) when is_map(payload) do
+    offset = Keyword.get(opts, :line_offset, 0)
+    messages = extract_messages(payload)
+
+    proved = Enum.flat_map(messages, &theorem_entry(&1, offset))
+    proved_lines = MapSet.new(proved, & &1.line)
+
+    failed =
+      messages
+      |> Enum.filter(&(Map.get(&1, "kind") == "error"))
+      |> Enum.map(fn msg -> %{line: adjust(get_in(msg, ["pos", "line"]), offset), name: nil, result: {:ok, :gave_up}} end)
+      |> Enum.reject(fn %{line: l} -> l == nil or MapSet.member?(proved_lines, l) end)
+      |> Enum.uniq_by(& &1.line)
+
+    (proved ++ failed) |> Enum.sort_by(&(&1.line || 0))
+  end
+
+  defp theorem_entry(msg, offset) do
+    text = Map.get(msg, "message", "")
+
+    if theorem_at_start?(text) do
+      [%{line: adjust(get_in(msg, ["pos", "line"]), offset), name: theorem_name(text), result: {:ok, :thm}}]
+    else
+      []
+    end
+  end
+
+  defp theorem_name("theorem " <> rest), do: rest |> String.split(":") |> hd() |> String.trim()
+  defp theorem_name(_), do: nil
+
+  defp adjust(nil, _offset), do: nil
+  defp adjust(line, 0), do: line
+  defp adjust(line, offset), do: line - offset
+
+  defp extract_text(payload) do
+    payload
+    |> extract_messages()
     |> Enum.map_join("\n", fn msg -> Map.get(msg, "message", "") end)
   end
 
-  defp extract_text(_), do: ""
+  defp extract_messages(%{"nodes" => nodes}) when is_list(nodes) do
+    Enum.flat_map(nodes, fn node -> Map.get(node, "messages", []) end)
+  end
+
+  defp extract_messages(_), do: []
 end
