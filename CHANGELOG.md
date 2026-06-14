@@ -10,6 +10,19 @@ and this project adheres to
 
 ### Added
 
+- **TPTP-shaped entry points on `AtpClient.Isabelle`.**
+  `query_tptp/2` and `prove_tptp/3` accept a TPTP/THF problem string,
+  route it through `IsabelleClient.TPTP.isabellize_theory/1`, append the
+  configured `:proof_method` (default `"by auto"`) to each generated
+  `lemma`, and submit the resulting theory to Isabelle with
+  `imports "TPTP"` and `unbundle from_TPTP` active. The bundled `TPTP.thy`
+  support theory is copied into `:local_dir` on first use so Isabelle's
+  loader can resolve the import. Lemma names carry over from TPTP formula
+  names. Pass `proof_method: "by metis"`, `"sledgehammer"`, etc. for
+  stronger or probing tactics. Smart-cell consumers can now drive Isabelle
+  from the same TPTP editor they use for the SystemOnTPTP / StarExec /
+  LocalExec backends; theory-text entry points (`prove_theory/4`,
+  `prove_lemmas/4`, `query/3`, `query_lemmas/3`) remain unchanged.
 - **`AtpClient.LocalExec` backend.** Invokes a locally installed,
   TPTP-compliant prover binary (E, Vampire, …) via `System.cmd/3` and
   normalizes its stdout through the existing SZS classifier. Two-layered
@@ -26,6 +39,24 @@ and this project adheres to
 - **`AtpClient.ResultNormalization.failure_t/0` gains
   `{:prover_not_found, String.t()}`** for the `LocalExec` binary-resolution
   failure mode.
+
+### Changed
+
+- **`per_lemma_results/2` now applies `check_tool_signals` per source line.**
+  Sledgehammer's `"found a proof"` and Nitpick's `"found a counterexample"`/
+  `"found a model"` verdicts surface as `{:ok, :thm}` / `{:ok, :csat}` /
+  `{:ok, :sat}` on the per-lemma path, matching `interpret_isabelle_result/1`.
+  Previously only Isabelle's `"theorem name:"` completion notification was
+  recognised, so probe-style proofs (`sledgehammer nitpick oops`) collapsed
+  to `:gave_up`. `{:ok, :timeout}` and `{:ok, :out_of_resources}` are now
+  surfaced per lemma too. Lemma names attach to results derived from
+  `theorem name:` completions; sledgehammer/nitpick verdicts carry
+  `name: nil` because the underlying messages do not name the lemma.
+- **`:isabelle_elixir` is now pinned to its GitHub `main` branch**
+  (previously `~> 0.3` from Hex). The new TPTP entry points rely on the
+  `IsabelleClient.TPTP` module, which is not in the 0.3.0 Hex release.
+  Re-pin to a Hex constraint once a release containing `IsabelleClient.TPTP`
+  ships.
 
 ## [0.2.0]
 

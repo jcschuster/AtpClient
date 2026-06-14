@@ -181,14 +181,18 @@ defmodule AtpClient.ResultNormalization do
   Per-lemma result returned by `per_lemma_results/2`.
 
     * `line` — source line in the theory file as reported by Isabelle; `nil`
-      when the message carries no position. If the theory was auto-wrapped by
-      `prove_lemmas/4`, this is already adjusted to the caller's line numbering
-      (body line 1 = 1, not 2).
+      when the underlying message carries no position. If the theory was
+      auto-wrapped by `prove_lemmas/4`, this is already adjusted to the
+      caller's line numbering (body line 1 = 1, not 2).
     * `name` — lemma name extracted from Isabelle's completion message, or
-      `nil` for anonymous lemmas.
-    * `result` — same values as `atp_result/0`; currently either `{:ok, :thm}`
-      (theorem proved) or `{:ok, :gave_up}` (proof obligation present but
-      Isabelle could not discharge it).
+      `nil` for anonymous lemmas, sledgehammer/nitpick verdicts (which
+      Isabelle does not tag with the lemma name), and unnamed error entries.
+    * `result` — any value of `atp_result/0`. The same `check_tool_signals`
+      classifier used by `interpret_isabelle_result/1` runs per line, so
+      `sledgehammer ... oops` and `nitpick` verdicts surface as
+      `{:ok, :thm}` / `{:ok, :csat}` / `{:ok, :sat}` / `{:ok, :gave_up}` /
+      `{:ok, :timeout}` / `{:ok, :out_of_resources}` instead of collapsing
+      to `:gave_up`.
   """
   @type lemma_result :: %{
           line: non_neg_integer() | nil,
@@ -199,11 +203,24 @@ defmodule AtpClient.ResultNormalization do
   @doc """
   Parses a finished `use_theories` payload into one entry per lemma.
 
-  Returns a list of `t:lemma_result/0` maps sorted by line number:
+  Returns a list of `t:lemma_result/0` maps sorted by line number. Messages
+  are grouped by their reported `pos.line` and each group is classified in
+  this order:
 
-    * Every `"theorem …"` writeln message becomes a `{:ok, :thm}` entry;
-    * Every error-kind message at a line not already covered by a theorem
-      completion becomes a `{:ok, :gave_up}` entry (one per distinct line).
+    * Isabelle's `"theorem name:"` completion notification → `{:ok, :thm}`,
+      with `name` extracted from the message;
+    * `"Nitpick found a counterexample"` → `{:ok, :csat}`;
+    * `"Nitpick found a model"` → `{:ok, :sat}`;
+    * Sledgehammer `"found a proof"` → `{:ok, :thm}` (name `nil` — the
+      message does not carry the lemma name);
+    * `"timed out"` / `"TIMEOUT"` → `{:ok, :timeout}`;
+    * `"Out of memory"` → `{:ok, :out_of_resources}`;
+    * `"Nitpick found no …"` / `"No proof found"` → `{:ok, :gave_up}`;
+    * any other error-kind message at this line → `{:ok, :gave_up}`;
+    * groups with none of the above produce no entry.
+
+  Groups with `pos.line == nil` are classified the same way; the resulting
+  entry carries `line: nil`.
 
   Pass `line_offset: n` to subtract `n` from all Isabelle-reported line
   numbers. `AtpClient.Isabelle.prove_lemmas/4` uses this to undo the +1 shift
@@ -212,28 +229,44 @@ defmodule AtpClient.ResultNormalization do
   @spec per_lemma_results(map(), keyword()) :: [lemma_result()]
   def per_lemma_results(payload, opts \\ []) when is_map(payload) do
     offset = Keyword.get(opts, :line_offset, 0)
-    messages = extract_messages(payload)
 
-    proved = Enum.flat_map(messages, &theorem_entry(&1, offset))
-    proved_lines = MapSet.new(proved, & &1.line)
-
-    failed =
-      messages
-      |> Enum.filter(&(Map.get(&1, "kind") == "error"))
-      |> Enum.map(fn msg -> %{line: adjust(get_in(msg, ["pos", "line"]), offset), name: nil, result: {:ok, :gave_up}} end)
-      |> Enum.reject(fn %{line: l} -> l == nil or MapSet.member?(proved_lines, l) end)
-      |> Enum.uniq_by(& &1.line)
-
-    (proved ++ failed) |> Enum.sort_by(&(&1.line || 0))
+    payload
+    |> extract_messages()
+    |> Enum.group_by(&get_in(&1, ["pos", "line"]))
+    |> Enum.flat_map(fn {line, msgs} ->
+      case classify_line(msgs) do
+        nil -> []
+        {result, name} -> [%{line: adjust(line, offset), name: name, result: {:ok, result}}]
+      end
+    end)
+    |> Enum.sort_by(&(&1.line || 0))
   end
 
-  defp theorem_entry(msg, offset) do
-    text = Map.get(msg, "message", "")
+  defp classify_line(messages) do
+    text = Enum.map_join(messages, "\n", &Map.get(&1, "message", ""))
+    theorem_name = find_theorem_name(messages)
 
-    if theorem_at_start?(text) do
-      [%{line: adjust(get_in(msg, ["pos", "line"]), offset), name: theorem_name(text), result: {:ok, :thm}}]
-    else
-      []
+    cond do
+      theorem_name != :no_theorem -> {:thm, theorem_name}
+      nitpick_found?(text, "counterexample") -> {:csat, nil}
+      nitpick_found?(text, "model") -> {:sat, nil}
+      String.contains?(text, "found a proof") -> {:thm, nil}
+      timeout?(text) -> {:timeout, nil}
+      String.contains?(text, "Out of memory") -> {:out_of_resources, nil}
+      gave_up?(text) -> {:gave_up, nil}
+      Enum.any?(messages, &(Map.get(&1, "kind") == "error")) -> {:gave_up, nil}
+      true -> nil
+    end
+  end
+
+  defp find_theorem_name(messages) do
+    Enum.find_value(messages, :no_theorem, fn msg ->
+      text = Map.get(msg, "message", "")
+      if theorem_at_start?(text), do: {:found, theorem_name(text)}
+    end)
+    |> case do
+      :no_theorem -> :no_theorem
+      {:found, name} -> name
     end
   end
 

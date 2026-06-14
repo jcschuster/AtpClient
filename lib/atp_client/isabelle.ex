@@ -69,6 +69,25 @@ defmodule AtpClient.Isabelle do
       {:ok, result1} = AtpClient.Isabelle.prove_theory(session, theory1, "T1")
       {:ok, result2} = AtpClient.Isabelle.prove_theory(session, theory2, "T2")
       :ok = AtpClient.Isabelle.close_session(session)
+
+  ## Submitting TPTP/THF problems
+
+  `query_tptp/2` and `prove_tptp/3` accept a TPTP/THF problem string and
+  route it through `IsabelleClient.TPTP.isabellize_theory/1` before handing
+  it to the per-lemma path. The bundled `TPTP.thy` support theory is copied
+  into `:local_dir` on first use, and the generated theory imports it with
+  `unbundle from_TPTP` active:
+
+      problem = ~S\"\"\"
+      thf(p_type, type, p: $i > $o).
+      thf(g, conjecture, ! [X: $i]: (p @ X | ~ (p @ X))).
+      \"\"\"
+
+      {:ok, lemma_results} = AtpClient.Isabelle.query_tptp(problem)
+
+  Lemma names propagate from TPTP formula names. Lemma line numbers refer
+  to the generated theory, not the input TPTP source — match on `:name`
+  for UI attribution.
   """
 
   alias AtpClient.Config
@@ -77,6 +96,7 @@ defmodule AtpClient.Isabelle do
   alias IsabelleClient.Shared
   alias IsabelleClient.Task
   alias IsabelleClient.Theory
+  alias IsabelleClient.TPTP
 
   @typedoc """
   The result of a call to `prove_theory/4` or `query/3`:
@@ -301,6 +321,134 @@ defmodule AtpClient.Isabelle do
       {:error, _} = err ->
         err
     end
+  end
+
+  @doc """
+  Like `prove_lemmas/4`, but takes a TPTP/THF problem string instead of an
+  Isabelle theory.
+
+  The problem is converted to an Isabelle theory body via
+  `IsabelleClient.TPTP.isabellize_theory/1`, which maps `thf(name, axiom, …)`
+  to `axiomatization`, `thf(name, type, …)` to `consts`/`typedecl`/
+  `type_synonym`, and `thf(name, theorem|conjecture, …)` to `lemma`. The
+  generated body is preceded by `unbundle from_TPTP` so that the TPTP/THF
+  notation parses inside Isabelle, then handed to `prove_lemmas/4` with
+  `imports: "TPTP"`.
+
+  The bundled `TPTP.thy` support theory is copied into the configured
+  `:local_dir` on first use so Isabelle's loader can resolve
+  `imports "TPTP"` from the generated theory file. Existing files are not
+  overwritten.
+
+  ## Lemma line numbers
+
+  Lemma line numbers in the returned `lemma_result()` entries refer to the
+  *generated* theory, not the input TPTP source. Match on `:name`
+  (carried over from the TPTP formula name) rather than `:line` for UI
+  attribution.
+
+  ## Options
+
+  Same as `prove_lemmas/4`, plus:
+
+    * `:theory_name` — name to use for the generated Isabelle theory
+      (default: a content-derived `AtpClient_<hash>` string). Useful for
+      stable filenames across runs.
+    * `:proof_method` — Isabelle tactic appended to each generated `lemma`
+      (default `"by auto"`). The isabellizer emits `lemma` declarations
+      without proofs, which Isabelle treats as unfinished goals; a tactic
+      must be supplied for the goal to close (or be withdrawn). Pass
+      `"by metis"` for first-order portfolio reasoning, or
+      `"sledgehammer nitpick oops"` to probe both proof and
+      countersatisfiability; the latter relies on the per-lemma classifier
+      recognising sledgehammer's `"found a proof"` and nitpick's verdicts
+      directly, so `oops` is fine — `{:ok, :thm}` / `{:ok, :csat}` /
+      `{:ok, :sat}` come from the tool messages, not from a `theorem name:`
+      completion.
+
+  ## Errors
+
+    * `{:error, {:tptp_thy_copy_failed, reason}}` — could not place
+      `TPTP.thy` next to the generated theory in `:local_dir`;
+    * `{:error, {:tptp_parse, message}}` — `isabellize_theory/1` raised
+      (the parser is tolerant by design, so this should be rare);
+    * everything `prove_lemmas/4` can return.
+  """
+  @spec prove_tptp(Session.t(), String.t(), keyword()) ::
+          {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
+  def prove_tptp(%Session{} = session, problem, opts \\ []) when is_binary(problem) do
+    config = Keyword.merge(session.config, opts)
+    local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
+    proof_method = Keyword.get(opts, :proof_method, "by auto")
+
+    with :ok <- File.mkdir_p(local_dir),
+         :ok <- ensure_tptp_theory(local_dir),
+         {:ok, isabellized} <- safe_isabellize(problem) do
+      name = Keyword.get(opts, :theory_name) || derive_name(problem)
+      body = "unbundle from_TPTP\n\n" <> inject_proof_method(isabellized, proof_method)
+
+      prove_lemmas(session, body, name, Keyword.put(opts, :imports, ~s("TPTP")))
+    end
+  end
+
+  @doc """
+  Convenience wrapper: opens a session, calls `prove_tptp/3`, and
+  unconditionally closes the session afterwards (even on error).
+  """
+  @spec query_tptp(String.t(), keyword()) ::
+          {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
+  def query_tptp(problem, opts \\ []) when is_binary(problem) do
+    case open_session(opts) do
+      {:ok, session} ->
+        try do
+          prove_tptp(session, problem, opts)
+        after
+          close_session(session)
+        end
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  defp inject_proof_method(isabellized, proof_method) do
+    isabellized
+    |> String.split(~r/\n\n+/)
+    |> Enum.map(fn item ->
+      if String.starts_with?(String.trim_leading(item), "lemma ") do
+        String.trim_trailing(item) <> "\n  " <> proof_method
+      else
+        item
+      end
+    end)
+    |> Enum.join("\n\n")
+  end
+
+  defp ensure_tptp_theory(local_dir) do
+    dest = Path.join(local_dir, "TPTP.thy")
+
+    if File.exists?(dest) do
+      :ok
+    else
+      case File.cp(TPTP.source_path(), dest) do
+        :ok -> :ok
+        {:error, reason} -> {:error, {:tptp_thy_copy_failed, reason}}
+      end
+    end
+  end
+
+  defp safe_isabellize(problem) do
+    {:ok, TPTP.isabellize_theory(problem)}
+  rescue
+    e -> {:error, {:tptp_parse, Exception.message(e)}}
+  end
+
+  defp derive_name(problem) do
+    hash =
+      :crypto.hash(:sha256, problem)
+      |> Base.encode16(case: :lower)
+
+    "AtpClient_" <> binary_part(hash, 0, 12)
   end
 
   @doc """

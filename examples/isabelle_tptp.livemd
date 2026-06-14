@@ -1,0 +1,212 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Isabelle TPTP smoke test
+
+## Section
+
+A by-hand check of `AtpClient.Isabelle.query_tptp/2` and `prove_tptp/3` against
+a real Isabelle server. Offline tests pin the dep contract and the wiring; this
+notebook exercises the end-to-end path that CI cannot.
+
+The server is spun up locally on demand — no external setup required beyond
+having `isabelle` on `PATH` (or `ISABELLE_TOOL` pointing at the executable).
+
+```elixir
+Mix.install([
+  {:atp_client, path: Path.expand("..", __DIR__)}
+])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Spin up an Isabelle server
+
+```elixir
+# Optional: System.put_env("ISABELLE_TOOL", "/path/to/isabelle")
+IsabelleClient.Server.executable()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:ok, "/home/johannes/Isabelle2025/bin/isabelle"}
+```
+
+```elixir
+{:ok, server} =
+  IsabelleClient.start_server(
+    server_name: "atp_client_tptp_#{System.unique_integer([:positive])}"
+  )
+
+server_opts = [
+  host: server.host,
+  port: server.port,
+  password: server.password,
+  local_dir: Path.join(System.tmp_dir!(), "atp_client_tptp_#{System.unique_integer([:positive])}")
+]
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  host: "127.0.0.1",
+  port: 33215,
+  password: "1c031eff-f677-4c70-b820-3b79d39ed7fd",
+  local_dir: "/tmp/atp_client_tptp_3078"
+]
+```
+
+## 1. Single-conjecture problem
+
+`query_tptp/2` opens a session, copies the bundled `TPTP.thy` into
+`:local_dir`, isabellizes the problem, appends the configured
+`:proof_method` (default `"by auto"`) to each generated lemma, and routes
+through `prove_lemmas/4` with `imports "TPTP"` and `unbundle from_TPTP`
+active.
+
+The isabellizer emits `lemma name: "…"` without a proof, which Isabelle
+treats as an open goal — without a tactic each lemma comes back as
+`{:ok, :gave_up}` with `name: nil`. `:proof_method` is what closes the
+goal. Pass `proof_method: "by metis"`, `"sledgehammer"`, `"try0 oops"`,
+etc. for stronger or probing behaviour.
+
+```elixir
+problem = ~S"""
+thf(p_type, type, p: $i > $o).
+thf(g, conjecture, ! [X: $i]: (p @ X | ~ (p @ X))).
+"""
+
+{:ok, results} = AtpClient.Isabelle.query_tptp(problem, server_opts)
+results
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[%{line: 6, name: "g", result: {:ok, :thm}}]
+```
+
+Expected: a single-element list with `name: "g"` and `result: {:ok, :thm}`.
+Match on `:name` rather than `:line` — line numbers refer to the generated
+theory, not this notebook's input.
+
+## 2. Stable theory name
+
+Pass `:theory_name` to keep filenames stable across re-runs (useful when
+inspecting the on-disk `.thy` file after the fact).
+
+```elixir
+{:ok, _} =
+  AtpClient.Isabelle.query_tptp(
+    problem,
+    server_opts ++ [theory_name: "ExcludedMiddle"]
+  )
+
+server_opts[:local_dir] |> File.ls!() |> Enum.sort()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+["AtpClient_bf18a2b59d89.thy", "ExcludedMiddle.thy", "TPTP.thy"]
+```
+
+Expected to include `"ExcludedMiddle.thy"` and `"TPTP.thy"`.
+
+## 3. Multi-lemma problem with a persistent session
+
+Open one session, run several problems, close it once. This is the shape
+`KinoAtpClient` will use — start-up cost (which is dominated by
+`session_start`) amortises across UI events.
+
+```elixir
+{:ok, session} = AtpClient.Isabelle.open_session(server_opts)
+
+try do
+  multi = ~S"""
+  thf(p_type, type, p: $i > $o).
+  thf(q_type, type, q: $i > $o).
+  thf(g1, conjecture, ! [X: $i]: (p @ X | ~ (p @ X))).
+  thf(g2, conjecture, ! [X: $i]: ((p @ X & q @ X) => p @ X)).
+  """
+
+  AtpClient.Isabelle.prove_tptp(session, multi)
+after
+  AtpClient.Isabelle.close_session(session)
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:ok, [%{line: 8, name: "g1", result: {:ok, :thm}}, %{line: 11, name: "g2", result: {:ok, :thm}}]}
+```
+
+Expected: two entries, names `"g1"` and `"g2"`, both `{:ok, :thm}`.
+
+## 4. Sledgehammer / Nitpick as proof method
+
+`per_lemma_results/2` applies the same tool-signal classifier as the
+single-result mode, so `proof_method: "sledgehammer nitpick oops"` produces
+`{:ok, :thm}` when sledgehammer finds a proof and `{:ok, :csat}` when
+nitpick finds a counterexample — even though `oops` withdraws the goal and
+no `theorem name:` completion message is ever emitted.
+
+```elixir
+probe = ~S"""
+thf(g_taut, conjecture, ! [X: $o]: (X | ~ X)).
+thf(g_false, conjecture, ! [X: $o]: (X & ~ X)).
+"""
+
+AtpClient.Isabelle.query_tptp(
+  probe,
+  server_opts ++ [proof_method: "sledgehammer nitpick oops", use_theories_timeout_ms: 600_000]
+)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:ok, [%{line: 4, name: nil, result: {:ok, :thm}}, %{line: 7, name: nil, result: {:ok, :csat}}]}
+```
+
+Expected: `g_taut` → `{:ok, :thm}`, `g_false` → `{:ok, :csat}`. Lemma names
+in this mode are `nil`, because the sledgehammer/nitpick messages do not
+carry the lemma name (only Isabelle's `theorem name:` completion does, and
+`oops` suppresses that).
+
+## 5. Shut the server down
+
+```elixir
+IsabelleClient.Server.kill(server.name)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{"", 0}
+```
+
+## 6. What to look for if something fails
+
+* `{:error, :isabelle_not_found}` from `IsabelleClient.Server.executable/0` —
+  `isabelle` is not on `PATH`. Set `ISABELLE_TOOL` to the executable path.
+* `{:error, {:tptp_thy_copy_failed, _}}` — `:local_dir` is not writable, or the
+  dep is not loaded correctly. Check `IsabelleClient.TPTP.source_path/0`
+  resolves to a real file.
+* `{:error, {:isabelle_failed, %{"message" => "Cannot load theory file"}, [hint: _, …]}}` —
+  Isabelle could not read `TPTP.thy` or the generated theory. Inspect the
+  hint's `:local_dir`/`:isabelle_dir` to check the cross-mount.
+* `{:error, {:isabelle_failed, %{"message" => msg}, _}}` where `msg` mentions
+  `unbundle from_TPTP` or unknown syntax — the bundled `TPTP.thy` was found
+  but `unbundle from_TPTP` did not activate; check the dep version.
+* Every lemma comes back `{:ok, :gave_up}` with `name: nil` — the
+  `:proof_method` did not close any goal. Either the tactic is wrong for
+  the problem class (try `"by metis"` for first-order problems) or the
+  default `"by auto"` is too weak. The same shape with the proof method
+  omitted entirely is a regression of the proof-injection step.

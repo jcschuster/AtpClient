@@ -67,7 +67,7 @@ defmodule AtpClient.MixProject do
     [
       {:jason, "~> 1.4"},
       {:req, "~> 0.5"},
-      {:isabelle_elixir, "~> 0.3"},
+      {:isabelle_elixir, github: "davfuenmayor/isabelle_elixir", branch: "main"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
@@ -90,7 +90,7 @@ defmodule AtpClient.MixProject do
   defp docs do
     [
       main: "AtpClient",
-      extras: ["README.md", "examples/demo.livemd"],
+      extras: ["README.md", "examples/demo.livemd", "examples/isabelle_tptp.livemd"],
       groups_for_modules: [
         "Backend integrations": [
           AtpClient.StarExec,

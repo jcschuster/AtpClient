@@ -184,6 +184,127 @@ defmodule AtpClient.ResultNormalizationTest do
     end
   end
 
+  describe "per_lemma_results/2 — Sledgehammer / Nitpick signals" do
+    test "Sledgehammer 'found a proof' at a specific line → :thm with nil name" do
+      p = payload([theory_node([msg_at("Sledgehammer: found a proof", 3)])])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 3, name: nil, result: {:ok, :thm}}
+             ]
+    end
+
+    test "Nitpick counterexample at a specific line → :csat" do
+      p = payload([theory_node([msg_at("Nitpick found a counterexample", 3)])])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 3, name: nil, result: {:ok, :csat}}
+             ]
+    end
+
+    test "Nitpick model at a specific line → :sat" do
+      p = payload([theory_node([msg_at("Nitpick found a model", 3)])])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 3, name: nil, result: {:ok, :sat}}
+             ]
+    end
+
+    test "Sledgehammer + Nitpick on a tautology: 'found a proof' wins over 'found no counterexample'" do
+      p =
+        payload([
+          theory_node([
+            msg_at("Sledgehammer: found a proof", 3),
+            msg_at("Nitpick found no counterexample", 3)
+          ])
+        ])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 3, name: nil, result: {:ok, :thm}}
+             ]
+    end
+
+    test "Sledgehammer fail + Nitpick counterexample: :csat wins" do
+      p =
+        payload([
+          theory_node([
+            msg_at("Sledgehammer: No proof found", 3),
+            msg_at("Nitpick found a counterexample", 3)
+          ])
+        ])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 3, name: nil, result: {:ok, :csat}}
+             ]
+    end
+
+    test "Sledgehammer fail + Nitpick no counterexample: :gave_up" do
+      p =
+        payload([
+          theory_node([
+            msg_at("Sledgehammer: No proof found", 3),
+            msg_at("Nitpick found no counterexample", 3)
+          ])
+        ])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 3, name: nil, result: {:ok, :gave_up}}
+             ]
+    end
+
+    test "theorem completion at the same line as a tool signal: theorem wins (and carries the name)" do
+      p =
+        payload([
+          theory_node([
+            msg_at("Sledgehammer: found a proof", 3),
+            msg_at("theorem foo:\n  P ∨ ¬ P", 3)
+          ])
+        ])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 3, name: "foo", result: {:ok, :thm}}
+             ]
+    end
+
+    test "Sledgehammer timed out → :timeout" do
+      p = payload([theory_node([msg_at("Sledgehammer: timed out", 3)])])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 3, name: nil, result: {:ok, :timeout}}
+             ]
+    end
+
+    test "Out of memory → :out_of_resources" do
+      p = payload([theory_node([msg_at("Out of memory", 3)])])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 3, name: nil, result: {:ok, :out_of_resources}}
+             ]
+    end
+
+    test "multi-lemma: each line classified independently" do
+      p =
+        payload([
+          theory_node([
+            msg_at("theorem g1:\n  P", 2),
+            msg_at("Nitpick found a counterexample", 4),
+            msg_at("Sledgehammer: found a proof", 6)
+          ])
+        ])
+
+      assert ResultNormalization.per_lemma_results(p) == [
+               %{line: 2, name: "g1", result: {:ok, :thm}},
+               %{line: 4, name: nil, result: {:ok, :csat}},
+               %{line: 6, name: nil, result: {:ok, :thm}}
+             ]
+    end
+
+    test "pure informational message at a line produces no entry" do
+      p = payload([theory_node([msg_at("Auto Quickcheck found no counterexample", 3)])])
+
+      assert ResultNormalization.per_lemma_results(p) == []
+    end
+  end
+
   describe "per_lemma_results/2 — line_offset option" do
     test "subtracts offset from all reported lines" do
       p = payload([theory_node([msg_at("theorem foo:\n  P", 3)])])
