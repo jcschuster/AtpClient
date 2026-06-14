@@ -24,3 +24,6 @@ atp_client-*.tar
 
 
 .claude-config
+
+# Built prover binaries (see scripts/build_eprover.sh).
+/priv/bin/

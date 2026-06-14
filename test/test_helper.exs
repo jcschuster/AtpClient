@@ -1,1 +1,1 @@
-ExUnit.start()
+ExUnit.start(exclude: [:local_prover])

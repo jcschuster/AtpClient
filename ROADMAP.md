@@ -93,7 +93,7 @@ the fixed behavior.
 
 ---
 
-## Phase 2 — Local solver backend (`AtpClient.LocalExec`)
+## Phase 2 — Local solver backend (`AtpClient.LocalExec`) ✅ shipped
 
 **Promoted from the former Phase 4 stretch list.** Build this *first* among
 the code-heavy work. It is the smallest fully-controlled piece, and it
@@ -101,6 +101,36 @@ de-risks Phase 3 (StarExec): once a real prover is installed and producing
 known-good SZS output locally, those outputs become the oracle and the
 offline test fixtures for the StarExec validation, and any divergence there is
 immediately attributable to *transport* rather than *prover* behavior.
+
+### What landed
+
+- `AtpClient.LocalExec` in `lib/atp_client/local_exec.ex` with `query/2` and
+  `resolve_binary/1`. Two-layered timeout as designed: prover-side CPU limit
+  via `:args`, BEAM-side wall-clock kill via `Task.yield`/`Task.shutdown`.
+  Both timeout paths fold into the same `{:ok, :timeout}` result; callers
+  see a single, uniform success-type for "the deadline was hit," regardless
+  of which side of the boundary noticed first.
+- `:local_exec` config defaults in `mix.exs` (`binary`, `args`,
+  `cpu_timeout_s`, `wall_timeout_ms`) and added to `AtpClient.Config`'s
+  `backend()` type.
+- `AtpClient.ResultNormalization.failure_t/0` extended with
+  `{:prover_not_found, String.t()}` so the binary-resolution failure mode
+  has a typed home.
+- 14 offline tests in `test/atp_client/local_exec_test.exs` driven by a
+  fake-`sh`-script "prover" (canned SZS output, optional sleep, configurable
+  exit code). Covers: SZS classification across happy paths, binary
+  resolution, wall-clock kill, default-derivation of `:wall_timeout_ms`,
+  argument construction with append-vs.-`{{problem}}`-placeholder.
+- Real-prover smoke test gated behind `@tag :local_prover`, excluded by
+  default in `test/test_helper.exs`. CI stays green without a prover
+  installed.
+- `scripts/build_eprover.sh` — builds the E theorem prover from source at a
+  pinned tag and installs `eprover` into `priv/bin/` (which is gitignored)
+  for use as the `:local_exec` backend's binary. Tag is `E_TAG`-overridable.
+- Top-level `AtpClient` module doc and `mix.exs` doc grouping updated to
+  list four backends. `CHANGELOG.md` gains an `[Unreleased]` section
+  describing the new backend and failure-type additions.
+
 
 ### Namespace
 
@@ -156,11 +186,11 @@ end
    `--cpu-limit`, Vampire's `-t`) is authoritative — it lets the prover emit
    `SZS status Timeout` / `ResourceOut`, which the classifier maps cleanly.
    But `System.cmd/3` has no wall-clock kill, so a wedged prover hangs the
-   caller. Wrap the call in a `Task` with `Task.yield/2` + `Task.shutdown/2`,
-   and on the BEAM-side timeout surface a *distinct* result
-   (`{:error, :wall_clock_timeout}`) rather than conflating it with the
-   prover's clean `:timeout`. This distinction is worth one sentence in the
-   paper — it is exactly the "messy reality" depth 16A asked for.
+   caller. Wrap the call in a `Task` with `Task.yield/2` + `Task.shutdown/2`.
+   Both timeout paths fold into the same `{:ok, :timeout}` result so the
+   cross-backend `atp_result` contract stays uniform; the *existence* of the
+   two-layered enforcement is still worth one sentence in the paper as the
+   "messy reality" example 16A asked for.
 2. **Binary resolution in config, validated at call time.** Use
    `System.find_executable/1` and return `{:error, {:prover_not_found, bin}}`
    rather than letting `System.cmd/3` raise. Mirror the `ISABELLE_TOOL`
@@ -179,14 +209,17 @@ a prover. The "faster TPTP4X via local invocation" idea (former Phase 4) then
 becomes a near-copy feeding the lint's authoritative tier through a Smart Cell
 config toggle, rather than a fresh implementation.
 
-### Scope decisions
+### Scope decisions (settled)
 
-- Keep `LocalExec` **single-binary** for the camera-ready. Note a
-  portfolio / parallel-prover mode as future work.
-- Decide whether the wall-clock-vs-prover-timeout distinction gets its own
-  `atp_result` variant or folds into the existing `:timeout`. Leaning toward
-  a distinct `{:error, :wall_clock_timeout}` so the two failure modes stay
-  legible.
+- **Single-binary** for the camera-ready. Portfolio/parallel-prover mode
+  noted as future work; `LocalExec.query/2` takes a single `:binary`.
+- **Folded timeout result.** The two timeout paths (prover-side CPU limit
+  vs. BEAM-side wall-clock kill) both surface as `{:ok, :timeout}`. The
+  uniform result keeps the cross-backend `atp_result` contract intact —
+  callers do not have to branch on which side of the boundary noticed the
+  deadline. The distinction is still observable in logs (the wall-clock
+  path synthesizes a marker SZS line that names `AtpClient.LocalExec`) for
+  debugging, but it is not part of the public result type.
 
 ---
 
@@ -550,9 +583,9 @@ was probing.
 - **Phase 1** fixes (including the `isabelle_elixir` constraint bump) need to
   land in a Hex release before the paper can cite the fixed behavior — push
   these as soon as written.
-- **Phase 2** (`LocalExec`) first among the code-heavy work: small, fully
-  controlled, installs the prover and reference outputs that Phase 3 depends
-  on.
+- **Phase 2** (`LocalExec`) ✅ shipped. Module, tests, and
+  `scripts/build_eprover.sh` are in. The known-good local prover and SZS
+  output it produces are now available as the oracle for Phase 3.
 - **Phase 3** (StarExec) is the long pole. Give yourself a buffer; validation
   will almost certainly surface at least one real bug in `star_exec.ex`
   (cookies → multipart → completion predicate, in that likelihood order).
@@ -571,10 +604,12 @@ was probing.
       async-with-docs.
 - [ ] Decide whether the probe-style Sledgehammer usage gets its own sentence
       in §3 or is folded into the general clarification.
-- [ ] Decide whether `LocalExec` exposes a portfolio/parallel mode or stays
-      single-binary for camera-ready (leaning single).
-- [ ] Decide whether wall-clock timeout gets a distinct `atp_result` variant
-      or folds into `:timeout` (leaning distinct).
+- [x] Decide whether `LocalExec` exposes a portfolio/parallel mode or stays
+      single-binary for camera-ready — **single-binary**, portfolio noted as
+      future work.
+- [x] Decide whether wall-clock timeout gets a distinct `atp_result` variant
+      or folds into `:timeout` — **folded into `{:ok, :timeout}`** to keep
+      the cross-backend result type uniform.
 - [ ] Confirm with David which of the delegated items he can take and on what
       timeline; pin the `isabelle_elixir` version accordingly.
 - [ ] Decide MCP server prominence: §9 demonstration only (default) vs.

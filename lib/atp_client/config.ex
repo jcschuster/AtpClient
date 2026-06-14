@@ -31,14 +31,14 @@ defmodule AtpClient.Config do
   in `config.exs`.
   """
 
-  @type backend :: :sotptp | :starexec | :isabelle
+  @type backend :: :sotptp | :starexec | :isabelle | :local_exec
 
   @doc """
   Returns the fully resolved settings for the given backend as a keyword list.
   """
   @spec get(backend()) :: keyword()
   @spec get(backend(), keyword()) :: keyword()
-  def get(backend, opts \\ []) when backend in [:sotptp, :starexec, :isabelle] do
+  def get(backend, opts \\ []) when backend in [:sotptp, :starexec, :isabelle, :local_exec] do
     from_env = Application.get_env(:atp_client, backend, [])
 
     from_env

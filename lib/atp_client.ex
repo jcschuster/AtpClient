@@ -2,13 +2,16 @@ defmodule AtpClient do
   @moduledoc """
   Elixir client for external automated theorem provers.
 
-  Three backends are supported:
+  Four backends are supported:
 
     * **SystemOnTPTP** — public tptp.org HTTP form API; see
       `AtpClient.SystemOnTptp`.
     * **StarExec** — self-hosted StarExec instances; see `AtpClient.StarExec`.
     * **Isabelle** — `isabelle server` instances via `isabelle_elixir`; see
       `AtpClient.Isabelle`.
+    * **LocalExec** — a locally installed TPTP-compliant prover binary
+      (e.g. E, Vampire) invoked via `System.cmd/3`; see `AtpClient.LocalExec`.
+      Run `scripts/build_eprover.sh` to install E into `priv/bin/`.
 
   Each backend reads its settings through `AtpClient.Config`, which layers
   `config/config.exs` on top of the library defaults and lets per-call options
@@ -49,6 +52,11 @@ defmodule AtpClient do
         local_dir: "/shared/problems",
         isabelle_dir: "/shared/problems",
         session: "HOL"
+
+      config :atp_client, :local_exec,
+        binary: "eprover",
+        args: ["--auto", "--tstp-format", "--cpu-limit=10"],
+        cpu_timeout_s: 10
 
   Any setting may be overridden for a single call:
 

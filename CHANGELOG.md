@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`AtpClient.LocalExec` backend.** Invokes a locally installed,
+  TPTP-compliant prover binary (E, Vampire, …) via `System.cmd/3` and
+  normalizes its stdout through the existing SZS classifier. Two-layered
+  timeout: the prover-side CPU limit (passed via `:args`) lets provers
+  emit a clean `SZS status Timeout`, and an independent BEAM-side
+  wall-clock timeout (`:wall_timeout_ms`) kills wedged processes. Both
+  paths fold into the same `{:ok, :timeout}` result so callers do not have
+  to branch on the failure mode. Binary resolution goes through
+  `System.find_executable/1`; missing binaries surface
+  `{:error, {:prover_not_found, name}}` rather than raising.
+- **`scripts/build_eprover.sh`** — builds the E theorem prover from source
+  and installs it to `priv/bin/eprover` for use as the `:local_exec`
+  backend's binary.
+- **`AtpClient.ResultNormalization.failure_t/0` gains
+  `{:prover_not_found, String.t()}`** for the `LocalExec` binary-resolution
+  failure mode.
+
 ## [0.2.0]
 
 ### Changed

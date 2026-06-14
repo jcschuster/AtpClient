@@ -48,6 +48,16 @@ defmodule AtpClient.MixProject do
           session: "HOL",
           session_start_timeout_ms: 120_000,
           use_theories_timeout_ms: 120_000
+        ],
+        local_exec: [
+          # `binary` is required at call time (e.g. "eprover", "vampire").
+          # Resolved via System.find_executable/1 unless an absolute path is given.
+          args: [],
+          cpu_timeout_s: 60,
+          # Wall-clock timeout defaults to `cpu_timeout_s + 10` seconds at
+          # call time when unset, giving the prover a chance to emit a clean
+          # `SZS status Timeout` before the BEAM-side kill fires.
+          wall_timeout_ms: nil
         ]
       ]
     ]
@@ -87,6 +97,7 @@ defmodule AtpClient.MixProject do
           AtpClient.StarExec.Session,
           AtpClient.Isabelle,
           AtpClient.Isabelle.Session,
+          AtpClient.LocalExec,
           AtpClient.TptpSystems
         ],
         Support: [

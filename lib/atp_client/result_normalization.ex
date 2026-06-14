@@ -25,6 +25,7 @@ defmodule AtpClient.ResultNormalization do
   @type failure_t ::
           :internal_error
           | :malformed_input
+          | {:prover_not_found, String.t()}
           | {:unrecognized_output, String.t()}
 
   @known_szs_results [
