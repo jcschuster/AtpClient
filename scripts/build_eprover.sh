@@ -14,7 +14,7 @@
 set -euo pipefail
 
 E_REPO="${E_REPO:-https://github.com/eprover/eprover.git}"
-E_TAG="${E_TAG:-E-3.2.7}"
+E_TAG="${E_TAG:-E-3.2.5}"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build_dir="${repo_root}/tmp/eprover-build"

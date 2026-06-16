@@ -34,7 +34,7 @@ defmodule AtpClient.StarExec do
   ## Configuration
 
       config :atp_client, :starexec,
-        base_url: "https://starexec.example.org/starexec",
+        base_url: "https://starexec.example.org",
         username: "me",
         password: System.get_env("STAREXEC_PASS")
   """
@@ -60,47 +60,62 @@ defmodule AtpClient.StarExec do
     base_url = Config.fetch!(:starexec, :base_url, opts)
     username = Config.fetch!(:starexec, :username, opts)
     password = Config.fetch!(:starexec, :password, opts)
-    login_path = Config.fetch(:starexec, :login_path, "/j_security_check", opts)
+    # Tomcat's FormAuthenticator has two code paths for j_security_check: one for
+    # posts inside the security-constrained area (works correctly), one for posts
+    # outside it (loses the session and returns 408). We post to /secure/... so
+    # the URL falls inside the /secure/* constraint and the working path is taken.
+    login_path = Config.fetch(:starexec, :login_path, "/starexec/secure/j_security_check", opts)
+    init_path = Config.fetch(:starexec, :session_init_path, "/starexec/secure/index.jsp", opts)
     timeout_ms = Config.fetch(:starexec, :request_timeout_ms, 30_000, opts)
 
-    body =
-      URI.encode_query(%{
-        "j_username" => username,
-        "j_password" => password
-      })
-
-    # `redirect: false` is important: Tomcat form auth responds with 302 on
-    # success, and we want the cookie jar rather than a rendered page.
-    request =
+    base_req =
       Req.new(
         base_url: base_url,
-        headers: [{"content-type", "application/x-www-form-urlencoded"}],
         receive_timeout: timeout_ms,
-        redirect: false
+        redirect: false,
+        connect_options: Keyword.get(opts, :connect_options, [])
       )
 
-    case Req.post(request, url: login_path, body: body) do
-      {:ok, %{status: status, headers: headers}} when status in [200, 302, 303] ->
-        case extract_cookies(headers) do
-          %{} = jar when map_size(jar) > 0 ->
-            {:ok,
-             %Session{
-               base_url: base_url,
-               cookies: jar,
-               opts: Keyword.drop(opts, [:password])
-             }}
+    # Tomcat 7 FormAuthenticator returns 408 when j_security_check is POSTed
+    # without an existing session. A GET to any protected resource causes Tomcat
+    # to create the session and return JSESSIONID in Set-Cookie before the login
+    # POST, satisfying the authenticator's session requirement.
+    with {:ok, %{headers: init_headers}} <- Req.get(base_req, url: init_path) do
+      initial_jar = extract_cookies(init_headers)
 
-          _empty ->
-            # Some deployments return 200 on a failed login with an empty jar;
-            # flag that explicitly rather than returning an unusable session.
-            {:error, :login_failed}
-        end
+      body = URI.encode_query(%{"j_username" => username, "j_password" => password})
 
-      {:ok, %{status: status}} ->
-        {:error, {:login_failed, status}}
+      post_opts =
+        [
+          url: login_path,
+          body: body,
+          headers: [{"content-type", "application/x-www-form-urlencoded"}]
+        ]
+        |> put_cookie_header(initial_jar)
 
-      {:error, reason} ->
-        {:error, reason}
+      case Req.post(base_req, post_opts) do
+        {:ok, %{status: status, headers: headers}} when status in [200, 302, 303] ->
+          jar = Map.merge(initial_jar, extract_cookies(headers))
+
+          case jar do
+            j when map_size(j) > 0 ->
+              {:ok,
+               %Session{
+                 base_url: base_url,
+                 cookies: j,
+                 opts: Keyword.drop(opts, [:password])
+               }}
+
+            _empty ->
+              {:error, :login_failed}
+          end
+
+        {:ok, %{status: status}} ->
+          {:error, {:login_failed, status}}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
     end
   end
 
@@ -110,7 +125,7 @@ defmodule AtpClient.StarExec do
   """
   @spec logout(Session.t(), keyword()) :: :ok | {:error, term()}
   def logout(%Session{} = session, opts \\ []) do
-    path = Config.fetch(:starexec, :logout_path, "/services/session/logout", opts)
+    path = Config.fetch(:starexec, :logout_path, "/starexec/services/session/logout", opts)
 
     case request(session, :post, path, opts) do
       {:ok, %{status: status}} when status in 200..299 -> :ok
@@ -124,7 +139,7 @@ defmodule AtpClient.StarExec do
   """
   @spec get_job(Session.t(), job_id(), keyword()) :: {:ok, map()} | {:error, term()}
   def get_job(%Session{} = session, job_id, opts \\ []) do
-    base = Config.fetch(:starexec, :job_info_path, "/services/jobs", opts)
+    base = Config.fetch(:starexec, :job_info_path, "/starexec/services/jobs", opts)
     path = "#{base}/#{job_id}"
 
     case request(session, :get, path, opts) do
@@ -143,7 +158,7 @@ defmodule AtpClient.StarExec do
   @spec get_pair_stdout(Session.t(), pair_id(), keyword()) ::
           {:ok, String.t()} | {:error, term()}
   def get_pair_stdout(%Session{} = session, pair_id, opts \\ []) do
-    base = Config.fetch(:starexec, :pair_stdout_path, "/services/jobs/pairs", opts)
+    base = Config.fetch(:starexec, :pair_stdout_path, "/starexec/services/jobs/pairs", opts)
     path = "#{base}/#{pair_id}/stdout"
 
     case request(session, :get, path, opts) do
@@ -169,7 +184,7 @@ defmodule AtpClient.StarExec do
   @spec create_job(Session.t(), map(), keyword()) ::
           {:ok, Req.Response.t()} | {:error, term()}
   def create_job(%Session{} = session, fields, opts \\ []) when is_map(fields) do
-    path = Keyword.get(opts, :path, "/secure/add/job")
+    path = Keyword.get(opts, :path, "/starexec/secure/add/job")
     body = URI.encode_query(fields)
 
     request(
