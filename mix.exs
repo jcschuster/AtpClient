@@ -35,11 +35,15 @@ defmodule AtpClient.MixProject do
           # e.g. "https://starexec.example.org/starexec"
           request_timeout_ms: 30_000,
           poll_interval_ms: 2_000,
-          # Endpoint paths, overridable for non-standard deployments
-          login_path: "/j_security_check",
-          logout_path: "/services/session/logout",
-          job_info_path: "/services/jobs",
-          pair_stdout_path: "/services/jobs/pairs"
+          # Endpoint paths, overridable for non-standard deployments. Paths
+          # include the `/starexec` servlet context — set `:base_url` to the
+          # bare scheme/host (e.g. "https://starexec.example.org"), not the
+          # context root.
+          session_init_path: "/starexec/secure/index.jsp",
+          login_path: "/starexec/j_security_check",
+          logout_path: "/starexec/services/session/logout",
+          job_info_path: "/starexec/services/details/job",
+          job_output_path: "/starexec/secure/download"
         ],
         isabelle: [
           host: "127.0.0.1",

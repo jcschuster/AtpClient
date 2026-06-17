@@ -12,10 +12,12 @@ defmodule AtpClient.StarExec do
 
   The standard StarExec deployment exposes:
 
-    * Tomcat form-based authentication at `/j_security_check` with the
-      `j_username` and `j_password` fields;
-    * A JSON job endpoint at `/services/jobs/{job_id}`;
-    * Solver output at `/services/jobs/pairs/{pair_id}/stdout`.
+    * Tomcat form-based authentication at `/starexec/j_security_check`
+      with the `j_username` and `j_password` fields;
+    * A JSON job endpoint at `/services/details/job/{job_id}` returning the
+      Gson form of `org.starexec.data.to.Job` (used to detect completion);
+    * A ZIP download of all pair stdouts at
+      `/secure/download?type=j_outputs&id={job_id}`.
 
   All of these paths are configurable; see `AtpClient.Config`.
 
@@ -43,7 +45,24 @@ defmodule AtpClient.StarExec do
   alias AtpClient.StarExec.Session
 
   @type job_id :: non_neg_integer() | String.t()
-  @type pair_id :: non_neg_integer() | String.t()
+
+  # Keys consumed by this module's own configuration / call-time API. They
+  # must be stripped from the keyword list before it is handed to
+  # `Req.request/1`, which validates options and rejects unknown ones.
+  @starexec_only_opts [
+    :username,
+    :password,
+    :request_timeout_ms,
+    :poll_interval_ms,
+    :session_init_path,
+    :login_path,
+    :logout_path,
+    :job_info_path,
+    :job_output_path,
+    :timeout_ms,
+    :complete_fun,
+    :path
+  ]
 
   @doc """
   Authenticates against the configured StarExec instance and returns a
@@ -52,7 +71,8 @@ defmodule AtpClient.StarExec do
   ## Options
 
     * `:base_url`, `:username`, `:password` — override configuration;
-    * `:login_path` — override the auth endpoint (default `/j_security_check`);
+    * `:login_path` — override the auth endpoint (default
+      `/starexec/j_security_check`);
     * `:request_timeout_ms`.
   """
   @spec login(keyword()) :: {:ok, Session.t()} | {:error, term()}
@@ -60,11 +80,12 @@ defmodule AtpClient.StarExec do
     base_url = Config.fetch!(:starexec, :base_url, opts)
     username = Config.fetch!(:starexec, :username, opts)
     password = Config.fetch!(:starexec, :password, opts)
-    # Tomcat's FormAuthenticator has two code paths for j_security_check: one for
-    # posts inside the security-constrained area (works correctly), one for posts
-    # outside it (loses the session and returns 408). We post to /secure/... so
-    # the URL falls inside the /secure/* constraint and the working path is taken.
-    login_path = Config.fetch(:starexec, :login_path, "/starexec/secure/j_security_check", opts)
+    # FormAuthenticator only authenticates a j_security_check POST when the
+    # session already has a SavedRequest — i.e. Tomcat previously redirected
+    # this session away from a protected URL toward the login page. Without
+    # that, the POST returns 408. The init GET below triggers exactly that
+    # SavedRequest by hitting a URL covered by a <security-constraint>.
+    login_path = Config.fetch(:starexec, :login_path, "/starexec/j_security_check", opts)
     init_path = Config.fetch(:starexec, :session_init_path, "/starexec/secure/index.jsp", opts)
     timeout_ms = Config.fetch(:starexec, :request_timeout_ms, 30_000, opts)
 
@@ -76,10 +97,6 @@ defmodule AtpClient.StarExec do
         connect_options: Keyword.get(opts, :connect_options, [])
       )
 
-    # Tomcat 7 FormAuthenticator returns 408 when j_security_check is POSTed
-    # without an existing session. A GET to any protected resource causes Tomcat
-    # to create the session and return JSESSIONID in Set-Cookie before the login
-    # POST, satisfying the authenticator's session requirement.
     with {:ok, %{headers: init_headers}} <- Req.get(base_req, url: init_path) do
       initial_jar = extract_cookies(init_headers)
 
@@ -139,7 +156,7 @@ defmodule AtpClient.StarExec do
   """
   @spec get_job(Session.t(), job_id(), keyword()) :: {:ok, map()} | {:error, term()}
   def get_job(%Session{} = session, job_id, opts \\ []) do
-    base = Config.fetch(:starexec, :job_info_path, "/starexec/services/jobs", opts)
+    base = Config.fetch(:starexec, :job_info_path, "/starexec/services/details/job", opts)
     path = "#{base}/#{job_id}"
 
     case request(session, :get, path, opts) do
@@ -150,20 +167,22 @@ defmodule AtpClient.StarExec do
   end
 
   @doc """
-  Fetches the plain stdout of a single job pair. StarExec represents each
-  (benchmark, solver, config) tuple within a job as a "pair"; this function
-  retrieves the raw solver output for a pair, which can then be passed to
-  `AtpClient.ResultNormalization.interpret_result/1`.
+  Downloads the per-pair stdout archive ("j_outputs") for a finished job.
+  StarExec has no JSON endpoint that returns a single pair's stdout in
+  isolation; the official `StarexecCommand` CLI uses this download path
+  instead, and it works without knowing the pair ids.
+
+  Returns the raw ZIP bytes. Use `:zip.extract(bytes, [:memory])` (Erlang
+  stdlib) to read the individual stdout files out of the archive.
   """
-  @spec get_pair_stdout(Session.t(), pair_id(), keyword()) ::
-          {:ok, String.t()} | {:error, term()}
-  def get_pair_stdout(%Session{} = session, pair_id, opts \\ []) do
-    base = Config.fetch(:starexec, :pair_stdout_path, "/starexec/services/jobs/pairs", opts)
-    path = "#{base}/#{pair_id}/stdout"
+  @spec get_job_output(Session.t(), job_id(), keyword()) ::
+          {:ok, binary()} | {:error, term()}
+  def get_job_output(%Session{} = session, job_id, opts \\ []) do
+    base = Config.fetch(:starexec, :job_output_path, "/starexec/secure/download", opts)
+    path = "#{base}?type=j_outputs&id=#{job_id}"
 
     case request(session, :get, path, opts) do
       {:ok, %{status: 200, body: body}} when is_binary(body) -> {:ok, body}
-      {:ok, %{status: 200, body: body}} -> {:ok, to_string(body)}
       {:ok, %{status: status}} -> {:error, {:status, status}}
       other -> other
     end
@@ -193,7 +212,12 @@ defmodule AtpClient.StarExec do
       path,
       Keyword.merge(opts,
         body: body,
-        headers: [{"content-type", "application/x-www-form-urlencoded"}]
+        headers: [{"content-type", "application/x-www-form-urlencoded"}],
+        # StarExec replies to a successful job creation with a 302 redirect
+        # whose Location carries the new job id. Following the redirect would
+        # turn that into a 200 against the job-detail page and discard the
+        # Location header.
+        redirect: false
       )
     )
   end
@@ -239,12 +263,11 @@ defmodule AtpClient.StarExec do
     end
   end
 
-  defp default_complete?(%{"jobComplete" => true}), do: true
-
-  defp default_complete?(%{"completed" => c, "totalJobPairs" => t})
-       when is_integer(c) and is_integer(t) and t > 0,
-       do: c >= t
-
+  # The Job DTO returned by /services/details/job/{id} is the Gson form of
+  # `org.starexec.data.to.Job`. Its `completeTime` field is null until every
+  # pair has finished, at which point Gson stamps an ISO-8601 string. Default
+  # Gson omits null fields, so "completeTime" being present at all is enough.
+  defp default_complete?(%{"completeTime" => t}) when is_binary(t) and t != "", do: true
   defp default_complete?(_), do: false
 
   @doc """
@@ -264,7 +287,7 @@ defmodule AtpClient.StarExec do
 
     req_opts =
       opts
-      |> Keyword.drop([:request_timeout_ms])
+      |> Keyword.drop(@starexec_only_opts)
       |> Keyword.merge(
         method: method,
         base_url: session.base_url,

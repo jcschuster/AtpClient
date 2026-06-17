@@ -1,0 +1,4 @@
+0.00/0.00	exec failed: No such file or directory
+0.00/0.00	Solver command line was: /export/starexec/sandbox/solver/bin/starexec_run_starexec_run_default /export/starexec/sandbox/benchmark/theBenchmark.p /export/starexec/sandbox/output/output_files  
+0.00/0.00	
+0.00/0.00	EOF

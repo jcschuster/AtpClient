@@ -1,0 +1,48 @@
+{
+  "benchmarkingFramework": "RUNSOLVER",
+  "buildJob": false,
+  "completeTime": "2026-06-17T09:21:43",
+  "cpuTimeout": 30,
+  "createTime": "2026-06-17T09:21:20",
+  "deleted": false,
+  "description": "Automated validation run",
+  "diskSize": 4372,
+  "id": 6,
+  "isHighPriority": false,
+  "jobPairs": [],
+  "killDelay": 0,
+  "maxMemory": 1073741824,
+  "name": "AtpClient smoke â Theorem",
+  "paused": false,
+  "primarySpace": 6,
+  "queue": {
+    "attributes": {},
+    "cpuTimeout": 259200,
+    "global_access": true,
+    "id": 1,
+    "jobPairs": {},
+    "name": "all.q",
+    "nodes": [],
+    "status": "ACTIVE",
+    "wallTimeout": 259200
+  },
+  "seed": 0,
+  "softTimeLimit": 0,
+  "stageAttributes": [
+    {
+      "cpuTimeout": 30,
+      "extraOutputSaveOption": "SAVE",
+      "jobId": 6,
+      "maxMemory": 1073741824,
+      "resultsInterval": 0,
+      "stageNumber": 1,
+      "stdoutSaveOption": "SAVE",
+      "wallclockTimeout": 60
+    }
+  ],
+  "suppressTimestamp": false,
+  "totalPairs": 1,
+  "userId": 1,
+  "usingDependencies": false,
+  "wallclockTimeout": 60
+}

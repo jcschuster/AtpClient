@@ -7,18 +7,18 @@
 #   2. Log in as admin:admin and create a Space (note its numeric ID).
 #   3. Upload E prover (from priv/bin/eprover, packaged as a StarExec .tgz solver) into the space.
 #      Note the solver config ID shown in "View Solver".
-#   4. Upload at least three TPTP benchmarks to the space:
-#        theorem      — e.g. PUZ001+1.p  (SZS status Theorem)
-#        timeout      — a hard problem with a 5 s CPU limit
+#   4. Upload two TPTP benchmarks to the space:
+#        theorem            — e.g. PUZ001+1.p  (SZS status Theorem)
 #        countersatisfiable — e.g. PUZ001-1.p  (SZS status CounterSatisfiable)
 #      Note each benchmark ID.
-#   5. Set the four env vars below and re-run.
+#   5. Set the env vars below and re-run.
 #
 # Environment variables:
 #   STAREXEC_SPACE_ID        numeric space ID
 #   STAREXEC_SOLVER_CFG_ID   numeric solver *configuration* ID (not solver ID)
 #   BENCH_THM_ID             benchmark ID for the Theorem problem
 #   BENCH_CSAT_ID            benchmark ID for the CounterSatisfiable problem
+#   STAREXEC_QUEUE_ID        worker queue ID (defaults to "1", the container's all.q)
 #
 # After a successful run, copy the job JSON fixture saved to
 # test/fixtures/starexec_job_complete.json and the stdout fixtures to
@@ -46,6 +46,8 @@ space_id      = System.get_env("STAREXEC_SPACE_ID")      || raise "Set STAREXEC_
 solver_cfg_id = System.get_env("STAREXEC_SOLVER_CFG_ID") || raise "Set STAREXEC_SOLVER_CFG_ID"
 bench_thm_id  = System.get_env("BENCH_THM_ID")           || raise "Set BENCH_THM_ID"
 bench_csat_id = System.get_env("BENCH_CSAT_ID")          || raise "Set BENCH_CSAT_ID"
+# StarExec needs a worker queue id; the default container's "all.q" is 1.
+queue_id      = System.get_env("STAREXEC_QUEUE_ID")      || "1"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -61,120 +63,157 @@ defmodule SmokeTest do
     end
   end
 
-  # Extract job_id from a Location header like "/starexec/secure/details/job.jsp?jobId=42"
-  # or "/starexec/secure/jobs/42".
-  def extract_job_id!(headers) do
-    location =
-      Enum.find_value(headers, fn {k, v} ->
-        if String.downcase(k) == "location", do: v
-      end) || raise "No Location header in create_job response"
+  # A successful create_job is a redirect (302/303) whose Location header
+  # carries the new job id. Anything else is a validation failure; StarExec
+  # encodes the human-readable reason in the STATUS_MESSAGE_STRING cookie
+  # and repeats it in the error body.
+  def extract_job_id!(%{status: status} = resp) when status not in [302, 303] do
+    raise """
+    create_job failed with status #{status}.
+      StarExec reason: #{starexec_status_message(resp) || "(none)"}
+      Body excerpt:    #{body_excerpt(resp.body)}
+    """
+  end
 
-    case Regex.run(~r/jobId=(\d+)|\/jobs\/(\d+)/, location) do
+  def extract_job_id!(%{headers: headers}) do
+    location =
+      headers
+      |> Enum.find_value(fn {k, v} ->
+        if String.downcase(k) == "location", do: v
+      end)
+      |> case do
+        nil -> raise "create_job redirected without a Location header"
+        [v | _] -> v
+        v when is_binary(v) -> v
+      end
+
+    # StarExec's success redirect is /starexec/secure/details/job.jsp?id=N.
+    # Match either ?id=N, ?jobId=N, or a /jobs/N tail to stay tolerant of
+    # other versions.
+    case Regex.run(~r/[?&](?:job)?[Ii]d=(\d+)|\/jobs\/(\d+)/, location) do
       [_, id, ""] -> String.to_integer(id)
       [_, "", id] -> String.to_integer(id)
+      [_, id] -> String.to_integer(id)
       _ -> raise "Could not parse job_id from Location: #{location}"
     end
   end
 
-  def first_pair_id!(job_info) do
-    case job_info do
-      %{"jobPairs" => [%{"jobPairId" => id} | _]} -> id
-      %{"pairs" => [%{"pairId" => id} | _]} -> id
-      _ -> raise "Unexpected job JSON shape — update pair_id extraction:\n#{inspect(job_info, pretty: true)}"
+  defp starexec_status_message(%{headers: headers}) do
+    headers
+    |> Enum.flat_map(fn
+      {k, v} -> if String.downcase(k) == "set-cookie", do: List.wrap(v), else: []
+    end)
+    |> Enum.find_value(fn raw ->
+      case String.split(raw, ";", parts: 2) |> hd() |> String.split("=", parts: 2) do
+        ["STATUS_MESSAGE_STRING", v] -> URI.decode(v)
+        _ -> nil
+      end
+    end)
+  end
+
+  defp body_excerpt(body) when is_binary(body), do: String.slice(body, 0, 2_000)
+  defp body_excerpt(body), do: inspect(body) |> String.slice(0, 2_000)
+
+  # The j_outputs ZIP from /secure/download contains one stdout file per pair
+  # under a directory layout like Job<id>/<space>/<bench>/<solver>/<config>/.
+  # For a smoke job with a single bench × single config there is exactly one
+  # such file; we just grab it.
+  def extract_single_stdout!(zip_bytes, job_info \\ nil) do
+    {:ok, entries} = :zip.extract(zip_bytes, [:memory])
+
+    stdout_entries =
+      entries
+      |> Enum.filter(fn
+        {name, content} when is_binary(content) -> not String.ends_with?(to_string(name), "/")
+        _ -> false
+      end)
+
+    case stdout_entries do
+      [{_name, content}] ->
+        content
+
+      [] ->
+        raise """
+        j_outputs ZIP contained no files — the StarExec worker produced no stdout.
+        #{job_diagnostic(job_info)}
+        Check the pair status in the web UI:
+          https://localhost:7827/starexec/secure/details/job.jsp?id=#{job_id(job_info)}
+        and the container log:
+          podman logs starexec-app | tail -200
+        Common causes: solver tgz missing `bin/starexec_run_default`, run-script
+        not executable, or eprover binary incompatible with the worker node.
+        """
+
+      many ->
+        names = Enum.map(many, fn {n, _} -> to_string(n) end)
+        raise "Expected a single stdout entry, got #{length(many)}: #{inspect(names)}"
     end
   end
 
-  # NOTE (Phase 3 action item): discover the real field names by opening the
-  # "Add Job" page in the StarExec web UI against your local instance and
-  # inspecting the network tab. Common fields vary across StarExec releases.
-  # Known stable fields: name, desc, sid, cpuTimeout, wallclockTimeout.
-  # Solver/config and benchmark selection are often multi-value and may require
-  # multipart encoding — see ROADMAP.md Phase 3 known risk #2.
-  def job_fields(space_id, solver_cfg_id, bench_id, label, cpu_timeout_s) do
+  defp job_diagnostic(%{"diskSize" => d, "totalPairs" => t}),
+    do: "Job DTO reports diskSize=#{d} bytes across totalPairs=#{t}."
+
+  defp job_diagnostic(_), do: ""
+
+  defp job_id(%{"id" => id}), do: id
+  defp job_id(_), do: "<unknown>"
+
+  # Form field names mirror the StarExec "Add Job" form (`secure/add/job.jsp`)
+  # and the validation in `org.starexec.servlets.CreateJob#isValid`. Required
+  # fields: sid, benchmarkingFramework, seed, queue, desc, runChoice, plus
+  # benchChoice + bench + configs for the "choose / runChosenFromSpace" path.
+  # preProcess / postProcess must parse as ints — "-1" means "none".
+  def job_fields(space_id, queue_id, solver_cfg_id, bench_id, label, cpu_timeout_s) do
     %{
-      "name"             => "AtpClient smoke — #{label}",
-      "desc"             => "Automated validation run",
-      "sid"              => space_id,
-      "cpuTimeout"       => to_string(cpu_timeout_s),
-      "wallclockTimeout" => to_string(cpu_timeout_s * 2),
-      # TODO: Verify these field names against your instance's "Add Job" form.
-      # They may be "sc" (solver config), "bench", "benchmarkIds", etc.
-      "sc"               => solver_cfg_id,
-      "bench"            => bench_id
+      "sid"                   => space_id,
+      "name"                  => "AtpClient smoke — #{label}",
+      "desc"                  => "Automated validation run",
+      "queue"                 => queue_id,
+      "benchmarkingFramework" => "RUNSOLVER",
+      "seed"                  => "0",
+      "preProcess"            => "-1",
+      "postProcess"           => "-1",
+      "cpuTimeout"            => to_string(cpu_timeout_s),
+      "wallclockTimeout"      => to_string(cpu_timeout_s * 2),
+      "maxMem"                => "1.0",
+      "runChoice"             => "choose",
+      "benchChoice"           => "runChosenFromSpace",
+      "bench"                 => bench_id,
+      "configs"               => solver_cfg_id,
+      # `pause` is unconditionally dereferenced via .equals("yes") in
+      # CreateJob#doPost — omitting it causes an uncaught NPE (HTTP 500).
+      "pause"                 => "no"
     }
   end
 end
 
 # ---------------------------------------------------------------------------
-# Login (validates cookie handling — ROADMAP Phase 3 known risk #1)
+# Login
 # ---------------------------------------------------------------------------
 
-IO.puts("\n=== Login (with verbose probe) ===")
-
-# Manual two-step probe so we can see what Tomcat returns at each stage.
-probe_req =
-  Req.new(
-    base_url: opts[:base_url],
-    redirect: false,
-    connect_options: opts[:connect_options]
-  )
-
-{:ok, get_resp} = Req.get(probe_req, url: "/starexec/secure/explore/spaces.jsp")
-IO.puts("  GET /starexec/secure/explore/spaces.jsp -> #{get_resp.status}")
-IO.puts("    Set-Cookie: #{inspect(for {k, v} <- get_resp.headers, String.downcase(k) == "set-cookie", do: v)}")
-
-cookie_jar =
-  get_resp.headers
-  |> Enum.flat_map(fn
-    {"set-cookie", v} -> List.wrap(v)
-    {"Set-Cookie", v} -> List.wrap(v)
-    _ -> []
-  end)
-  |> Enum.map(fn raw ->
-    raw |> String.split(";", parts: 2) |> hd() |> String.split("=", parts: 2)
-  end)
-  |> Enum.into(%{}, fn [k, v] -> {String.trim(k), String.trim(v)} end)
-
-cookie_header = Enum.map_join(cookie_jar, "; ", fn {k, v} -> "#{k}=#{v}" end)
-IO.puts("    Cookie header for next request: #{cookie_header}")
-
-{:ok, post_resp} =
-  Req.post(probe_req,
-    url: "/starexec/j_security_check",
-    body: URI.encode_query(%{"j_username" => "admin", "j_password" => "admin"}),
-    headers: [
-      {"content-type", "application/x-www-form-urlencoded"},
-      {"cookie", cookie_header}
-    ]
-  )
-
-IO.puts("  POST /starexec/j_security_check -> #{post_resp.status}")
-IO.puts("    Location: #{inspect(for {k, v} <- post_resp.headers, String.downcase(k) == "location", do: v)}")
-IO.puts("    Set-Cookie: #{inspect(for {k, v} <- post_resp.headers, String.downcase(k) == "set-cookie", do: v)}")
-
+IO.puts("\n=== Login ===")
 {:ok, session} = StarExec.login(opts)
 IO.puts("Cookies received: #{inspect(Map.keys(session.cookies))}")
-IO.puts("(If the list is empty the login succeeded but no cookie was set — see ROADMAP cookie risk.)")
 
 # ---------------------------------------------------------------------------
 # Case 1: Theorem
 # ---------------------------------------------------------------------------
 
 IO.puts("\n=== Case 1: Theorem ===")
-fields_thm = SmokeTest.job_fields(space_id, solver_cfg_id, bench_thm_id, "Theorem", 30)
+fields_thm = SmokeTest.job_fields(space_id, queue_id, solver_cfg_id, bench_thm_id, "Theorem", 30)
 {:ok, resp_thm} = StarExec.create_job(session, fields_thm, opts)
 IO.puts("create_job status: #{resp_thm.status}")
 IO.puts("Location: #{inspect(Enum.find_value(resp_thm.headers, fn {k,v} -> if String.downcase(k)=="location", do: v end))}")
 
-job_id_thm = SmokeTest.extract_job_id!(resp_thm.headers)
+job_id_thm = SmokeTest.extract_job_id!(resp_thm)
 IO.puts("Job ID: #{job_id_thm}")
 
 {:ok, job_info_thm} = StarExec.wait_for_job(session, job_id_thm, Keyword.merge(opts, timeout_ms: 120_000))
 File.write!("test/fixtures/starexec_job_complete.json", Jason.encode!(job_info_thm, pretty: true))
 IO.puts("Saved job JSON fixture → test/fixtures/starexec_job_complete.json")
 
-pair_id_thm = SmokeTest.first_pair_id!(job_info_thm)
-{:ok, stdout_thm} = StarExec.get_pair_stdout(session, pair_id_thm, opts)
+{:ok, output_zip_thm} = StarExec.get_job_output(session, job_id_thm, opts)
+stdout_thm = SmokeTest.extract_single_stdout!(output_zip_thm, job_info_thm)
 File.write!("test/fixtures/starexec_stdout_thm.txt", stdout_thm)
 IO.puts("Saved stdout fixture → test/fixtures/starexec_stdout_thm.txt")
 
@@ -186,13 +225,13 @@ SmokeTest.assert_eq!("Theorem result", result_thm, {:ok, :thm})
 # ---------------------------------------------------------------------------
 
 IO.puts("\n=== Case 2: CounterSatisfiable ===")
-fields_csat = SmokeTest.job_fields(space_id, solver_cfg_id, bench_csat_id, "CounterSat", 30)
+fields_csat = SmokeTest.job_fields(space_id, queue_id, solver_cfg_id, bench_csat_id, "CounterSat", 30)
 {:ok, resp_csat} = StarExec.create_job(session, fields_csat, opts)
-job_id_csat = SmokeTest.extract_job_id!(resp_csat.headers)
+job_id_csat = SmokeTest.extract_job_id!(resp_csat)
 
 {:ok, job_info_csat} = StarExec.wait_for_job(session, job_id_csat, Keyword.merge(opts, timeout_ms: 120_000))
-pair_id_csat = SmokeTest.first_pair_id!(job_info_csat)
-{:ok, stdout_csat} = StarExec.get_pair_stdout(session, pair_id_csat, opts)
+{:ok, output_zip_csat} = StarExec.get_job_output(session, job_id_csat, opts)
+stdout_csat = SmokeTest.extract_single_stdout!(output_zip_csat, job_info_csat)
 File.write!("test/fixtures/starexec_stdout_csat.txt", stdout_csat)
 IO.puts("Saved stdout fixture → test/fixtures/starexec_stdout_csat.txt")
 
@@ -210,11 +249,7 @@ IO.puts("""
 
 === ALL SMOKE TESTS PASSED ===
 
-Next steps for ROADMAP Phase 3:
-  1. Verify the field names used in job_fields/5 above were correct — if a
-     create_job call returned a non-redirect status, the field set needs updating.
-  2. Check whether multipart encoding was needed (ROADMAP known risk #2).
-  3. Review the saved fixtures in test/fixtures/ and write offline regression
-     tests in test/atp_client/star_exec_test.exs using the fixture payloads.
-  4. Update ROADMAP §7 with a validation report.
+Next step: use the saved fixtures in test/fixtures/ to write offline
+regression tests in test/atp_client/star_exec_test.exs that stub Req with
+the recorded payloads.
 """)
