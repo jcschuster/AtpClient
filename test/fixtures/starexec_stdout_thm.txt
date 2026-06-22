@@ -1,4 +1,10 @@
-0.00/0.00	exec failed: No such file or directory
-0.00/0.00	Solver command line was: /export/starexec/sandbox/solver/bin/starexec_run_starexec_run_default /export/starexec/sandbox/benchmark/theBenchmark.p /export/starexec/sandbox/output/output_files  
-0.00/0.00	
-0.00/0.00	EOF
+0.00/0.03	# Preprocessing class: FSMSSMSSSSSNFFN.
+0.00/0.03	# Configuration: G-E--_208_C18_F1_SE_CS_SOS_SP_PS_S5PRR_RG_S04AN
+0.00/0.03	# No SInE strategy applied
+0.00/0.03	# Search class: FGHSF-FFSS11-SFFFFFNN
+0.00/0.03	# Configuration: SAT001_MinMin_p005000_rr_RG
+0.00/0.03	# Presaturation interreduction done
+0.00/0.03	
+0.00/0.03	# Proof found!
+0.00/0.03	# SZS status Theorem
+0.00/0.04	EOF

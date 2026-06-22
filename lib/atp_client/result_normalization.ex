@@ -244,17 +244,29 @@ defmodule AtpClient.ResultNormalization do
 
   defp classify_line(messages) do
     text = Enum.map_join(messages, "\n", &Map.get(&1, "message", ""))
-    theorem_name = find_theorem_name(messages)
 
+    case find_theorem_name(messages) do
+      :no_theorem -> classify_text(text, messages)
+      name -> {:thm, name}
+    end
+  end
+
+  defp classify_text(text, messages) do
+    case classify_status(text, messages) do
+      nil -> nil
+      result -> {result, nil}
+    end
+  end
+
+  defp classify_status(text, messages) do
     cond do
-      theorem_name != :no_theorem -> {:thm, theorem_name}
-      nitpick_found?(text, "counterexample") -> {:csat, nil}
-      nitpick_found?(text, "model") -> {:sat, nil}
-      String.contains?(text, "found a proof") -> {:thm, nil}
-      timeout?(text) -> {:timeout, nil}
-      String.contains?(text, "Out of memory") -> {:out_of_resources, nil}
-      gave_up?(text) -> {:gave_up, nil}
-      Enum.any?(messages, &(Map.get(&1, "kind") == "error")) -> {:gave_up, nil}
+      nitpick_found?(text, "counterexample") -> :csat
+      nitpick_found?(text, "model") -> :sat
+      String.contains?(text, "found a proof") -> :thm
+      timeout?(text) -> :timeout
+      String.contains?(text, "Out of memory") -> :out_of_resources
+      gave_up?(text) -> :gave_up
+      Enum.any?(messages, &(Map.get(&1, "kind") == "error")) -> :gave_up
       true -> nil
     end
   end

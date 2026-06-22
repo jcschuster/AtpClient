@@ -8,8 +8,19 @@
 #   3. Upload E prover (from priv/bin/eprover, packaged as a StarExec .tgz solver) into the space.
 #      Note the solver config ID shown in "View Solver".
 #   4. Upload two TPTP benchmarks to the space:
-#        theorem            — e.g. PUZ001+1.p  (SZS status Theorem)
-#        countersatisfiable — e.g. PUZ001-1.p  (SZS status CounterSatisfiable)
+#        theorem            — e.g. PUZ001+1.p (SZS status Theorem). Any TPTP
+#                             problem whose header says `% Status : Theorem`
+#                             (FOF) or `Unsatisfiable` (CNF) works.
+#        countersatisfiable — a problem whose header says
+#                             `% Status : CounterSatisfiable` (FOF) or
+#                             `Satisfiable` (CNF). TPTP's `+` / `-` / `^`
+#                             suffixes only encode the form (FOF/CNF/THF),
+#                             NOT the SZS status — `PUZ001-1.p` is *not*
+#                             CounterSatisfiable, it is the CNF form of
+#                             Schubert's Steamroller and is a theorem.
+#                             A trivial handcrafted CSA benchmark:
+#                                 fof(a1, axiom, p(a)).
+#                                 fof(c1, conjecture, p(b)).
 #      Note each benchmark ID.
 #   5. Set the env vars below and re-run.
 #

@@ -43,7 +43,19 @@ defmodule AtpClient.MixProject do
           login_path: "/starexec/j_security_check",
           logout_path: "/starexec/services/session/logout",
           job_info_path: "/starexec/services/details/job",
-          job_output_path: "/starexec/secure/download"
+          job_output_path: "/starexec/secure/download",
+          create_job_path: "/starexec/secure/add/job",
+          upload_benchmarks_path: "/starexec/secure/upload/benchmarks",
+          # Path template for "list every benchmark in this space"; "{space_id}"
+          # is substituted at call time. POST endpoint, body ignored.
+          list_space_benchmarks_path: "/starexec/services/job/{space_id}/allbench/pagination/",
+          # StarExec's "no-type" benchmark processor — accepts any text file.
+          # Override per call/install when you need TPTP-aware validation.
+          benchmark_type: 1,
+          # Worker queue id used by `prove/3` when not overridden in opts.
+          queue_id: 1,
+          # Defaults for the high-level prove/3 helper.
+          cpu_timeout_s: 60
         ],
         isabelle: [
           host: "127.0.0.1",

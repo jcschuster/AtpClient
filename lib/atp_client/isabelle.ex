@@ -414,14 +414,13 @@ defmodule AtpClient.Isabelle do
   defp inject_proof_method(isabellized, proof_method) do
     isabellized
     |> String.split(~r/\n\n+/)
-    |> Enum.map(fn item ->
+    |> Enum.map_join("\n\n", fn item ->
       if String.starts_with?(String.trim_leading(item), "lemma ") do
         String.trim_trailing(item) <> "\n  " <> proof_method
       else
         item
       end
     end)
-    |> Enum.join("\n\n")
   end
 
   defp ensure_tptp_theory(local_dir) do

@@ -1,0 +1,10 @@
+0.00/0.03	# Preprocessing class: FSSSSMSSSSSNFFN.
+0.00/0.03	# Configuration: G-E--_302_C18_F1_URBAN_RG_S04BN
+0.00/0.03	# No SInE strategy applied
+0.00/0.03	# Search class: FUUNF-FFSF00-SFFFFFNN
+0.00/0.03	# Configuration: SAT001_MinMin_p005000_rr_RG
+0.00/0.03	# Presaturation interreduction done
+0.00/0.03	
+0.00/0.03	# No proof found!
+0.00/0.03	# SZS status CounterSatisfiable
+0.00/0.03	EOF

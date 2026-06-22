@@ -42,9 +42,12 @@ defmodule AtpClient.StarExec do
   """
 
   alias AtpClient.Config
+  alias AtpClient.ResultNormalization
   alias AtpClient.StarExec.Session
 
   @type job_id :: non_neg_integer() | String.t()
+  @type benchmark_id :: pos_integer()
+  @type space_id :: pos_integer()
 
   # Keys consumed by this module's own configuration / call-time API. They
   # must be stripped from the keyword list before it is handed to
@@ -59,6 +62,15 @@ defmodule AtpClient.StarExec do
     :logout_path,
     :job_info_path,
     :job_output_path,
+    :create_job_path,
+    :upload_benchmarks_path,
+    :list_space_benchmarks_path,
+    :benchmark_type,
+    :queue_id,
+    :cpu_timeout_s,
+    :wallclock_timeout_s,
+    :space_id,
+    :solver_cfg_id,
     :timeout_ms,
     :complete_fun,
     :path
@@ -112,20 +124,7 @@ defmodule AtpClient.StarExec do
 
       case Req.post(base_req, post_opts) do
         {:ok, %{status: status, headers: headers}} when status in [200, 302, 303] ->
-          jar = Map.merge(initial_jar, extract_cookies(headers))
-
-          case jar do
-            j when map_size(j) > 0 ->
-              {:ok,
-               %Session{
-                 base_url: base_url,
-                 cookies: j,
-                 opts: Keyword.drop(opts, [:password])
-               }}
-
-            _empty ->
-              {:error, :login_failed}
-          end
+          build_session(base_url, opts, Map.merge(initial_jar, extract_cookies(headers)))
 
         {:ok, %{status: status}} ->
           {:error, {:login_failed, status}}
@@ -134,6 +133,19 @@ defmodule AtpClient.StarExec do
           {:error, reason}
       end
     end
+  end
+
+  defp build_session(_base_url, _opts, jar) when map_size(jar) == 0 do
+    {:error, :login_failed}
+  end
+
+  defp build_session(base_url, opts, jar) do
+    {:ok,
+     %Session{
+       base_url: base_url,
+       cookies: jar,
+       opts: Keyword.drop(opts, [:password])
+     }}
   end
 
   @doc """
@@ -203,7 +215,10 @@ defmodule AtpClient.StarExec do
   @spec create_job(Session.t(), map(), keyword()) ::
           {:ok, Req.Response.t()} | {:error, term()}
   def create_job(%Session{} = session, fields, opts \\ []) when is_map(fields) do
-    path = Keyword.get(opts, :path, "/starexec/secure/add/job")
+    path =
+      Keyword.get(opts, :path) ||
+        Config.fetch(:starexec, :create_job_path, "/starexec/secure/add/job", opts)
+
     body = URI.encode_query(fields)
 
     request(
@@ -220,6 +235,330 @@ defmodule AtpClient.StarExec do
         redirect: false
       )
     )
+  end
+
+  @doc """
+  Uploads a single TPTP problem to a StarExec space.
+
+  StarExec accepts only archives (.zip / .tar / .tgz) at the benchmark upload
+  endpoint, so this function wraps `problem_text` in an in-memory ZIP whose
+  sole entry is the new benchmark file. The benchmark's name inside StarExec
+  becomes the entry's filename.
+
+  The upload is processed asynchronously on the server, so this function
+  returns as soon as the request is accepted. Use `wait_for_benchmark/4`
+  (or `prove/3`, which composes both) to obtain the new benchmark id once
+  StarExec has finished extracting and validating it.
+
+  ## Options
+
+    * `:name` — base name (without `.p`) for the uploaded file. Defaults to
+      a random UUID-ish string so concurrent uploads don't collide.
+    * `:benchmark_type` — benchmark processor id. Defaults to `1`
+      (StarExec's "no type" processor), which accepts any text.
+    * `:request_timeout_ms`.
+  """
+  @spec upload_benchmark(Session.t(), space_id(), binary(), keyword()) ::
+          {:ok, %{name: String.t(), status_id: pos_integer() | nil}} | {:error, term()}
+  def upload_benchmark(%Session{} = session, space_id, problem_text, opts \\ [])
+      when is_integer(space_id) and is_binary(problem_text) do
+    path =
+      Config.fetch(
+        :starexec,
+        :upload_benchmarks_path,
+        "/starexec/secure/upload/benchmarks",
+        opts
+      )
+
+    benchmark_type = Config.fetch(:starexec, :benchmark_type, 1, opts)
+    name = Keyword.get(opts, :name) || random_benchmark_name()
+    file_name = name <> ".p"
+
+    {:ok, {_zip_name, zip_bytes}} =
+      :zip.create(~c"bench.zip", [{String.to_charlist(file_name), problem_text}], [:memory])
+
+    fields = [
+      space: to_string(space_id),
+      upMethod: "dump",
+      benchType: to_string(benchmark_type),
+      download: "false",
+      localOrURLOrGit: "local",
+      dependency: "false",
+      depRoot: "-1",
+      benchFile: {zip_bytes, filename: "bench.zip", content_type: "application/zip"}
+    ]
+
+    upload_opts =
+      opts
+      |> Keyword.put(:form_multipart, fields)
+      # StarExec replies with a 302 to secure/details/uploadStatus.jsp?id=N.
+      # Following would mask the Location and discard the status id.
+      |> Keyword.put(:redirect, false)
+
+    case request(session, :post, path, upload_opts) do
+      {:ok, %{status: status} = resp} when status in [302, 303] ->
+        {:ok, %{name: file_name, status_id: extract_status_id(resp)}}
+
+      {:ok, %{status: status}} ->
+        {:error, {:upload_failed, status}}
+
+      other ->
+        other
+    end
+  end
+
+  @doc """
+  Lists every benchmark in `space_id`.
+
+  StarExec's REST surface for this is a DataTables-style endpoint that
+  returns each row as `[anchor_html, type_html]`; this function parses the
+  anchor to recover the structured `[%{id: …, name: …}]` we want.
+  """
+  @spec list_space_benchmarks(Session.t(), space_id(), keyword()) ::
+          {:ok, [%{id: benchmark_id(), name: String.t()}]} | {:error, term()}
+  def list_space_benchmarks(%Session{} = session, space_id, opts \\ [])
+      when is_integer(space_id) do
+    template =
+      Config.fetch(
+        :starexec,
+        :list_space_benchmarks_path,
+        "/starexec/services/job/{space_id}/allbench/pagination/",
+        opts
+      )
+
+    path = String.replace(template, "{space_id}", to_string(space_id))
+
+    case request(session, :post, path, opts) do
+      {:ok, %{status: 200, body: body}} ->
+        {:ok, parse_benchmark_rows(body)}
+
+      {:ok, %{status: status}} ->
+        {:error, {:status, status}}
+
+      other ->
+        other
+    end
+  end
+
+  @doc """
+  Polls `list_space_benchmarks/3` until a benchmark named `name` appears, then
+  returns its id. Fails with `{:error, :timeout}` if the benchmark has not
+  appeared within `:timeout_ms` (default 60 s).
+  """
+  @spec wait_for_benchmark(Session.t(), space_id(), String.t(), keyword()) ::
+          {:ok, benchmark_id()} | {:error, term()}
+  def wait_for_benchmark(%Session{} = session, space_id, name, opts \\ [])
+      when is_binary(name) do
+    poll_ms = Config.fetch(:starexec, :poll_interval_ms, 2_000, opts)
+    timeout_ms = Keyword.get(opts, :timeout_ms, 60_000)
+    deadline = System.monotonic_time(:millisecond) + timeout_ms
+    do_wait_for_benchmark(session, space_id, name, poll_ms, deadline, opts)
+  end
+
+  defp do_wait_for_benchmark(session, space_id, name, poll_ms, deadline, opts) do
+    case lookup_benchmark(session, space_id, name, opts) do
+      {:ok, id} ->
+        {:ok, id}
+
+      :not_found ->
+        if System.monotonic_time(:millisecond) >= deadline do
+          {:error, :timeout}
+        else
+          Process.sleep(poll_ms)
+          do_wait_for_benchmark(session, space_id, name, poll_ms, deadline, opts)
+        end
+
+      {:error, _} = err ->
+        err
+    end
+  end
+
+  defp lookup_benchmark(session, space_id, name, opts) do
+    with {:ok, benches} <- list_space_benchmarks(session, space_id, opts) do
+      case Enum.find(benches, &(&1.name == name)) do
+        %{id: id} -> {:ok, id}
+        nil -> :not_found
+      end
+    end
+  end
+
+  @doc """
+  End-to-end: upload `problem_text` as a fresh benchmark, run it against the
+  configured solver, wait for completion, and return the normalized result.
+
+  This is the "single shot" entry point that mirrors the other backends'
+  prove/2-style helpers. It is implemented purely in terms of the lower-level
+  functions in this module, so anything it does can be done by hand for
+  finer control.
+
+  ## Required options
+
+    * `:space_id` — target StarExec space (used for both the upload and the
+      job).
+    * `:solver_cfg_id` — solver *configuration* id (not solver id).
+
+  ## Common options
+
+    * `:queue_id` (default from config; `1` if unset) — worker queue id.
+    * `:cpu_timeout_s` (default from config; `60` if unset).
+    * `:wallclock_timeout_s` (default `cpu_timeout_s * 2`).
+    * `:benchmark_type` (default `1`).
+    * `:timeout_ms` — wall-clock budget for the whole pipeline; passed to
+      both `wait_for_benchmark/4` and `wait_for_job/3`.
+
+  All other StarExec options (`:base_url`, `:username`, `:password`, …) are
+  consumed by `request/4` as usual.
+  """
+  @spec prove(Session.t(), binary(), keyword()) ::
+          ResultNormalization.atp_result() | {:error, term()}
+  def prove(%Session{} = session, problem_text, opts \\ []) when is_binary(problem_text) do
+    space_id = Config.fetch!(:starexec, :space_id, opts)
+    solver_cfg_id = Config.fetch!(:starexec, :solver_cfg_id, opts)
+    queue_id = Config.fetch(:starexec, :queue_id, 1, opts)
+    cpu_timeout_s = Config.fetch(:starexec, :cpu_timeout_s, 60, opts)
+    wallclock_timeout_s = Keyword.get(opts, :wallclock_timeout_s, cpu_timeout_s * 2)
+
+    with {:ok, %{name: bench_name}} <-
+           upload_benchmark(session, space_id, problem_text, opts),
+         {:ok, bench_id} <-
+           wait_for_benchmark(session, space_id, bench_name, opts),
+         {:ok, job_resp} <-
+           create_job(
+             session,
+             prove_job_fields(
+               space_id,
+               queue_id,
+               solver_cfg_id,
+               bench_id,
+               bench_name,
+               cpu_timeout_s,
+               wallclock_timeout_s
+             ),
+             opts
+           ),
+         {:ok, job_id} <- job_id_from_response(job_resp),
+         {:ok, _job_info} <- wait_for_job(session, job_id, opts),
+         {:ok, zip_bytes} <- get_job_output(session, job_id, opts),
+         {:ok, stdout} <- single_stdout_from_zip(zip_bytes) do
+      ResultNormalization.interpret_result(stdout)
+    end
+  end
+
+  # --- prove/3 helpers --------------------------------------------------
+
+  defp prove_job_fields(space_id, queue_id, solver_cfg_id, bench_id, bench_name, cpu_s, wall_s) do
+    %{
+      "sid" => to_string(space_id),
+      "name" => "atp_client " <> bench_name,
+      "desc" => "AtpClient.StarExec.prove/3",
+      "queue" => to_string(queue_id),
+      "benchmarkingFramework" => "RUNSOLVER",
+      "seed" => "0",
+      "preProcess" => "-1",
+      "postProcess" => "-1",
+      "cpuTimeout" => to_string(cpu_s),
+      "wallclockTimeout" => to_string(wall_s),
+      "maxMem" => "1.0",
+      "runChoice" => "choose",
+      "benchChoice" => "runChosenFromSpace",
+      "bench" => to_string(bench_id),
+      "configs" => to_string(solver_cfg_id),
+      # CreateJob.java unconditionally dereferences `pause`; omitting it
+      # produces an uncaught NPE (HTTP 500).
+      "pause" => "no"
+    }
+  end
+
+  defp job_id_from_response(%{status: status, headers: headers}) when status in [302, 303] do
+    location =
+      headers
+      |> Enum.find_value(fn {k, v} ->
+        if String.downcase(k) == "location", do: v
+      end)
+
+    location =
+      case location do
+        [v | _] -> v
+        v -> v
+      end
+
+    case location && Regex.run(~r/[?&](?:job)?[Ii]d=(\d+)|\/jobs\/(\d+)/, location) do
+      [_, id, ""] -> {:ok, String.to_integer(id)}
+      [_, "", id] -> {:ok, String.to_integer(id)}
+      [_, id] -> {:ok, String.to_integer(id)}
+      _ -> {:error, {:no_job_id, location}}
+    end
+  end
+
+  defp job_id_from_response(%{status: status}), do: {:error, {:create_job_failed, status}}
+
+  defp single_stdout_from_zip(zip_bytes) do
+    with {:ok, entries} <- :zip.extract(zip_bytes, [:memory]) do
+      files =
+        Enum.filter(entries, fn
+          {name, content} when is_binary(content) ->
+            not String.ends_with?(to_string(name), "/")
+
+          _ ->
+            false
+        end)
+
+      case files do
+        [{_name, content}] -> {:ok, content}
+        [] -> {:error, :empty_job_output}
+        many -> {:error, {:multiple_outputs, length(many)}}
+      end
+    end
+  end
+
+  # --- upload/list helpers ----------------------------------------------
+
+  defp extract_status_id(%{headers: headers}) do
+    headers
+    |> Enum.find_value(fn {k, v} ->
+      if String.downcase(k) == "location", do: v
+    end)
+    |> case do
+      [v | _] -> parse_id_from_location(v)
+      v when is_binary(v) -> parse_id_from_location(v)
+      _ -> nil
+    end
+  end
+
+  defp parse_id_from_location(loc) do
+    case Regex.run(~r/[?&]id=(\d+)/, loc) do
+      [_, id] -> String.to_integer(id)
+      _ -> nil
+    end
+  end
+
+  # The DataTables JSON has shape %{"aaData" => [["<a href=...>name</a>",
+  # "<span>type</span>"], ...]}. We pull (id, name) out of the anchor.
+  defp parse_benchmark_rows(body) do
+    rows =
+      body
+      |> decode()
+      |> Map.get("aaData", [])
+
+    rows
+    |> Enum.map(&parse_benchmark_row/1)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp parse_benchmark_row([anchor | _]) when is_binary(anchor) do
+    case Regex.run(~r/benchmark\.jsp\?id=(\d+).*?>([^<]+)<\/a>/s, anchor) do
+      [_, id, name] -> %{id: String.to_integer(id), name: name}
+      _ -> nil
+    end
+  end
+
+  defp parse_benchmark_row(_), do: nil
+
+  defp random_benchmark_name do
+    # Unique enough for concurrent runs in the same space — 16 hex digits
+    # of crypto-grade randomness, prefixed so the source is obvious in the
+    # UI.
+    "atp_" <> Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
   end
 
   @doc """
