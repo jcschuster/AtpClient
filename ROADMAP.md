@@ -64,12 +64,14 @@ These can land first; they unblock nothing but clear the desk.
 Reviewer 16B caught two real bugs. These need to ship in a Hex release before
 §3/§4 can credibly claim the fixed behavior.
 
-- **Auto-load default config at app start (16B).** Today the default
-  SystemOnTPTP URL sits in `mix.exs` but isn't pulled into
-  `Application.get_env/2`, so a fresh install silently returns
-  `{:unrecognized_output, ""}`. Fix in `application.ex` — set defaults via
-  `Application.put_env/3` on startup if not already configured. Bump patch
-  version, push to Hex, note in `CHANGELOG.md`.
+- ✅ **Auto-load default config fixed.** Defaults moved from the
+  `mix.exs` `:env` block into `AtpClient.Config`'s `@defaults` and merged
+  per-key beneath `Application.get_env/2` inside `Config.get/2`. The
+  reviewer's symptom — partial `config :atp_client, :sotptp, …` clobbering
+  the default `:url` and leaving the library returning
+  `{:unrecognized_output, ""}` — no longer occurs because user config is
+  layered, not substituted. `Config.defaults/0` exposes the defaults for
+  tooling. Test coverage in `test/atp_client/config_test.exs`.
 - ✅ **`list_provers/0` race fixed.** `Provers.get_systems_list/0` now
   blocks on the first call until the startup refresh completes or
   `:sotptp, :refresh_timeout_ms` (default 15 s) elapses; subsequent calls

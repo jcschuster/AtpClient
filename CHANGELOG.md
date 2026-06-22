@@ -10,6 +10,35 @@ and this project adheres to
 
 ### Added
 
+- **`AtpClient.LocalExec` backend.** Invokes a locally installed,
+  TPTP-compliant prover binary (E, Vampire, …) via `System.cmd/3` and
+  normalizes its stdout through the existing SZS classifier. Two-layered
+  timeout: the prover-side CPU limit (passed via `:args`) lets provers
+  emit a clean `SZS status Timeout`, and an independent BEAM-side
+  wall-clock timeout (`:wall_timeout_ms`) kills wedged processes. Both
+  paths fold into the same `{:ok, :timeout}` result so callers do not have
+  to branch on the failure mode. Binary resolution goes through
+  `System.find_executable/1`; missing binaries surface
+  `{:error, {:prover_not_found, name}}` rather than raising.
+- **`AtpClient.Backend` behaviour** so a UI (Smart Cell, Livebook, …) can
+  enumerate and drive backends without hard-coding per-backend knowledge.
+  Every backend (`SystemOnTptp`, `StarExec`, `Isabelle`, `LocalExec`) now
+  implements `config_key/0`, `label/0`, `config_schema/0`, `verify/1`, and
+  `query/2`. The new `query/2` is the cross-backend entry point: it takes
+  a TPTP-format problem string plus a keyword list and returns a single
+  `atp_result()`, hiding session login/logout, prover selection, theory
+  bookkeeping, etc. Per-backend low-level entry points
+  (`query_system/3`, `prove_theory/4`, `create_job/3`, `query_tptp/2`, …)
+  remain available for callers that need sessions, multi-system fan-out,
+  or per-lemma detail.
+- **`AtpClient.Config.Field` struct** carrying the UI metadata each
+  backend exposes via `config_schema/0`: logical `:type` (`:string |
+  :integer | :boolean | :string_list`), layout `:group` (`:connection |
+  :defaults | :advanced`), `:required?`, `:secret?`, `:default`, `:label`,
+  and `:doc`. The library performs no coercion; values flow into
+  `Application.put_env/3` and the per-call opts as-is.
+- **`AtpClient.backends/0`** returns the list of behaviour-implementing
+  backend modules so a UI can discover them without hard-coding.
 - **TPTP-shaped entry points on `AtpClient.Isabelle`.**
   `query_tptp/2` and `prove_tptp/3` accept a TPTP/THF problem string,
   route it through `IsabelleClient.TPTP.isabellize_theory/1`, append the
@@ -23,16 +52,14 @@ and this project adheres to
   from the same TPTP editor they use for the SystemOnTPTP / StarExec /
   LocalExec backends; theory-text entry points (`prove_theory/4`,
   `prove_lemmas/4`, `query/3`, `query_lemmas/3`) remain unchanged.
-- **`AtpClient.LocalExec` backend.** Invokes a locally installed,
-  TPTP-compliant prover binary (E, Vampire, …) via `System.cmd/3` and
-  normalizes its stdout through the existing SZS classifier. Two-layered
-  timeout: the prover-side CPU limit (passed via `:args`) lets provers
-  emit a clean `SZS status Timeout`, and an independent BEAM-side
-  wall-clock timeout (`:wall_timeout_ms`) kills wedged processes. Both
-  paths fold into the same `{:ok, :timeout}` result so callers do not have
-  to branch on the failure mode. Binary resolution goes through
-  `System.find_executable/1`; missing binaries surface
-  `{:error, {:prover_not_found, name}}` rather than raising.
+- **`AtpClient.Isabelle.SessionOwner`** — a private GenServer that owns
+  the link to `IsabelleClient.Shared`. `open_session/1` now returns
+  `{:error, reason}` on a failed connection without killing
+  non-trapping callers, a later Shared crash surfaces through a monitor
+  rather than an `:EXIT`, and dropping the caller monitors the owner to a
+  clean shutdown so server-side Isabelle sessions are no longer orphaned.
+  The `Session` struct gains an opaque `:owner` field; treat it as
+  internal.
 - **`scripts/build_eprover.sh`** — builds the E theorem prover from source
   and installs it to `priv/bin/eprover` for use as the `:local_exec`
   backend's binary.
@@ -42,6 +69,24 @@ and this project adheres to
 
 ### Changed
 
+- **Library defaults are merged per-key inside `AtpClient.Config.get/2`**
+  instead of being seeded via `mix.exs`'s `:env` block. The previous
+  arrangement let any `config :atp_client, :<backend>, …` in user
+  `config.exs` silently replace the whole keyword list (the OTP
+  `Application.put_env/3` semantics), dropping defaults the user had not
+  explicitly re-set — most visibly causing a fresh install with partial
+  SystemOnTPTP config to fail with `{:unrecognized_output, ""}` because
+  `:url` had vanished. Defaults now live in `AtpClient.Config`'s
+  `@defaults` (exposed via `Config.defaults/0`) and are merged underneath
+  Application env on every read, so a partial user config only overrides
+  the keys it actually names. No call-site changes required.
+- **`AtpClient.SystemOnTptp.list_provers/0` blocks on the first call**
+  until the startup refresh completes or `:sotptp, :refresh_timeout_ms`
+  (default 15 s) elapses; subsequent calls return the cached list
+  immediately. On timeout it returns `[]` rather than raising. Previously
+  it could return `[]` immediately after application start, which the
+  caller had no way to distinguish from "the SystemOnTPTP deployment is
+  empty."
 - **`per_lemma_results/2` now applies `check_tool_signals` per source line.**
   Sledgehammer's `"found a proof"` and Nitpick's `"found a counterexample"`/
   `"found a model"` verdicts surface as `{:ok, :thm}` / `{:ok, :csat}` /
@@ -57,6 +102,30 @@ and this project adheres to
   `IsabelleClient.TPTP` module, which is not in the 0.3.0 Hex release.
   Re-pin to a Hex constraint once a release containing `IsabelleClient.TPTP`
   ships.
+
+### Breaking
+
+- **`AtpClient.Isabelle.query/3` no longer defaults its `opts`
+  argument.** Pass `[]` explicitly if you have no options to set. The
+  default was removed so the three-arity `query/3` (theory text + name)
+  does not collide with the `Backend` behaviour's `query/2` (TPTP problem
+  string + opts), both of which now live on the same module.
+- **`AtpClient.Isabelle.Session` gained an enforced `:owner` field.**
+  Anyone constructing `%Session{client: …, config: …}` outside the
+  library must now also pass `:owner` (the pid of an
+  `AtpClient.Isabelle.SessionOwner`). Treat `Session` as opaque and
+  construct it only via `open_session/1`.
+
+### Migration notes
+
+- If you call `Isabelle.query(theory, name)`, change it to
+  `Isabelle.query(theory, name, [])`.
+- If you read the `:env` block of `AtpClient.MixProject` to discover
+  library defaults, call `AtpClient.Config.defaults/0` instead. The
+  `:env` block has been removed since the defaults are no longer
+  load-bearing there.
+- If you construct `%AtpClient.Isabelle.Session{}` directly, stop —
+  use `open_session/1` so the `:owner` pid is set up correctly.
 
 ## [0.2.0]
 
