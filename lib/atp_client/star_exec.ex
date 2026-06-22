@@ -41,13 +41,105 @@ defmodule AtpClient.StarExec do
         password: System.get_env("STAREXEC_PASS")
   """
 
+  @behaviour AtpClient.Backend
+
   alias AtpClient.Config
+  alias AtpClient.Config.Field
   alias AtpClient.ResultNormalization
   alias AtpClient.StarExec.Session
 
   @type job_id :: non_neg_integer() | String.t()
   @type benchmark_id :: pos_integer()
   @type space_id :: pos_integer()
+
+  @impl AtpClient.Backend
+  def config_key, do: :starexec
+
+  @impl AtpClient.Backend
+  def label, do: "StarExec"
+
+  @impl AtpClient.Backend
+  def config_schema do
+    [
+      %Field{
+        key: :base_url,
+        type: :string,
+        required?: true,
+        group: :connection,
+        label: "Base URL",
+        doc: "Scheme and host only — /starexec context is added by the library."
+      },
+      %Field{
+        key: :username,
+        type: :string,
+        required?: true,
+        group: :connection,
+        label: "Username"
+      },
+      %Field{
+        key: :password,
+        type: :string,
+        required?: true,
+        group: :connection,
+        secret?: true,
+        label: "Password"
+      },
+      %Field{
+        key: :space_id,
+        type: :integer,
+        required?: false,
+        group: :defaults,
+        label: "Default space ID"
+      },
+      %Field{
+        key: :solver_cfg_id,
+        type: :integer,
+        required?: false,
+        group: :defaults,
+        label: "Default solver configuration ID"
+      },
+      %Field{
+        key: :queue_id,
+        type: :integer,
+        required?: false,
+        group: :defaults,
+        default: 1,
+        label: "Queue ID"
+      },
+      %Field{
+        key: :cpu_timeout_s,
+        type: :integer,
+        required?: false,
+        group: :defaults,
+        default: 60,
+        label: "CPU timeout (s)"
+      }
+    ]
+  end
+
+  @impl AtpClient.Backend
+  def verify(opts \\ []) do
+    with {:ok, session} <- login(opts) do
+      logout(session, opts)
+    end
+  end
+
+  @impl AtpClient.Backend
+  @spec query(String.t(), keyword()) ::
+          ResultNormalization.atp_result() | {:error, term()}
+  def query(problem, opts \\ []) when is_binary(problem) do
+    case login(opts) do
+      {:ok, session} ->
+        try do
+          prove(session, problem, opts)
+        after
+          logout(session, opts)
+        end
+
+      {:error, _} = err ->
+        err
+    end
+  end
 
   # Keys consumed by this module's own configuration / call-time API. They
   # must be stripped from the keyword list before it is handed to

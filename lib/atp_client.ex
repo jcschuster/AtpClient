@@ -60,6 +60,20 @@ defmodule AtpClient do
 
   Any setting may be overridden for a single call:
 
-      AtpClient.Isabelle.query(theory, session: "Main", raw: true)
+      AtpClient.Isabelle.query(theory, "Example", session: "Main", raw: true)
   """
+
+  @backends [
+    AtpClient.SystemOnTptp,
+    AtpClient.StarExec,
+    AtpClient.Isabelle,
+    AtpClient.LocalExec
+  ]
+
+  @doc """
+  Returns the modules implementing `AtpClient.Backend`. Iterate this in a
+  configuration UI to discover what's wireable without hard-coding the list.
+  """
+  @spec backends() :: [module()]
+  def backends, do: @backends
 end

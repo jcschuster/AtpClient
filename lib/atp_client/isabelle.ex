@@ -60,8 +60,8 @@ defmodule AtpClient.Isabelle do
       lemma "P \\<or> \\<not> P" by auto
       \"\"\"
 
-      {:ok, :thm} = AtpClient.Isabelle.query(theory, "Example")
-      {:ok, :thm} = AtpClient.Isabelle.query(body, "Example")
+      {:ok, :thm} = AtpClient.Isabelle.query(theory, "Example", [])
+      {:ok, :thm} = AtpClient.Isabelle.query(body, "Example", [])
 
   For fine-grained workflows, open a session once and reuse it:
 
@@ -90,13 +90,87 @@ defmodule AtpClient.Isabelle do
   for UI attribution.
   """
 
+  @behaviour AtpClient.Backend
+
   alias AtpClient.Config
+  alias AtpClient.Config.Field
   alias AtpClient.Isabelle.Session
+  alias AtpClient.Isabelle.SessionOwner
   alias AtpClient.ResultNormalization
   alias IsabelleClient.Shared
   alias IsabelleClient.Task
   alias IsabelleClient.Theory
   alias IsabelleClient.TPTP
+
+  @impl AtpClient.Backend
+  def config_key, do: :isabelle
+
+  @impl AtpClient.Backend
+  def label, do: "Isabelle"
+
+  @impl AtpClient.Backend
+  def config_schema do
+    [
+      %Field{
+        key: :host,
+        type: :string,
+        required?: false,
+        group: :connection,
+        default: "127.0.0.1",
+        label: "Server host"
+      },
+      %Field{
+        key: :port,
+        type: :integer,
+        required?: false,
+        group: :connection,
+        default: 9999,
+        label: "Server port"
+      },
+      %Field{
+        key: :password,
+        type: :string,
+        required?: true,
+        group: :connection,
+        secret?: true,
+        label: "Server password"
+      },
+      %Field{
+        key: :local_dir,
+        type: :string,
+        required?: true,
+        group: :connection,
+        label: "Shared theory directory",
+        doc: "Where AtpClient writes .thy files (BEAM-side view)."
+      },
+      %Field{
+        key: :isabelle_dir,
+        type: :string,
+        required?: false,
+        group: :connection,
+        label: "Server-side theory directory",
+        doc:
+          "Same directory as seen by the Isabelle server. " <>
+            "Defaults to the local path when blank."
+      },
+      %Field{
+        key: :session,
+        type: :string,
+        required?: false,
+        group: :defaults,
+        default: "HOL",
+        label: "Default session"
+      }
+    ]
+  end
+
+  @impl AtpClient.Backend
+  def verify(opts \\ []) do
+    case open_session(opts) do
+      {:ok, session} -> close_session(session)
+      {:error, _} = err -> err
+    end
+  end
 
   @typedoc """
   The result of a call to `prove_theory/4` or `query/3`:
@@ -121,8 +195,18 @@ defmodule AtpClient.Isabelle do
 
   @doc """
   Connects to the Isabelle server, starts a session (typically `HOL` or `Main`),
-  and returns a `Session` handle backed by an `IsabelleClient.Shared` GenServer.
-  The caller is responsible for eventually passing the handle to `close_session/1`.
+  and returns a `Session` handle.
+
+  The handle is backed by a private `AtpClient.Isabelle.SessionOwner` process
+  that holds the link to `IsabelleClient.Shared` for you, so callers do **not**
+  need to trap exits: a failed connection surfaces as `{:error, reason}` and a
+  later crash of the Shared process surfaces as a `:DOWN` if the caller
+  monitors `session.client`. The owner is also caller-monitored, so if the
+  caller dies the session is shut down cleanly instead of orphaning a remote
+  Isabelle session.
+
+  The caller is still responsible for eventually passing the handle to
+  `close_session/1` under normal control flow.
 
   ## Options
 
@@ -142,16 +226,23 @@ defmodule AtpClient.Isabelle do
     session_name = Config.fetch(:isabelle, :session, "HOL", config)
     timeout_ms = Config.fetch(:isabelle, :session_start_timeout_ms, 120_000, config)
 
-    case Shared.start_link(
-           password: password,
-           host: host,
-           port: port,
-           session: session_name,
-           connect_timeout: 30_000,
-           timeout: timeout_ms
-         ) do
-      {:ok, pid} ->
-        {:ok, %Session{client: pid, config: config}}
+    shared_opts = [
+      password: password,
+      host: host,
+      port: port,
+      session: session_name,
+      connect_timeout: 30_000,
+      timeout: timeout_ms
+    ]
+
+    case SessionOwner.start(shared_opts) do
+      {:ok, owner} ->
+        {:ok,
+         %Session{
+           client: SessionOwner.shared_pid(owner),
+           owner: owner,
+           config: config
+         }}
 
       {:error, reason} ->
         {:error, reason}
@@ -163,8 +254,9 @@ defmodule AtpClient.Isabelle do
   `IsabelleClient.Shared` GenServer, closing its TCP socket.
   """
   @spec close_session(Session.t()) :: :ok
-  def close_session(%Session{client: pid}) do
-    Shared.close(pid)
+  def close_session(%Session{owner: owner}) do
+    if Process.alive?(owner), do: GenServer.stop(owner, :normal)
+    :ok
   end
 
   @doc """
@@ -411,6 +503,34 @@ defmodule AtpClient.Isabelle do
     end
   end
 
+  @impl AtpClient.Backend
+  @doc """
+  Behaviour entry point: proves `problem` (a TPTP-format string) and
+  collapses the per-lemma results from `query_tptp/2` into a single
+  `t:AtpClient.ResultNormalization.atp_result/0`.
+
+  Aggregation is weakest-link: any non-`{:ok, :thm}` entry wins, so the
+  unified result only reads `{:ok, :thm}` when every isabellized lemma was
+  discharged. Callers that need per-lemma detail should use `query_tptp/2`
+  directly.
+  """
+  @spec query(String.t(), keyword()) ::
+          ResultNormalization.atp_result() | {:error, term()}
+  def query(problem, opts \\ []) when is_binary(problem) do
+    case query_tptp(problem, opts) do
+      {:ok, lemmas} -> aggregate_lemma_results(lemmas)
+      {:error, _} = err -> err
+    end
+  end
+
+  defp aggregate_lemma_results([]), do: {:ok, :gave_up}
+
+  defp aggregate_lemma_results(lemmas) do
+    Enum.find_value(lemmas, {:ok, :thm}, fn %{result: r} ->
+      if r != {:ok, :thm}, do: r
+    end)
+  end
+
   defp inject_proof_method(isabellized, proof_method) do
     isabellized
     |> String.split(~r/\n\n+/)
@@ -453,9 +573,12 @@ defmodule AtpClient.Isabelle do
   @doc """
   Convenience wrapper: opens a session, calls `prove_theory/4`, and
   unconditionally closes the session afterwards (even on error).
+
+  `opts` must be passed explicitly (use `[]` for none) — a default value
+  would shadow `query/2` from `AtpClient.Backend`.
   """
   @spec query(String.t(), String.t(), keyword()) :: result()
-  def query(theory_text, theory_name, opts \\ []) do
+  def query(theory_text, theory_name, opts) do
     case open_session(opts) do
       {:ok, session} ->
         try do

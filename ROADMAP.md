@@ -70,14 +70,12 @@ Reviewer 16B caught two real bugs. These need to ship in a Hex release before
   `{:unrecognized_output, ""}`. Fix in `application.ex` — set defaults via
   `Application.put_env/3` on startup if not already configured. Bump patch
   version, push to Hex, note in `CHANGELOG.md`.
-- **Document the `list_provers/0` race (16B).** The prover list is
-  populated asynchronously, so `list_provers/0` returns `[]` immediately
-  after startup. Two options:
-  - *Preferred:* make `list_provers/0` block on first call until
-    populated, with a configurable timeout. Removes a footgun rather than
-    documenting it.
-  - *Minimum:* add a `@doc` note + a README paragraph pointing at
-    `refresh_systems_list/0`.
+- ✅ **`list_provers/0` race fixed.** `Provers.get_systems_list/0` now
+  blocks on the first call until the startup refresh completes or
+  `:sotptp, :refresh_timeout_ms` (default 15 s) elapses; subsequent calls
+  return the cached list immediately. On timeout it returns `[]` rather
+  than raising, so the failure mode is the same as a configured-but-down
+  deployment. No README/footnote workaround needed.
 - **Reconcile the `isabelle_elixir` dependency constraint.** The paper and
   prior notes reference `~> 1.0`, but the live library is at v0.3.x
   (`IsabelleClient`, `Server`, `Result`, with `Shared`/`Raw` variants). This
@@ -220,6 +218,54 @@ config toggle, rather than a fresh implementation.
   deadline. The distinction is still observable in logs (the wall-clock
   path synthesizes a marker SZS line that names `AtpClient.LocalExec`) for
   debugging, but it is not part of the public result type.
+
+---
+
+## Phase 2.5 — Uniform backend behaviour ✅ shipped
+
+Groundwork for Phase 4's Smart Cell framing, landed off the back of Phase 2
+once four backends made the pattern worth naming.
+
+- `AtpClient.Backend` behaviour in `lib/atp_client/backend.ex`. Every backend
+  (`SystemOnTptp`, `StarExec`, `Isabelle`, `LocalExec`) now implements
+  `config_key/0`, `label/0`, `config_schema/0`, `verify/1`, and `query/2`.
+  The Smart Cell can therefore enumerate backends, render their settings,
+  probe reachability, and run a TPTP problem without hard-coding per-backend
+  knowledge.
+- `AtpClient.Config.Field` struct (`lib/atp_client/config/field.ex`) carries
+  the UI metadata each backend returns from `config_schema/0`: logical type
+  (`:string | :integer | :boolean | :string_list`), grouping
+  (`:connection | :defaults | :advanced`), `secret?` for password masking,
+  `required?`, `default`, `label`, and `doc`.
+- `AtpClient.backends/0` lists the four modules so UIs need only one entry
+  point. The behaviour `query/2` lives alongside each backend's existing
+  low-level API (`query_system/3`, `query_tptp/2`, `create_job/3`, …); only
+  the new arity is part of the cross-backend contract. Isabelle's
+  three-arity `query/3` for hand-written theories now takes `opts`
+  mandatorily (pass `[]` if none) so it does not collide with the
+  behaviour's `query/2`.
+- New offline tests in `test/atp_client/backend_test.exs` cover the
+  registry, schema shape (field types, group, `secret?` only on strings,
+  unique keys, required connection fields per backend), and the failure
+  branches of `verify/1` / `query/2` (unreachable host, missing binary).
+
+### Isabelle session robustness ✅ shipped
+
+Adjacent to Phase 2.5: previous Isabelle sessions linked the caller
+directly to `IsabelleClient.Shared`, so a failed `start_link` or a later
+Shared crash killed any non-trapping caller. Now `open_session/1` runs the
+link through a private `AtpClient.Isabelle.SessionOwner` GenServer that:
+
+- Traps the `start_link` failure and returns `{:error, reason}` to the
+  caller.
+- Translates a Shared crash into a clean `:stop` that the caller can
+  observe via a monitor instead of being killed by an `:EXIT`.
+- Monitors the caller and shuts the Shared process down on caller death,
+  preventing orphaned server-side Isabelle sessions.
+
+The `Session` struct gains an opaque `:owner` pid; `close_session/1` stops
+the owner, which in turn closes Shared. `test/atp_client/isabelle_test.exs`
+pins the non-trapping-caller guarantee.
 
 ---
 
@@ -586,6 +632,9 @@ was probing.
 - **Phase 2** (`LocalExec`) ✅ shipped. Module, tests, and
   `scripts/build_eprover.sh` are in. The known-good local prover and SZS
   output it produces are now available as the oracle for Phase 3.
+- **Phase 2.5** (`AtpClient.Backend` behaviour, `Config.Field`,
+  `Isabelle.SessionOwner`) ✅ shipped. Smart Cell groundwork plus an
+  Isabelle robustness fix; see the dedicated section above.
 - **Phase 3** (StarExec) is the long pole. Give yourself a buffer; validation
   will almost certainly surface at least one real bug in `star_exec.ex`
   (cookies → multipart → completion predicate, in that likelihood order).
@@ -600,8 +649,9 @@ was probing.
       Phase 3 and the David track).
 - [ ] Choose the StarExec deployment vehicle (ARC standalone vs. self-built
       Compose) — decide after ~half a day with ARC.
-- [ ] Decide whether `list_provers/0` becomes blocking-on-first-call or stays
-      async-with-docs.
+- [x] Decide whether `list_provers/0` becomes blocking-on-first-call or stays
+      async-with-docs — **blocking on first call** with `:refresh_timeout_ms`
+      (default 15 s) and `[]` fallback on timeout.
 - [ ] Decide whether the probe-style Sledgehammer usage gets its own sentence
       in §3 or is folded into the general clarification.
 - [x] Decide whether `LocalExec` exposes a portfolio/parallel mode or stays

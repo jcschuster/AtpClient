@@ -54,7 +54,63 @@ defmodule AtpClient.LocalExec do
       args: ["--input-file={{problem}}", "--cpu-limit=60"]
   """
 
+  @behaviour AtpClient.Backend
+
   alias AtpClient.{Config, ResultNormalization}
+  alias AtpClient.Config.Field
+
+  @impl AtpClient.Backend
+  def config_key, do: :local_exec
+
+  @impl AtpClient.Backend
+  def label, do: "Local prover"
+
+  @impl AtpClient.Backend
+  def config_schema do
+    [
+      %Field{
+        key: :binary,
+        type: :string,
+        required?: true,
+        group: :connection,
+        label: "Prover binary",
+        doc: "Name (looked up on $PATH) or absolute path."
+      },
+      %Field{
+        key: :args,
+        type: :string_list,
+        required?: false,
+        group: :defaults,
+        default: [],
+        label: "Default arguments",
+        doc: ~s|Use "{{problem}}" to pin the problem file's position.|
+      },
+      %Field{
+        key: :cpu_timeout_s,
+        type: :integer,
+        required?: false,
+        group: :defaults,
+        default: 60,
+        label: "CPU timeout (s)"
+      },
+      %Field{
+        key: :wall_timeout_ms,
+        type: :integer,
+        required?: false,
+        group: :defaults,
+        label: "Wall-clock timeout (ms)",
+        doc: "Defaults to (cpu_timeout_s + 10) * 1000 when blank."
+      }
+    ]
+  end
+
+  @impl AtpClient.Backend
+  def verify(opts \\ []) do
+    case resolve_binary(opts) do
+      {:ok, _path} -> :ok
+      {:error, _} = err -> err
+    end
+  end
 
   @typedoc """
   Same as `t:AtpClient.ResultNormalization.atp_result/0`, with one extra
@@ -87,6 +143,7 @@ defmodule AtpClient.LocalExec do
     * `:wall_timeout_ms` — BEAM-side wall-clock kill (default
       `(cpu_timeout_s + 10) * 1000`).
   """
+  @impl AtpClient.Backend
   @spec query(String.t(), keyword()) :: result()
   def query(problem, opts \\ []) when is_binary(problem) do
     binary = Config.fetch!(:local_exec, :binary, opts)

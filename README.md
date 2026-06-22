@@ -1,16 +1,25 @@
 # AtpClient
 
-Elixir client for external automated theorem provers. Three backends are
+Elixir client for external automated theorem provers. Four backends are
 supported:
 
 - **SystemOnTPTP** — the public `tptp.org` HTTP form endpoint.
 - **StarExec** — self-hosted StarExec deployments.
 - **Isabelle** — `isabelle server` instances, via the
   [`isabelle_elixir`](https://hex.pm/packages/isabelle_elixir) package.
+- **LocalExec** — a locally installed TPTP-compliant prover binary
+  (E, Vampire, …) invoked via `System.cmd/3`.
 
 All backends return results normalized to
 `AtpClient.ResultNormalization.atp_result` so that comparing provers across
 backends is straightforward and can be used in downstream tasks.
+
+Each backend also implements the `AtpClient.Backend` behaviour
+(`config_key/0`, `label/0`, `config_schema/0`, `verify/1`, `query/2`), so a
+Smart Cell or other UI can enumerate backends via `AtpClient.backends/0`,
+render their settings from `config_schema/0`, probe reachability with
+`verify/1`, and run a TPTP problem with the uniform `query/2` entry point —
+without hard-coding per-backend knowledge.
 
 ## Installation
 
@@ -59,6 +68,11 @@ config :atp_client, :isabelle,
   local_dir: "/shared/problems",
   isabelle_dir: "/shared/problems",
   session: "HOL"
+
+config :atp_client, :local_exec,
+  binary: "eprover",
+  args: ["--auto", "--tstp-format", "--cpu-limit=10"],
+  cpu_timeout_s: 10
 ```
 
 Any setting may be overridden for a single call:
@@ -153,6 +167,55 @@ AtpClient.Isabelle.close_session(session)
 {:ok, status} = AtpClient.Isabelle.query(theory, raw: true)
 AtpClient.ResultNormalization.extract_isabelle_text(status)
 # => "...\nSledgehammering...\nverit found a proof...\n..."
+```
+
+### LocalExec
+
+```elixir
+problem = """
+fof(ax1, axiom, p).
+fof(ax2, axiom, (p => q)).
+fof(goal, conjecture, q).
+"""
+
+# `binary` is resolved against $PATH or used as an absolute path; `args`
+# may contain "{{problem}}" to pin the problem-file position (otherwise the
+# path is appended last).
+AtpClient.LocalExec.query(problem,
+  binary: "eprover",
+  args: ["--auto", "--tstp-format", "--cpu-limit=10"]
+)
+# => {:ok, :thm}
+```
+
+`scripts/build_eprover.sh` builds the E theorem prover from source and
+installs it into `priv/bin/` for use as the LocalExec binary.
+
+### Uniform backend interface
+
+Every backend module also implements `AtpClient.Backend`, which is what the
+Smart Cell uses to render a configuration form and dispatch a run:
+
+```elixir
+for module <- AtpClient.backends() do
+  %{
+    key:    module.config_key(),    # :sotptp | :starexec | :isabelle | :local_exec
+    label:  module.label(),         # "SystemOnTPTP", "StarExec", ...
+    fields: module.config_schema()  # [%AtpClient.Config.Field{...}, ...]
+  }
+end
+
+# Once a form is filled out, probe reachability before submitting work:
+AtpClient.StarExec.verify(
+  base_url: "https://starexec.example.org",
+  username: "...",
+  password: "..."
+)
+# => :ok | {:error, reason}
+
+# And run a problem through any backend uniformly:
+AtpClient.LocalExec.query(problem, binary: "eprover")
+AtpClient.SystemOnTptp.query(problem, default_system: "cvc5---1.3.0")
 ```
 
 ## License

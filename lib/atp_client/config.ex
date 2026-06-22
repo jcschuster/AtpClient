@@ -25,7 +25,7 @@ defmodule AtpClient.Config do
 
   Any setting may be overridden per call. For instance,
 
-      AtpClient.Isabelle.query(theory, session: "Main")
+      AtpClient.Isabelle.query(theory, "Example", session: "Main")
 
   forces the `Main` session for that single query regardless of what is set
   in `config.exs`.

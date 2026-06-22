@@ -23,9 +23,65 @@ defmodule AtpClient.SystemOnTptp do
       # => {:ok, :thm}
   """
 
+  @behaviour AtpClient.Backend
+
   alias AtpClient.Config
+  alias AtpClient.Config.Field
   alias AtpClient.SystemOnTptp.Provers
   alias AtpClient.ResultNormalization, as: RN
+
+  @impl AtpClient.Backend
+  def config_key, do: :sotptp
+
+  @impl AtpClient.Backend
+  def label, do: "SystemOnTPTP"
+
+  @impl AtpClient.Backend
+  def config_schema do
+    [
+      %Field{
+        key: :url,
+        type: :string,
+        required?: true,
+        group: :connection,
+        default: "https://tptp.org/cgi-bin/SystemOnTPTPFormReply",
+        label: "Endpoint URL",
+        doc: "SystemOnTPTP form-reply endpoint."
+      },
+      %Field{
+        key: :default_system,
+        type: :string,
+        required?: false,
+        group: :defaults,
+        label: "Default system",
+        doc: "System ID (see list_provers/0) used by query/2."
+      },
+      %Field{
+        key: :default_time_limit_sec,
+        type: :integer,
+        required?: false,
+        group: :defaults,
+        default: 5,
+        label: "Default time limit (s)"
+      }
+    ]
+  end
+
+  @impl AtpClient.Backend
+  def verify(opts \\ []) do
+    case Provers.refresh_systems_list(opts) do
+      :ok -> :ok
+      {:error, _} = err -> err
+    end
+  end
+
+  @impl AtpClient.Backend
+  @spec query(String.t(), keyword()) :: RN.atp_result() | {:error, term()}
+  def query(problem, opts \\ []) when is_binary(problem) do
+    system_id = Config.fetch!(:sotptp, :default_system, opts)
+    # Force non-raw so query_system/3 returns an atp_result() and not a body.
+    query_system(problem, system_id, Keyword.put(opts, :raw, false))
+  end
 
   @doc """
   Returns a list with all available system identifiers from SystemOnTPTP that
