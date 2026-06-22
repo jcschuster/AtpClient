@@ -24,6 +24,19 @@ defmodule AtpClient.Backend do
 
   `verify/1` accepts the same keyword list every other backend call accepts,
   so the cell can probe without first writing values into `Application` env.
+
+  ## Cancellation contract
+
+  Each backend treats the death of the process calling `query/2` as a
+  request to abort. Implementations must (a) release external resources —
+  OS children, network connections, remote jobs — and (b) clean up state
+  held in helper processes. Death-as-cancellation is the only required
+  cancellation mechanism; backends may additionally expose explicit
+  handles, but they are not required to.
+
+  The intended use is `Process.exit(task_pid, :kill)` from a supervisor
+  task running `query/2`: the host kills the Task, the backend tears the
+  upstream work down, and no resource is left running.
   """
 
   alias AtpClient.Config.Field

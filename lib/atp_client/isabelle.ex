@@ -88,6 +88,24 @@ defmodule AtpClient.Isabelle do
   Lemma names propagate from TPTP formula names. Lemma line numbers refer
   to the generated theory, not the input TPTP source — match on `:name`
   for UI attribution.
+
+  ## Cancellation
+
+  Death of the process calling `query/2`, `query_tptp/2`, or any of the
+  session helpers is the abort signal. The session is owned by an internal
+  `AtpClient.Isabelle.SessionOwner` GenServer that monitors the caller; on
+  caller `:DOWN` it stops the underlying `IsabelleClient.Shared`, which
+  closes the TCP socket to the Isabelle server. Closing the socket while a
+  `use_theories` task is in flight aborts that task on the server side —
+  per the Isabelle protocol, the running check is dropped along with the
+  session.
+
+  `IsabelleClient` does not currently expose a way to cancel a single
+  in-flight task while keeping the session open, so cancelled calls pay
+  the session-start cost again on the next request (typically a few
+  seconds for `HOL`, longer for larger sessions). Callers that need to
+  cancel cheaply should keep the volume of cancelled work small or open
+  multiple sessions in parallel.
   """
 
   @behaviour AtpClient.Backend

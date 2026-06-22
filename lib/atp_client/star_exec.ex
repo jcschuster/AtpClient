@@ -155,6 +155,7 @@ defmodule AtpClient.StarExec do
     :job_info_path,
     :job_output_path,
     :create_job_path,
+    :delete_job_path,
     :upload_benchmarks_path,
     :list_space_benchmarks_path,
     :benchmark_type,
@@ -662,6 +663,15 @@ defmodule AtpClient.StarExec do
   on the StarExec version; if it differs on your deployment, pass a custom
   predicate via `:complete_fun`, which receives the decoded job map and
   returns a boolean.
+
+  ## Cancellation
+
+  This call installs a small helper process that monitors the calling
+  process. If the caller dies (`Process.exit`, `Task.shutdown`, …) while
+  the job is still running, the helper issues `delete_job/3` so the remote
+  StarExec job does not run to completion on the cluster. If the job has
+  already reached a terminal state (`complete_fun.(info)` is true) by the
+  time the caller dies, the `delete_job` request is skipped.
   """
   @spec wait_for_job(Session.t(), job_id(), keyword()) ::
           {:ok, map()} | {:error, term()}
@@ -671,7 +681,93 @@ defmodule AtpClient.StarExec do
     complete_fun = Keyword.get(opts, :complete_fun, &default_complete?/1)
 
     deadline = System.monotonic_time(:millisecond) + timeout_ms
-    do_wait(session, job_id, poll_ms, deadline, complete_fun, opts)
+
+    {:ok, guard} = start_cancel_guard(session, job_id, opts)
+
+    try do
+      result = do_wait(session, job_id, poll_ms, deadline, complete_fun, opts)
+      # Mark the job as "no longer cancellable" once it's reached a terminal
+      # state (or we've given up locally). The guard will skip delete_job if
+      # the caller dies after this point.
+      release_cancel_guard(guard)
+      result
+    after
+      stop_cancel_guard(guard)
+    end
+  end
+
+  @doc """
+  Asks the StarExec instance to delete the given job, freeing the remote
+  compute slot. Used by `wait_for_job/3` and `prove/3` to release resources
+  when the calling process is cancelled.
+
+  StarExec's delete endpoint (`POST /starexec/services/delete/job`) expects
+  the job id(s) in the `selectedIds[]` form field; the underlying servlet
+  flips the `deleted` column synchronously and then queues the on-disk
+  cleanup off-thread, so a 200 response is returned quickly even for large
+  jobs.
+
+  The endpoint path is configurable via `:delete_job_path` for older
+  StarExec instances that mount it elsewhere.
+  """
+  @spec delete_job(Session.t(), job_id(), keyword()) :: :ok | {:error, term()}
+  def delete_job(%Session{} = session, job_id, opts \\ []) do
+    path = Config.fetch(:starexec, :delete_job_path, "/starexec/services/delete/job", opts)
+    body = URI.encode_query([{"selectedIds[]", to_string(job_id)}])
+
+    case request(
+           session,
+           :post,
+           path,
+           Keyword.merge(opts,
+             body: body,
+             headers: [{"content-type", "application/x-www-form-urlencoded"}]
+           )
+         ) do
+      {:ok, %{status: status}} when status in 200..299 -> :ok
+      {:ok, %{status: status}} -> {:error, {:delete_failed, status}}
+      other -> other
+    end
+  end
+
+  # --- caller-cancel guard ----------------------------------------------
+
+  # Starts a helper process that monitors the caller. If the caller dies
+  # while the job is still considered cancellable, the helper issues
+  # `delete_job/3`. The helper itself does not link to the caller, so the
+  # caller's death does not propagate further than its mailbox.
+  defp start_cancel_guard(session, job_id, opts) do
+    caller = self()
+
+    pid =
+      spawn(fn ->
+        ref = Process.monitor(caller)
+        cancel_guard_loop(ref, session, job_id, opts, _armed? = true)
+      end)
+
+    {:ok, pid}
+  end
+
+  # Mark the guard disarmed (the job is finished, don't delete) but keep
+  # it running until `stop_cancel_guard/1` so its mailbox is still drained.
+  defp release_cancel_guard(pid), do: send(pid, :release)
+
+  # Tell the guard we're done; it exits without firing delete_job.
+  defp stop_cancel_guard(pid), do: send(pid, :stop)
+
+  defp cancel_guard_loop(ref, session, job_id, opts, armed?) do
+    receive do
+      {:DOWN, ^ref, :process, _pid, _reason} ->
+        if armed?, do: _ = delete_job(session, job_id, opts)
+        :ok
+
+      :release ->
+        cancel_guard_loop(ref, session, job_id, opts, false)
+
+      :stop ->
+        Process.demonitor(ref, [:flush])
+        :ok
+    end
   end
 
   defp do_wait(session, job_id, poll_ms, deadline, complete_fun, opts) do

@@ -1,12 +1,24 @@
 defmodule AtpClient.LocalExec do
   @moduledoc """
   Backend that invokes a locally installed, TPTP-compliant prover via
-  `System.cmd/3` and normalizes its stdout through
+  `Port.open/2` and normalizes its stdout through
   `AtpClient.ResultNormalization.interpret_result/1`.
 
   No authentication, no polling: the prover runs to completion (or until one of
   the two timeouts fires) and the captured stdout is classified by the same
   SZS-aware classifier used for the SystemOnTPTP and StarExec backends.
+
+  ## Cancellation
+
+  The prover is run through a port owned by the calling process. If that
+  process dies (`Process.exit/2`, `Task.shutdown/2`, or any other linked
+  termination), the BEAM closes the port and the OS child receives SIGKILL —
+  no orphaned prover lingers after a cancelled `query/2`. The wall-clock
+  timeout below uses the same mechanism.
+
+  Process-group cleanup is **not** performed: SIGKILL reaches only the direct
+  child, so a prover that forks helper subprocesses may leak them. This is
+  rare in the TPTP ecosystem and is left for a follow-up.
 
   ## Two-layered timeout
 
@@ -20,10 +32,8 @@ defmodule AtpClient.LocalExec do
       `SZS status Timeout` or `SZS status ResourceOut` — the classifier maps
       both to `{:ok, :timeout}` / `{:ok, :out_of_resources}`.
     * The **wall-clock timeout** (`:wall_timeout_ms`) is enforced on the BEAM
-      side: the prover runs inside a `Task` guarded by `Task.yield/2` plus
-      `Task.shutdown/2`. When this fires (because the prover ignored the CPU
-      limit, hung, or never honored signals), the kill is mapped to the same
-      `{:ok, :timeout}`.
+      side: when it fires, the port is closed and the OS child is killed,
+      and the kill is mapped to the same `{:ok, :timeout}`.
 
   By default `:wall_timeout_ms` is `(cpu_timeout_s + 10) * 1000`, leaving the
   prover ten extra seconds to flush its `SZS status` line before the kill.
@@ -222,23 +232,107 @@ defmodule AtpClient.LocalExec do
     end
   end
 
+  # Runs the prover under a port owned by the calling process and a small
+  # guardian process linked to the caller. `stderr_to_stdout`: prover
+  # diagnostics and SZS status lines both end up in the same stream so the
+  # classifier sees everything.
+  #
+  # On Linux/macOS, Port.close only closes stdio pipes; it does not signal
+  # the OS child. To get true death-as-cancellation we (a) explicitly
+  # SIGKILL the os_pid on wall-clock timeout, and (b) keep a guardian
+  # process that monitors the caller and SIGKILLs the os_pid if the caller
+  # dies (Process.exit, Task.shutdown, …) before the prover returns.
   defp run(exe, args, wall_ms) do
-    task =
-      Task.async(fn ->
-        # stderr_to_stdout: prover diagnostics and SZS status lines both end up
-        # in the same stream so the classifier sees everything.
-        System.cmd(exe, args, stderr_to_stdout: true)
-      end)
+    port =
+      Port.open(
+        {:spawn_executable, exe},
+        [:binary, :exit_status, :hide, :stderr_to_stdout, {:args, args}]
+      )
 
-    case Task.yield(task, wall_ms) || Task.shutdown(task, :brutal_kill) do
-      # Non-zero exit is normal for many provers (E exits 1 on Timeout, etc.);
-      # the SZS classifier on stdout is what matters.
-      {:ok, {output, _exit_status}} -> {:ok, output}
-      # Wall-clock kill folds into the same :timeout the classifier emits for
-      # a clean prover-reported Timeout — synthesize an SZS line so the result
-      # flows through the same funnel.
-      nil -> {:ok, "% SZS status Timeout (wall-clock kill by AtpClient.LocalExec)"}
-      {:exit, reason} -> {:error, {:prover_crashed, reason}}
+    os_pid =
+      case Port.info(port, :os_pid) do
+        {:os_pid, pid} -> pid
+        _ -> nil
+      end
+
+    guardian = start_guardian(os_pid)
+    deadline = System.monotonic_time(:millisecond) + wall_ms
+
+    try do
+      collect(port, deadline, [], os_pid)
+    after
+      stop_guardian(guardian)
+    end
+  end
+
+  defp collect(port, deadline, acc, os_pid) do
+    remaining = max(deadline - System.monotonic_time(:millisecond), 0)
+
+    receive do
+      {^port, {:data, chunk}} ->
+        collect(port, deadline, [acc, chunk], os_pid)
+
+      {^port, {:exit_status, _code}} ->
+        # Non-zero exit is normal for many provers (E exits 1 on Timeout, etc.);
+        # the SZS classifier on stdout is what matters.
+        {:ok, IO.iodata_to_binary(acc)}
+    after
+      remaining ->
+        sigkill(os_pid)
+        close_port(port)
+        # Fold into the same :timeout the classifier emits for a clean
+        # prover-reported Timeout — synthesise an SZS line so the result
+        # flows through the same funnel.
+        {:ok, "% SZS status Timeout (wall-clock kill by AtpClient.LocalExec)"}
+    end
+  end
+
+  defp start_guardian(nil), do: nil
+
+  defp start_guardian(os_pid) do
+    caller = self()
+
+    spawn(fn ->
+      ref = Process.monitor(caller)
+
+      receive do
+        {:DOWN, ^ref, :process, _pid, _reason} -> sigkill(os_pid)
+        :stop -> Process.demonitor(ref, [:flush])
+      end
+    end)
+  end
+
+  defp stop_guardian(nil), do: :ok
+  defp stop_guardian(pid), do: send(pid, :stop)
+
+  defp sigkill(nil), do: :ok
+
+  defp sigkill(os_pid) when is_integer(os_pid) do
+    # The OS child may already have exited by the time we get here; kill -KILL
+    # against a non-existent pid is harmless and we ignore its result.
+    _ = System.cmd("kill", ["-KILL", Integer.to_string(os_pid)], stderr_to_stdout: true)
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  # Port.close/1 raises ArgumentError if the runtime has already torn the port
+  # down; treat that as success.
+  defp close_port(port) do
+    try do
+      Port.close(port)
+    rescue
+      ArgumentError -> :ok
+    end
+
+    drain_port_messages(port)
+  end
+
+  defp drain_port_messages(port) do
+    receive do
+      {^port, _} -> drain_port_messages(port)
+    after
+      0 -> :ok
     end
   end
 end

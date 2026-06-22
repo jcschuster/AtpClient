@@ -21,4 +21,14 @@ defmodule AtpClient.IsabelleTest do
       assert Process.alive?(self())
     end
   end
+
+  # Cancellation contract — see `AtpClient.Isabelle` moduledoc and
+  # `AtpClient.Isabelle.SessionOwner`. The `SessionOwner` GenServer
+  # monitors the caller of `open_session/1`; on caller :DOWN it stops
+  # `IsabelleClient.Shared`, whose `terminate/2` closes the TCP socket to
+  # the Isabelle server. Closing the socket aborts any in-flight
+  # `use_theories` task. A real Isabelle server is not available in this
+  # test environment, so the end-to-end cancellation path is exercised by
+  # the `isabelle_test.exs` / `isabelle_theory_test.exs` integration
+  # suites against a running server.
 end

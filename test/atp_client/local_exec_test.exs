@@ -38,6 +38,58 @@ defmodule AtpClient.LocalExecTest do
     :ok
   end
 
+  defp os_pid_alive?(pid) when is_binary(pid) do
+    # `kill -0` returns 0 if the pid exists and the caller may signal it.
+    case System.cmd("kill", ["-0", pid], stderr_to_stdout: true) do
+      {_, 0} -> true
+      _ -> false
+    end
+  end
+
+  defp wait_for_pid_file(path, timeout_ms) do
+    deadline = System.monotonic_time(:millisecond) + timeout_ms
+    do_wait_for_pid_file(path, deadline)
+  end
+
+  defp do_wait_for_pid_file(path, deadline) do
+    case File.read(path) do
+      {:ok, contents} ->
+        trimmed = String.trim(contents)
+        if trimmed == "", do: wait_more(path, deadline), else: trimmed
+
+      {:error, _} ->
+        wait_more(path, deadline)
+    end
+  end
+
+  defp wait_more(path, deadline) do
+    if System.monotonic_time(:millisecond) >= deadline do
+      flunk("pid file #{path} did not appear")
+    else
+      Process.sleep(20)
+      do_wait_for_pid_file(path, deadline)
+    end
+  end
+
+  defp eventually(fun, timeout_ms) do
+    deadline = System.monotonic_time(:millisecond) + timeout_ms
+    do_eventually(fun, deadline)
+  end
+
+  defp do_eventually(fun, deadline) do
+    cond do
+      fun.() ->
+        true
+
+      System.monotonic_time(:millisecond) >= deadline ->
+        false
+
+      true ->
+        Process.sleep(50)
+        do_eventually(fun, deadline)
+    end
+  end
+
   describe "query/2 — happy path" do
     test "Theorem output is classified as {:ok, :thm}", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_thm", "# SZS status Theorem for x")
@@ -111,6 +163,37 @@ defmodule AtpClient.LocalExecTest do
              ) == {:ok, :timeout}
     end
 
+    test "wall-clock kill actually terminates the OS child", %{tmp_dir: tmp} do
+      # The fake prover writes its own pid to a side-channel file before
+      # sleeping. After the wall-clock kill we read the pid out and confirm
+      # it is no longer a running process.
+      pid_file = Path.join(tmp, "prover.pid")
+      path = Path.join(tmp, "pid_prover")
+
+      File.write!(path, """
+      #!/bin/sh
+      echo "$$" > #{pid_file}
+      sleep 60
+      echo "# SZS status Theorem for x"
+      """)
+
+      File.chmod!(path, 0o755)
+
+      assert LocalExec.query("fof(a, conjecture, p).",
+               binary: path,
+               wall_timeout_ms: 200
+             ) == {:ok, :timeout}
+
+      pid =
+        pid_file
+        |> File.read!()
+        |> String.trim()
+
+      # Give the kernel a moment to reap the child.
+      Process.sleep(200)
+      refute os_pid_alive?(pid), "OS child #{pid} survived wall-clock kill"
+    end
+
     test "default wall_timeout_ms is derived from cpu_timeout_s when unset",
          %{tmp_dir: tmp} do
       # cpu_timeout_s = 0 ⇒ wall_timeout_ms defaults to 10_000 ms. The prover
@@ -120,6 +203,48 @@ defmodule AtpClient.LocalExecTest do
 
       assert LocalExec.query("fof(a, conjecture, p).", binary: exe, cpu_timeout_s: 0) ==
                {:ok, :thm}
+    end
+  end
+
+  describe "query/2 — cancellation via caller death" do
+    test "killing the calling process kills the OS child", %{tmp_dir: tmp} do
+      pid_file = Path.join(tmp, "cancel.pid")
+      path = Path.join(tmp, "cancel_prover")
+
+      File.write!(path, """
+      #!/bin/sh
+      echo "$$" > #{pid_file}
+      sleep 60
+      echo "# SZS status Theorem for x"
+      """)
+
+      File.chmod!(path, 0o755)
+
+      parent = self()
+
+      runner =
+        spawn(fn ->
+          send(parent, {:started, self()})
+          # Long wall-clock budget so it can't fire before we kill the runner.
+          LocalExec.query("fof(a, conjecture, p).",
+            binary: path,
+            wall_timeout_ms: 60_000
+          )
+        end)
+
+      assert_receive {:started, ^runner}, 1_000
+
+      # Wait for the child shell to record its pid.
+      pid = wait_for_pid_file(pid_file, 2_000)
+      assert os_pid_alive?(pid)
+
+      Process.exit(runner, :kill)
+
+      # The port is owned by the runner; runner death closes the port and
+      # the BEAM sends SIGKILL to the OS child. Give the kernel a moment to
+      # reap it.
+      assert eventually(fn -> not os_pid_alive?(pid) end, 2_000),
+             "OS child #{pid} was not killed when the calling process died"
     end
   end
 

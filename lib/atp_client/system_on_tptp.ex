@@ -21,6 +21,16 @@ defmodule AtpClient.SystemOnTptp do
       # system IDs returned by list_provers/0, e.g. "Vampire-FMo---5.0.1"
       {:ok, result} = AtpClient.SystemOnTptp.query_system(thf_problem, "Vampire-FMo---5.0.1")
       # => {:ok, :thm}
+
+  ## Cancellation
+
+  SystemOnTPTP exposes no remote cancellation endpoint — the form submits a
+  problem and the server runs the prover to its `TimeLimit`, returning the
+  prover stdout in the HTTP response. When the calling BEAM process dies
+  the in-flight `Req`/`Finch` request errors out and the connection slot is
+  released, but the **remote prover continues to its `TimeLimit`**. The
+  only server-side bound on cancelled work is the `:time_limit_sec` option
+  passed to `query_system/3`.
   """
 
   @behaviour AtpClient.Backend
@@ -102,6 +112,13 @@ defmodule AtpClient.SystemOnTptp do
     * `:raw` — return the raw prover output instead of interpreting it
       (default `false`);
     * `:url` — override the SystemOnTPTP endpoint URL.
+
+  ## Cancellation
+
+  SystemOnTPTP has no remote-cancel endpoint. If the calling process dies
+  the Finch connection is released locally, but the prover **runs to its
+  `TimeLimit` on the server**. Set `:time_limit_sec` to bound the server-
+  side work; that is the only knob available.
   """
   @spec query_system(String.t(), String.t(), Keyword.t()) ::
           {:ok, String.t()} | RN.atp_result() | {:error, term()}

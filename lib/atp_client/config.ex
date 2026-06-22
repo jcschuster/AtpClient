@@ -60,6 +60,7 @@ defmodule AtpClient.Config do
       job_info_path: "/starexec/services/details/job",
       job_output_path: "/starexec/secure/download",
       create_job_path: "/starexec/secure/add/job",
+      delete_job_path: "/starexec/services/delete/job",
       upload_benchmarks_path: "/starexec/secure/upload/benchmarks",
       list_space_benchmarks_path: "/starexec/services/job/{space_id}/allbench/pagination/",
       benchmark_type: 1,
