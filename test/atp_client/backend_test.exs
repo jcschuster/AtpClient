@@ -14,6 +14,11 @@ defmodule AtpClient.BackendTest do
     end
 
     test "every backend implements the AtpClient.Backend behaviour" do
+      # `function_exported?/3` returns false for not-yet-loaded modules. Under
+      # `async: true` two test files can race the lazy module load, so force
+      # it here.
+      Enum.each(@backends, &Code.ensure_loaded!/1)
+
       for module <- @backends do
         assert function_exported?(module, :config_key, 0),
                "#{inspect(module)}.config_key/0 missing"

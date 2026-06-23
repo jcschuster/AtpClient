@@ -170,11 +170,8 @@ defmodule AtpClient.LocalExec do
          {:ok, problem_path} <- write_temp(problem) do
       try do
         full_args = build_args(args, problem_path)
-
-        case run(exe, full_args, wall_ms) do
-          {:ok, output} -> ResultNormalization.interpret_result(output)
-          {:error, _} = err -> err
-        end
+        {:ok, output} = run(exe, full_args, wall_ms)
+        ResultNormalization.interpret_result(output)
       after
         _ = File.rm(problem_path)
       end

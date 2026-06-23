@@ -27,3 +27,4 @@ atp_client-*.tar
 
 # Built prover binaries (see scripts/build_eprover.sh).
 /priv/bin/
+/.isabelle-install/
