@@ -131,20 +131,37 @@ in `external/main.tex`, plan of record in `ROADMAP.md`, change log in
   re-pin to a Hex constraint, or (b) explicit documentation in the
   README that the git pin is required for the TPTP entry points.
 
-- [ ] **KinoAtpClient is still SystemOnTPTP-only.** Latest Hex release
-  v0.1.4 (2026-05-08), pinned to `atp_client ~> 0.2`. The new
-  `AtpClient.Backend` behaviour is not wired into Kino, and June UI
-  commits are unreleased. If the paper's "Livebook Smart Cell" framing
-  is meant to span all four backends, a new KinoAtpClient release
-  consuming `AtpClient.backends/0` is needed. Otherwise §5 should be
-  explicit that the Smart Cell currently targets SystemOnTPTP only.
+- [ ] **KinoAtpClient `main` is still SystemOnTPTP-only.** HEAD
+  (`5dcd08a`, 2026-06-14) keeps `@version "0.1.4"` and pins
+  `atp_client ~> 0.2`. The only Smart Cell registered in
+  `lib/kino_atp_client/application.ex` is `KinoAtpClient.SystemOnTptp`;
+  nothing in `lib/` references `AtpClient.Backend`,
+  `AtpClient.backends/0`, `StarExec`, `Isabelle`, or `LocalExec`. The
+  June commits on `main` (`f28fdb3` syntax highlighting, `5dcd08a`
+  resize option) are output-pane UI work, not backend wiring, and the
+  README still describes the package as "Smart Cells for connecting to
+  external provers on SystemOnTptp". If §5's framing is meant to span
+  all four backends, `main` itself needs the multi-backend port
+  (consume `AtpClient.backends/0`, lift the `atp_client` pin to a
+  version exposing the behaviour). Otherwise §5 should be explicit
+  that the Smart Cell currently targets SystemOnTPTP only.
 
-- [ ] **AtpMcp protocol version.** `lib/atp_mcp.ex` declares
-  `protocolVersion: "2024-11-05"`. The current stable MCP revision is
-  `2025-11-25`. Bump or footnote regardless of whether the MCP server
-  gets promoted to §9 (it reads as inattention to a reviewer who knows
-  MCP). Still SystemOnTPTP-only — fine if framed as §9
-  proof-of-concept.
+- [ ] **AtpMcp `main` is now multi-backend and on the current protocol
+  revision — but Hex-unreleased and git-pinned to AtpClient.** HEAD
+  (`5ab5f71`, 2026-06-24) bumps `@version` to `0.2.0`, declares
+  `@protocol_version "2025-11-25"` (`lib/atp_mcp.ex:64`), and routes
+  through the unified `AtpClient.Backend` contract for all four
+  backends — `lib/atp_mcp.ex:68-71` maps `"sotptp" → SystemOnTptp`,
+  `"isabelle" → Isabelle`, `"local_exec" → LocalExec`,
+  `"starexec" → StarExec`, with a `list_backends` cross-backend tool.
+  Both prior concerns (protocol staleness, SystemOnTPTP-only) are
+  resolved on `main`. Remaining issues: `mix.exs` now pins
+  `{:atp_client, github: "jcschuster/AtpClient"}`, so the same
+  Hex-vs-git story as the `isabelle_elixir` item applies — an AtpClient
+  Hex cut exposing `AtpClient.Backend` is needed before AtpMcp can be
+  cited as "available on Hex". If the MCP server is promoted to §9,
+  describe it as the four-backend demonstration it now is, not the
+  SystemOnTPTP-only proof-of-concept the previous TODO assumed.
 
 ---
 
@@ -159,8 +176,12 @@ in `external/main.tex`, plan of record in `ROADMAP.md`, change log in
       or explicit "SystemOnTPTP only today" in §5 with multi-backend
       release deferred to §9 future work?
 - [ ] MCP server: include as §9 demonstration (one paragraph + small
-      figure showing an agent calling `run_prover` and getting back an
-      SZS status), or stay silent?
+      figure showing an agent calling `list_backends`, then dispatching
+      a problem through the unified backend contract — e.g. a
+      SystemOnTPTP-vs-LocalExec comparison — and getting back SZS
+      statuses), or stay silent? The figure should reflect the
+      four-backend reality now on AtpMcp `main`, not the old
+      single-`run_prover` flow.
 - [ ] David collaboration deliverables (multi-lemma example, stable
       `Result.Position` contract, technical review of §3
       Isabelle-semantics paragraph): which land before camera-ready vs.
@@ -179,8 +200,10 @@ in `external/main.tex`, plan of record in `ROADMAP.md`, change log in
 3. **Next:** Phase 4 reframing (A.2) — Livebook intro, related work,
    §1/§6 reframing.
 4. **Decide and execute B-items** in the order: `isabelle_elixir`
-   pin → KinoAtpClient scope call → MCP scope call → MCP version
-   bump (cheap regardless).
+   pin → KinoAtpClient scope call → MCP scope call (the MCP version
+   bump and multi-backend wiring already landed on AtpMcp `main`; the
+   remaining call is paper framing + the AtpClient Hex cut that lets
+   AtpMcp drop its github pin).
 5. **Final pass:** make sure §1, §3, §7, §9 all describe the same
    library (four backends, StarExec validated, LocalExec present,
    cancellation API mentioned or not — consistently).
