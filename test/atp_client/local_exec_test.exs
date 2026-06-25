@@ -172,7 +172,7 @@ defmodule AtpClient.LocalExecTest do
 
       File.write!(path, """
       #!/bin/sh
-      echo "$$" > #{pid_file}
+      echo "$$" > "#{pid_file}"
       sleep 60
       echo "# SZS status Theorem for x"
       """)
@@ -213,7 +213,7 @@ defmodule AtpClient.LocalExecTest do
 
       File.write!(path, """
       #!/bin/sh
-      echo "$$" > #{pid_file}
+      echo "$$" > "#{pid_file}"
       sleep 60
       echo "# SZS status Theorem for x"
       """)

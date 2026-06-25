@@ -129,7 +129,8 @@ defmodule AtpClient.BackendTest do
                  username: "u",
                  password: "p",
                  request_timeout_ms: 1_000,
-                 connect_options: [timeout: 500]
+                 connect_options: [timeout: 500],
+                 retry: false
                )
     end
   end
@@ -153,7 +154,8 @@ defmodule AtpClient.BackendTest do
                  username: "u",
                  password: "p",
                  request_timeout_ms: 1_000,
-                 connect_options: [timeout: 500]
+                 connect_options: [timeout: 500],
+                 retry: false
                )
     end
 

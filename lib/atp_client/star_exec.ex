@@ -199,7 +199,8 @@ defmodule AtpClient.StarExec do
         base_url: base_url,
         receive_timeout: timeout_ms,
         redirect: false,
-        connect_options: Keyword.get(opts, :connect_options, [])
+        connect_options: Config.fetch(:starexec, :connect_options, [], opts),
+        retry: Config.fetch(:starexec, :retry, :safe_transient, opts)
       )
 
     with {:ok, %{headers: init_headers}} <- Req.get(base_req, url: init_path) do
