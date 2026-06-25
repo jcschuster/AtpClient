@@ -185,22 +185,19 @@ defmodule AtpClient.StarExec do
     base_url = Config.fetch!(:starexec, :base_url, opts)
     username = Config.fetch!(:starexec, :username, opts)
     password = Config.fetch!(:starexec, :password, opts)
-    # FormAuthenticator only authenticates a j_security_check POST when the
-    # session already has a SavedRequest — i.e. Tomcat previously redirected
-    # this session away from a protected URL toward the login page. Without
-    # that, the POST returns 408. The init GET below triggers exactly that
-    # SavedRequest by hitting a URL covered by a <security-constraint>.
     login_path = Config.fetch(:starexec, :login_path, "/starexec/j_security_check", opts)
     init_path = Config.fetch(:starexec, :session_init_path, "/starexec/secure/index.jsp", opts)
     timeout_ms = Config.fetch(:starexec, :request_timeout_ms, 30_000, opts)
+    connect_options = Config.fetch(:starexec, :connect_options, [], opts)
+    retry = Config.fetch(:starexec, :retry, :safe_transient, opts)
 
     base_req =
       Req.new(
         base_url: base_url,
         receive_timeout: timeout_ms,
         redirect: false,
-        connect_options: Config.fetch(:starexec, :connect_options, [], opts),
-        retry: Config.fetch(:starexec, :retry, :safe_transient, opts)
+        connect_options: connect_options,
+        retry: retry
       )
 
     with {:ok, %{headers: init_headers}} <- Req.get(base_req, url: init_path) do
@@ -218,7 +215,12 @@ defmodule AtpClient.StarExec do
 
       case Req.post(base_req, post_opts) do
         {:ok, %{status: status, headers: headers}} when status in [200, 302, 303] ->
-          build_session(base_url, opts, Map.merge(initial_jar, extract_cookies(headers)))
+          build_session(
+            base_url,
+            opts,
+            connect_options,
+            Map.merge(initial_jar, extract_cookies(headers))
+          )
 
         {:ok, %{status: status}} ->
           {:error, {:login_failed, status}}
@@ -229,17 +231,17 @@ defmodule AtpClient.StarExec do
     end
   end
 
-  defp build_session(_base_url, _opts, jar) when map_size(jar) == 0 do
+  defp build_session(_base_url, _opts, _connect_options, jar) when map_size(jar) == 0 do
     {:error, :login_failed}
   end
 
-  defp build_session(base_url, opts, jar) do
-    {:ok,
-     %Session{
-       base_url: base_url,
-       cookies: jar,
-       opts: Keyword.drop(opts, [:password])
-     }}
+  defp build_session(base_url, opts, connect_options, jar) do
+    resolved_opts =
+      opts
+      |> Keyword.drop([:password])
+      |> Keyword.put(:connect_options, connect_options)
+
+    {:ok, %Session{base_url: base_url, cookies: jar, opts: resolved_opts}}
   end
 
   @doc """
@@ -814,7 +816,8 @@ defmodule AtpClient.StarExec do
         Config.fetch(:starexec, :request_timeout_ms, 30_000)
 
     req_opts =
-      opts
+      session.opts
+      |> Keyword.merge(opts)
       |> Keyword.drop(@starexec_only_opts)
       |> Keyword.merge(
         method: method,
