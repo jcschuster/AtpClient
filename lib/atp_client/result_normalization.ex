@@ -138,7 +138,9 @@ defmodule AtpClient.ResultNormalization do
   defp check_tool_signals(text) do
     cond do
       nitpick_found?(text, "counterexample") -> :csat
+      quickcheck_found?(text, "counterexample") -> :csat
       nitpick_found?(text, "model") -> :sat
+      quickcheck_found?(text, "model") -> :sat
       String.contains?(text, "found a proof") -> :thm
       theorem_proved?(text) -> :thm
       gave_up?(text) -> :gave_up
@@ -159,6 +161,9 @@ defmodule AtpClient.ResultNormalization do
 
   defp nitpick_found?(text, what),
     do: String.contains?(text, "Nitpick found a") and String.contains?(text, what)
+
+  defp quickcheck_found?(text, what),
+    do: String.contains?(text, "Quickcheck found a") and String.contains?(text, what)
 
   defp gave_up?(text),
     do: String.contains?(text, "Nitpick found no") or String.contains?(text, "No proof found")
@@ -262,7 +267,9 @@ defmodule AtpClient.ResultNormalization do
   defp classify_status(text, messages) do
     cond do
       nitpick_found?(text, "counterexample") -> :csat
+      quickcheck_found?(text, "counterexample") -> :csat
       nitpick_found?(text, "model") -> :sat
+      quickcheck_found?(text, "model") -> :sat
       String.contains?(text, "found a proof") -> :thm
       String.contains?(text, "Found proof") -> :thm
       timeout?(text) -> :timeout
