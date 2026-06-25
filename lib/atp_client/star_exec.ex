@@ -424,7 +424,19 @@ defmodule AtpClient.StarExec do
 
     path = String.replace(template, "{space_id}", to_string(space_id))
 
-    case request(session, :post, path, opts) do
+    form = [
+      sEcho: "1",
+      iColumns: "2",
+      iDisplayStart: "0",
+      iDisplayLength: "-1",
+      iSortCol_0: "0",
+      sSortDir_0: "asc",
+      sSearch: ""
+    ]
+
+    list_opts = Keyword.put(opts, :form, form)
+
+    case request(session, :post, path, list_opts) do
       {:ok, %{status: 200, body: body}} ->
         {:ok, parse_benchmark_rows(body)}
 
@@ -642,7 +654,7 @@ defmodule AtpClient.StarExec do
   end
 
   defp parse_benchmark_row([anchor | _]) when is_binary(anchor) do
-    case Regex.run(~r/benchmark\.jsp\?id=(\d+).*?>([^<]+)<\/a>/s, anchor) do
+    case Regex.run(~r/benchmark\.jsp\?id=(\d+)[^>]*>([^<]+)/s, anchor) do
       [_, id, name] -> %{id: String.to_integer(id), name: name}
       _ -> nil
     end
