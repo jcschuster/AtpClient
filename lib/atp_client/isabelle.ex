@@ -15,33 +15,35 @@ defmodule AtpClient.Isabelle do
         host: "isabelle.example.org",
         port: 9999,
         password: System.get_env("ISABELLE_PASSWORD"),
-        # Where AtpClient writes .thy files (as seen by this BEAM node):
-        local_dir: "/shared/problems",
-        # Where those same files appear on the Isabelle side (may differ in
-        # containerised setups; defaults to `local_dir` when unset):
-        isabelle_dir: "/shared/problems",
         session: "HOL"
+
+  When the BEAM and the Isabelle server run on the same host (the usual dev
+  setup) no further configuration is required — `:local_dir` defaults to a
+  subdirectory of `System.tmp_dir!/0` and the library writes `.thy` files
+  there before asking Isabelle to load them. Pass theory text in, get
+  results back; the file bookkeeping is hidden.
 
   ### Paths: `local_dir` vs. `isabelle_dir`
 
-  The Isabelle server wants a filesystem path it can resolve in **its own**
-  view of the world. When the BEAM and the Isabelle server see the same
-  directory under the same path, only `local_dir` is needed — this module
-  expands it to an absolute path and passes it to Isabelle as `master_dir`.
+  Only relevant when the BEAM node and the Isabelle server see the shared
+  directory under different paths. In that case set both explicitly:
 
-  When the two views differ, you must set `isabelle_dir` explicitly. The two
-  common cases:
+      config :atp_client, :isabelle,
+        local_dir: "/shared/problems",
+        isabelle_dir: "/data/problems"
+
+  The two common cases:
 
     * **Containers:** BEAM writes to `/shared/problems` inside its container;
       the Isabelle server container has the same volume mounted at
-      `/data/problems`. Set `local_dir: "/shared/problems"` and
-      `isabelle_dir: "/data/problems"`.
+      `/data/problems`.
     * **Windows + Cygwin:** BEAM on Windows sees `C:/Users/you/thy`; Isabelle
       started from a Cygwin shell sees the same directory as
-      `/cygdrive/c/Users/you/thy`. Set both accordingly.
+      `/cygdrive/c/Users/you/thy`.
 
   Paths given via `isabelle_dir` are passed through verbatim — the library does
-  not try to translate Windows paths to POSIX or vice-versa.
+  not try to translate Windows paths to POSIX or vice-versa. When unset,
+  `:isabelle_dir` defaults to `:local_dir`.
 
   ## Example
 
@@ -156,10 +158,14 @@ defmodule AtpClient.Isabelle do
       %Field{
         key: :local_dir,
         type: :string,
-        required?: true,
+        required?: false,
         group: :connection,
         label: "Shared theory directory",
-        doc: "Where AtpClient writes .thy files (BEAM-side view)."
+        doc:
+          "Where AtpClient writes .thy files (BEAM-side view). " <>
+            "Defaults to a subdirectory of System.tmp_dir!/0; only set this " <>
+            "when the BEAM and the Isabelle server see the directory under " <>
+            "different paths (containers, Cygwin)."
       },
       %Field{
         key: :isabelle_dir,

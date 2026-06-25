@@ -94,5 +94,26 @@ defmodule AtpClient.ConfigTest do
       assert Keyword.get(resolved, :host) == "127.0.0.1"
       assert Keyword.get(resolved, :port) == 9999
     end
+
+    test "isabelle post-processing defaults :local_dir to a tmp subdirectory" do
+      Application.put_env(:atp_client, :isabelle, password: "x")
+
+      resolved = Config.get(:isabelle)
+      expected = Path.join(System.tmp_dir!(), "atp_client_isabelle")
+
+      assert Keyword.get(resolved, :local_dir) == expected
+      # :isabelle_dir then follows :local_dir:
+      assert Keyword.get(resolved, :isabelle_dir) == expected
+    end
+
+    test "explicit :local_dir wins over the tmp default" do
+      Application.put_env(:atp_client, :isabelle,
+        password: "x",
+        local_dir: "/custom/path"
+      )
+
+      resolved = Config.get(:isabelle)
+      assert Keyword.get(resolved, :local_dir) == "/custom/path"
+    end
   end
 end

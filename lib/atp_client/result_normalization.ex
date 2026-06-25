@@ -149,9 +149,10 @@ defmodule AtpClient.ResultNormalization do
   end
 
   defp theorem_proved?(text),
-    do: theorem_at_start?(text) or
-          String.contains?(text, "\ntheorem ") or
-          String.contains?(text, "\ntheorem:")
+    do:
+      theorem_at_start?(text) or
+        String.contains?(text, "\ntheorem ") or
+        String.contains?(text, "\ntheorem:")
 
   defp theorem_at_start?(text),
     do: String.starts_with?(text, "theorem ") or String.starts_with?(text, "theorem:")
@@ -263,6 +264,7 @@ defmodule AtpClient.ResultNormalization do
       nitpick_found?(text, "counterexample") -> :csat
       nitpick_found?(text, "model") -> :sat
       String.contains?(text, "found a proof") -> :thm
+      String.contains?(text, "Found proof") -> :thm
       timeout?(text) -> :timeout
       String.contains?(text, "Out of memory") -> :out_of_resources
       gave_up?(text) -> :gave_up

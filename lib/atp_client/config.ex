@@ -23,8 +23,9 @@ defmodule AtpClient.Config do
         host: "isabelle.example.org",
         port: 9999,
         password: System.get_env("ISABELLE_PASSWORD"),
-        local_dir: "/shared/problems",
-        isabelle_dir: "/shared/problems",
+        # `:local_dir` defaults to a subdirectory of `System.tmp_dir!/0`.
+        # Only set it (and `:isabelle_dir`) when the BEAM and the Isabelle
+        # server see the shared directory under different paths.
         session: "HOL"
 
   Any setting may be overridden per call. For instance,
@@ -121,7 +122,7 @@ defmodule AtpClient.Config do
   a descriptive `ArgumentError` if unset or `nil`.
 
   Use this for settings that have no sensible default (for example
-  `:base_url`, `:password`, `:local_dir`).
+  `:base_url`, `:password`).
   """
   @spec fetch!(backend(), atom(), keyword()) :: any()
   def fetch!(backend, key, opts \\ []) do
@@ -133,16 +134,34 @@ defmodule AtpClient.Config do
 
   # Backend-specific normalization. Currently only Isabelle needs any.
   defp post_process(cfg, :isabelle) do
-    # If `isabelle_dir` is unset, default it to `local_dir`. The two differ
-    # only when the BEAM node and the Isabelle server see the shared directory
-    # under different paths (e.g. when one runs in a container).
+    cfg
+    |> default_local_dir()
+    |> default_isabelle_dir()
+  end
+
+  defp post_process(cfg, _backend), do: cfg
+
+  # When `:local_dir` is unset, default to a stable subdirectory of the system
+  # tmp dir. This makes the same-host case (BEAM and Isabelle on one machine)
+  # zero-config: the user passes only theory text, the library picks the path.
+  # Cross-host setups (containers, Cygwin) still need an explicit `:local_dir`
+  # plus `:isabelle_dir`.
+  defp default_local_dir(cfg) do
+    case Keyword.get(cfg, :local_dir) do
+      nil -> Keyword.put(cfg, :local_dir, Path.join(System.tmp_dir!(), "atp_client_isabelle"))
+      _ -> cfg
+    end
+  end
+
+  # If `:isabelle_dir` is unset, default it to `:local_dir`. The two differ
+  # only when the BEAM node and the Isabelle server see the shared directory
+  # under different paths (e.g. when one runs in a container).
+  defp default_isabelle_dir(cfg) do
     case {Keyword.get(cfg, :local_dir), Keyword.get(cfg, :isabelle_dir)} do
       {local, nil} when is_binary(local) -> Keyword.put(cfg, :isabelle_dir, local)
       _ -> cfg
     end
   end
-
-  defp post_process(cfg, _backend), do: cfg
 
   @spec raise_missing(backend(), atom()) :: no_return()
   defp raise_missing(backend, key) do

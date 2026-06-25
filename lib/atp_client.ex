@@ -46,12 +46,12 @@ defmodule AtpClient do
         host: "isabelle.example.org",
         port: 9999,
         password: System.get_env("ISABELLE_PASSWORD"),
-        # Directory shared between this node and the Isabelle server. If the two
-        # see the same files under different paths (e.g. because one runs inside
-        # a container), set `isabelle_dir` separately:
-        local_dir: "/shared/problems",
-        isabelle_dir: "/shared/problems",
         session: "HOL"
+
+      # Same-host setups need nothing more — `:local_dir` defaults to a
+      # subdirectory of `System.tmp_dir!/0`. Only set `:local_dir` and
+      # `:isabelle_dir` when the two sides see the directory under different
+      # paths (containers, Cygwin).
 
       config :atp_client, :local_exec,
         binary: "eprover",
