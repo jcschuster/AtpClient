@@ -1,7 +1,7 @@
 defmodule AtpClient.MixProject do
   use Mix.Project
 
-  @version "0.2.2"
+  @version "0.3.0"
   @source_url "https://github.com/jcschuster/AtpClient"
 
   def project do
@@ -23,13 +23,6 @@ defmodule AtpClient.MixProject do
     [
       extra_applications: [:logger],
       mod: {AtpClient.Application, []}
-      # Library defaults live in `AtpClient.Config` (`@defaults`), not in
-      # an `:env` block here. The `:env` mechanism only seeds Application
-      # env at load time and is replaced wholesale by any user
-      # `config :atp_client, :<backend>, …` — which silently dropped
-      # defaults the user did not re-set. Merging per-key inside
-      # `Config.get/2` keeps each unset key on its default regardless of
-      # what the user configures.
     ]
   end
 
@@ -37,7 +30,7 @@ defmodule AtpClient.MixProject do
     [
       {:jason, "~> 1.4"},
       {:req, "~> 0.5"},
-      {:isabelle_elixir, github: "davfuenmayor/isabelle_elixir", branch: "main"},
+      {:isabelle_elixir, "~> 0.4"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
@@ -53,14 +46,25 @@ defmodule AtpClient.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib mix.exs README* LICENSE*)
+      files: ~w(lib mix.exs README* LICENSE* CHANGELOG* examples/*.livemd)
     ]
   end
 
   defp docs do
     [
       main: "AtpClient",
-      extras: ["README.md", "examples/demo.livemd", "examples/isabelle_tptp.livemd"],
+      extras: [
+        "README.md",
+        "CHANGELOG.md",
+        "examples/demo.livemd",
+        "examples/isabelle_tptp.livemd"
+      ],
+      groups_for_extras: [
+        Examples: ["examples/demo.livemd", "examples/isabelle_tptp.livemd"]
+      ],
+      # The CHANGELOG documents APIs that were renamed or removed in past
+      # releases; ExDoc would otherwise warn on each historical reference.
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       groups_for_modules: [
         "Backend integrations": [
           AtpClient.Backend,

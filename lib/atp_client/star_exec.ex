@@ -578,17 +578,7 @@ defmodule AtpClient.StarExec do
   end
 
   defp job_id_from_response(%{status: status, headers: headers}) when status in [302, 303] do
-    location =
-      headers
-      |> Enum.find_value(fn {k, v} ->
-        if String.downcase(k) == "location", do: v
-      end)
-
-    location =
-      case location do
-        [v | _] -> v
-        v -> v
-      end
+    location = location_header(headers)
 
     case location && Regex.run(~r/[?&](?:job)?[Ii]d=(\d+)|\/jobs\/(\d+)/, location) do
       [_, id, ""] -> {:ok, String.to_integer(id)}
@@ -599,6 +589,18 @@ defmodule AtpClient.StarExec do
   end
 
   defp job_id_from_response(%{status: status}), do: {:error, {:create_job_failed, status}}
+
+  # Pull the `Location` header off a response, regardless of case or whether
+  # the HTTP client returned it as a bare string or a one-element list.
+  defp location_header(headers) do
+    Enum.find_value(headers, fn {key, value} ->
+      if String.downcase(key) == "location", do: normalize_header_value(value)
+    end)
+  end
+
+  defp normalize_header_value([value | _]), do: value
+  defp normalize_header_value(value) when is_binary(value), do: value
+  defp normalize_header_value(_), do: nil
 
   defp single_stdout_from_zip(zip_bytes) do
     with {:ok, entries} <- :zip.extract(zip_bytes, [:memory]) do
@@ -622,14 +624,9 @@ defmodule AtpClient.StarExec do
   # --- upload/list helpers ----------------------------------------------
 
   defp extract_status_id(%{headers: headers}) do
-    headers
-    |> Enum.find_value(fn {k, v} ->
-      if String.downcase(k) == "location", do: v
-    end)
-    |> case do
-      [v | _] -> parse_id_from_location(v)
-      v when is_binary(v) -> parse_id_from_location(v)
-      _ -> nil
+    case location_header(headers) do
+      nil -> nil
+      location -> parse_id_from_location(location)
     end
   end
 
@@ -868,24 +865,18 @@ defmodule AtpClient.StarExec do
 
   defp extract_cookies(headers) do
     headers
-    |> Enum.flat_map(fn
-      {"set-cookie", v} -> List.wrap(v)
-      {"Set-Cookie", v} -> List.wrap(v)
-      _ -> []
+    |> Enum.flat_map(fn {key, value} ->
+      if String.downcase(key) == "set-cookie", do: List.wrap(value), else: []
     end)
     |> Enum.reduce(%{}, &raw_cookie_reduce/2)
   end
 
   defp raw_cookie_reduce(raw, acc) do
-    case String.split(raw, ";", parts: 2) do
-      [kv | _] ->
-        case String.split(kv, "=", parts: 2) do
-          [k, v] -> Map.put(acc, String.trim(k), String.trim(v))
-          _ -> acc
-        end
+    [kv | _] = String.split(raw, ";", parts: 2)
 
-      _ ->
-        acc
+    case String.split(kv, "=", parts: 2) do
+      [k, v] -> Map.put(acc, String.trim(k), String.trim(v))
+      _ -> acc
     end
   end
 

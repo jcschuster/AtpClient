@@ -101,6 +101,7 @@ defmodule AtpClient.BackendTest do
   end
 
   describe "verify/1" do
+    @tag :posix_shell
     test "LocalExec verify returns :ok for a binary on PATH" do
       assert :ok = AtpClient.LocalExec.verify(binary: "sh")
     end

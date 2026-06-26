@@ -95,9 +95,9 @@ defmodule AtpClient.Isabelle do
 
   Death of the process calling `query/2`, `query_tptp/2`, or any of the
   session helpers is the abort signal. The session is owned by an internal
-  `AtpClient.Isabelle.SessionOwner` GenServer that monitors the caller; on
-  caller `:DOWN` it stops the underlying `IsabelleClient.Shared`, which
-  closes the TCP socket to the Isabelle server. Closing the socket while a
+  GenServer that monitors the caller; on caller `:DOWN` it stops the
+  underlying `IsabelleClient.Shared`, which closes the TCP socket to the
+  Isabelle server. Closing the socket while a
   `use_theories` task is in flight aborts that task on the server side —
   per the Isabelle protocol, the running check is dropped along with the
   session.
@@ -221,9 +221,8 @@ defmodule AtpClient.Isabelle do
   Connects to the Isabelle server, starts a session (typically `HOL` or `Main`),
   and returns a `Session` handle.
 
-  The handle is backed by a private `AtpClient.Isabelle.SessionOwner` process
-  that holds the link to `IsabelleClient.Shared` for you, so callers do **not**
-  need to trap exits: a failed connection surfaces as `{:error, reason}` and a
+  The handle is backed by a private owner process that holds the link to
+  `IsabelleClient.Shared` for you, so callers do **not** need to trap exits: a failed connection surfaces as `{:error, reason}` and a
   later crash of the Shared process surfaces as a `:DOWN` if the caller
   monitors `session.client`. The owner is also caller-monitored, so if the
   caller dies the session is shut down cleanly instead of orphaning a remote

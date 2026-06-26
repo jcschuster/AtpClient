@@ -13,7 +13,7 @@ having `isabelle` on `PATH` (or `ISABELLE_TOOL` pointing at the executable).
 
 ```elixir
 Mix.install([
-  {:atp_client, path: Path.expand("..", __DIR__)}
+  {:atp_client, "~> 0.3"}
 ])
 ```
 
@@ -197,8 +197,8 @@ IsabelleClient.Server.kill(server.name)
 * `{:error, :isabelle_not_found}` from `IsabelleClient.Server.executable/0` —
   `isabelle` is not on `PATH`. Set `ISABELLE_TOOL` to the executable path.
 * `{:error, {:tptp_thy_copy_failed, _}}` — `:local_dir` is not writable, or the
-  dep is not loaded correctly. Check `IsabelleClient.TPTP.source_path/0`
-  resolves to a real file.
+  dep is not loaded correctly. Check that `IsabelleClient.TPTP.source_path()`
+  in the `isabelle_elixir` dep resolves to a real file.
 * `{:error, {:isabelle_failed, %{"message" => "Cannot load theory file"}, [hint: _, …]}}` —
   Isabelle could not read `TPTP.thy` or the generated theory. Inspect the
   hint's `:local_dir`/`:isabelle_dir` to check the cross-mount.

@@ -53,33 +53,34 @@ defmodule AtpClient.Lint do
   @spec analyze(String.t(), keyword()) :: Report.t()
   def analyze(problem, opts \\ []) when is_binary(problem) do
     backends = Keyword.get(opts, :backends, @default_backends)
+    %Report{diagnostics: local_diags, symbols: symbols} = run_local(backends, problem)
+    remote_diags = run_remote(backends, problem, opts, local_diags)
 
-    %Report{diagnostics: local_diags, symbols: symbols} =
-      if :local in backends do
-        AtpClient.Lint.Local.analyze(problem)
-      else
-        %Report{diagnostics: [], symbols: []}
+    diagnostics =
+      (local_diags ++ remote_diags)
+      |> Enum.sort_by(&{&1.line, &1.column, severity_rank(&1.severity)})
+
+    %Report{diagnostics: diagnostics, symbols: symbols}
+  end
+
+  defp run_local(backends, problem) do
+    if :local in backends,
+      do: AtpClient.Lint.Local.analyze(problem),
+      else: %Report{diagnostics: [], symbols: []}
+  end
+
+  # Network issues are surfaced via a separate channel so they don't
+  # pollute the editor markers — the Smart Cell can log them or surface
+  # them as a non-marker status instead.
+  defp run_remote(backends, problem, opts, local_diags) do
+    if :tptp4x in backends and not has_errors?(local_diags) do
+      case AtpClient.Lint.Tptp4x.check(problem, opts) do
+        {:ok, diags} -> diags
+        {:error, _reason} -> []
       end
-
-    remote_diags =
-      if :tptp4x in backends and not has_errors?(local_diags) do
-        case AtpClient.Lint.Tptp4x.check(problem, opts) do
-          {:ok, diags} -> diags
-          # Network issues are surfaced via a separate channel so they
-          # don't pollute the editor markers — the Smart Cell can log
-          # them or surface them as a non-marker status instead.
-          {:error, _reason} -> []
-        end
-      else
-        []
-      end
-
-    %Report{
-      diagnostics:
-        (local_diags ++ remote_diags)
-        |> Enum.sort_by(&{&1.line, &1.column, severity_rank(&1.severity)}),
-      symbols: symbols
-    }
+    else
+      []
+    end
   end
 
   @doc """
@@ -98,5 +99,4 @@ defmodule AtpClient.Lint do
   defp severity_rank(:warning), do: 1
   defp severity_rank(:info), do: 2
   defp severity_rank(:hint), do: 3
-  defp severity_rank(_), do: 4
 end

@@ -454,18 +454,8 @@ defmodule AtpClient.Lint.Local do
 
   defp walk_body([{:comma, _cl, _cc} | rest], 1, fi, ll, lc, lang, acc, _prev_id) do
     new_fi = fi + 1
-
-    acc =
-      if new_fi == 1 do
-        case role_diagnostic(rest) do
-          nil -> acc
-          diag -> [diag | acc]
-        end
-      else
-        acc
-      end
-
-    walk_body(rest, 1, new_fi, ll, lc, lang, acc, nil)
+    new_acc = maybe_role_diagnostic(rest, new_fi, acc)
+    walk_body(rest, 1, new_fi, ll, lc, lang, new_acc, nil)
   end
 
   defp walk_body(
@@ -479,18 +469,19 @@ defmodule AtpClient.Lint.Local do
          prev_id
        )
        when kind in [:lident, :uident, :number, :sqstring, :dqstring] do
-    acc =
-      case adjacency_diagnostic(prev_id, tok, fi, lang) do
-        nil -> acc
-        diag -> [diag | acc]
-      end
-
-    walk_body(rest, depth, fi, ll, lc, lang, acc, tok)
+    new_acc = prepend_diagnostic(adjacency_diagnostic(prev_id, tok, fi, lang), acc)
+    walk_body(rest, depth, fi, ll, lc, lang, new_acc, tok)
   end
 
   defp walk_body([_ | rest], depth, fi, ll, lc, lang, acc, _prev_id) do
     walk_body(rest, depth, fi, ll, lc, lang, acc, nil)
   end
+
+  defp maybe_role_diagnostic(rest, 1, acc), do: prepend_diagnostic(role_diagnostic(rest), acc)
+  defp maybe_role_diagnostic(_rest, _fi, acc), do: acc
+
+  defp prepend_diagnostic(nil, acc), do: acc
+  defp prepend_diagnostic(diag, acc), do: [diag | acc]
 
   defp adjacency_diagnostic(_prev, _tok, fi, _lang) when fi < 2, do: nil
   defp adjacency_diagnostic(nil, _tok, _fi, _lang), do: nil

@@ -195,18 +195,22 @@ defmodule AtpClient.LocalExec do
   end
 
   defp resolve(binary) when is_binary(binary) do
-    cond do
-      Path.type(binary) == :absolute and File.regular?(binary) ->
-        {:ok, binary}
+    case Path.type(binary) do
+      :absolute -> resolve_absolute(binary)
+      _ -> resolve_on_path(binary)
+    end
+  end
 
-      Path.type(binary) == :absolute ->
-        {:error, {:prover_not_found, binary}}
+  defp resolve_absolute(path) do
+    if File.regular?(path),
+      do: {:ok, path},
+      else: {:error, {:prover_not_found, path}}
+  end
 
-      exe = System.find_executable(binary) ->
-        {:ok, exe}
-
-      true ->
-        {:error, {:prover_not_found, binary}}
+  defp resolve_on_path(name) do
+    case System.find_executable(name) do
+      nil -> {:error, {:prover_not_found, name}}
+      exe -> {:ok, exe}
     end
   end
 
@@ -222,7 +226,7 @@ defmodule AtpClient.LocalExec do
   end
 
   defp build_args(args, problem_path) do
-    if Enum.any?(args, &(&1 == @placeholder)) do
+    if @placeholder in args do
       Enum.map(args, fn
         @placeholder -> problem_path
         other -> other

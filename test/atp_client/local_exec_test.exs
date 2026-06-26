@@ -91,6 +91,8 @@ defmodule AtpClient.LocalExecTest do
   end
 
   describe "query/2 — happy path" do
+    @describetag :posix_shell
+
     test "Theorem output is classified as {:ok, :thm}", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_thm", "# SZS status Theorem for x")
       assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :thm}
@@ -151,6 +153,8 @@ defmodule AtpClient.LocalExecTest do
   end
 
   describe "query/2 — wall-clock timeout" do
+    @describetag :posix_shell
+
     test "wall-clock kill folds into {:ok, :timeout}", %{tmp_dir: tmp} do
       # Prover sleeps 2s before exiting; wall-clock budget is 100 ms. The
       # BEAM-side kill is mapped onto the same :timeout the SZS classifier
@@ -207,6 +211,8 @@ defmodule AtpClient.LocalExecTest do
   end
 
   describe "query/2 — cancellation via caller death" do
+    @describetag :posix_shell
+
     test "killing the calling process kills the OS child", %{tmp_dir: tmp} do
       pid_file = Path.join(tmp, "cancel.pid")
       path = Path.join(tmp, "cancel_prover")
@@ -249,6 +255,8 @@ defmodule AtpClient.LocalExecTest do
   end
 
   describe "query/2 — argument construction" do
+    @describetag :posix_shell
+
     test "extra args are passed before the problem file path", %{tmp_dir: tmp} do
       # An echo-args script that prints its own argv back and a fixed SZS line.
       path = Path.join(tmp, "argprover")

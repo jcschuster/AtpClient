@@ -87,7 +87,10 @@ defmodule AtpClient.SystemOnTptp.Provers do
         :ok
 
       {:error, reason} ->
-        Logger.warning("AtpClient.TptpSystems: initial refresh failed: #{inspect(reason)}")
+        Logger.warning(
+          "#{inspect(__MODULE__)}: initial refresh failed: #{inspect(reason)}"
+        )
+
         Agent.update(__MODULE__, fn
           nil -> []
           existing -> existing

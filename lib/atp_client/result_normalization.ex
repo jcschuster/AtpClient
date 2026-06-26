@@ -132,22 +132,51 @@ defmodule AtpClient.ResultNormalization do
   @spec interpret_isabelle_result(map()) :: atp_result()
   def interpret_isabelle_result(payload) when is_map(payload) do
     text = extract_text(payload)
-    {:ok, check_tool_signals(text) || :gave_up}
+    {:ok, scan(text, theorem_signals()) || :gave_up}
   end
 
-  defp check_tool_signals(text) do
-    cond do
-      nitpick_found?(text, "counterexample") -> :csat
-      quickcheck_found?(text, "counterexample") -> :csat
-      nitpick_found?(text, "model") -> :sat
-      quickcheck_found?(text, "model") -> :sat
-      String.contains?(text, "found a proof") -> :thm
-      theorem_proved?(text) -> :thm
-      gave_up?(text) -> :gave_up
-      timeout?(text) -> :timeout
-      String.contains?(text, "Out of memory") -> :out_of_resources
-      true -> nil
-    end
+  # Ordered list of `{predicate, status}` tuples scanned by `scan/2`. The
+  # first matching predicate wins, so the order encodes precedence: tool
+  # verdicts (nitpick / quickcheck / sledgehammer) before the generic
+  # `theorem` completion, and `gave_up` before `timeout` so a "No proof
+  # found, timed out" message classifies as gave_up.
+  defp theorem_signals do
+    [
+      {&nitpick_counterexample?/1, :csat},
+      {&quickcheck_counterexample?/1, :csat},
+      {&nitpick_model?/1, :sat},
+      {&quickcheck_model?/1, :sat},
+      {&found_a_proof?/1, :thm},
+      {&theorem_proved?/1, :thm},
+      {&gave_up?/1, :gave_up},
+      {&timeout?/1, :timeout},
+      {&out_of_memory?/1, :out_of_resources}
+    ]
+  end
+
+  # Like `theorem_signals/0`, but for the per-lemma classifier: adds the
+  # alternate "Found proof" spelling some tools emit, and reverses the
+  # gave_up/timeout precedence (a `timed out` message at a single lemma
+  # line is reported as a timeout even when accompanied by "No proof
+  # found"). The trailing error-kind check fires from `classify_text/1`.
+  defp lemma_text_signals do
+    [
+      {&nitpick_counterexample?/1, :csat},
+      {&quickcheck_counterexample?/1, :csat},
+      {&nitpick_model?/1, :sat},
+      {&quickcheck_model?/1, :sat},
+      {&found_a_proof?/1, :thm},
+      {&found_proof?/1, :thm},
+      {&timeout?/1, :timeout},
+      {&out_of_memory?/1, :out_of_resources},
+      {&gave_up?/1, :gave_up}
+    ]
+  end
+
+  defp scan(text, signals) do
+    Enum.find_value(signals, fn {predicate, status} ->
+      if predicate.(text), do: status
+    end)
   end
 
   defp theorem_proved?(text),
@@ -159,11 +188,20 @@ defmodule AtpClient.ResultNormalization do
   defp theorem_at_start?(text),
     do: String.starts_with?(text, "theorem ") or String.starts_with?(text, "theorem:")
 
+  defp nitpick_counterexample?(text), do: nitpick_found?(text, "counterexample")
+  defp quickcheck_counterexample?(text), do: quickcheck_found?(text, "counterexample")
+  defp nitpick_model?(text), do: nitpick_found?(text, "model")
+  defp quickcheck_model?(text), do: quickcheck_found?(text, "model")
+
   defp nitpick_found?(text, what),
     do: String.contains?(text, "Nitpick found a") and String.contains?(text, what)
 
   defp quickcheck_found?(text, what),
     do: String.contains?(text, "Quickcheck found a") and String.contains?(text, what)
+
+  defp found_a_proof?(text), do: String.contains?(text, "found a proof")
+  defp found_proof?(text), do: String.contains?(text, "Found proof")
+  defp out_of_memory?(text), do: String.contains?(text, "Out of memory")
 
   defp gave_up?(text),
     do: String.contains?(text, "Nitpick found no") or String.contains?(text, "No proof found")
@@ -193,7 +231,7 @@ defmodule AtpClient.ResultNormalization do
     * `name` — lemma name extracted from Isabelle's completion message, or
       `nil` for anonymous lemmas, sledgehammer/nitpick verdicts (which
       Isabelle does not tag with the lemma name), and unnamed error entries.
-    * `result` — any value of `atp_result/0`. The same `check_tool_signals`
+    * `result` — any value of `atp_result/0`. The same signal-table
       classifier used by `interpret_isabelle_result/1` runs per line, so
       `sledgehammer ... oops` and `nitpick` verdicts surface as
       `{:ok, :thm}` / `{:ok, :csat}` / `{:ok, :sat}` / `{:ok, :gave_up}` /
@@ -249,35 +287,23 @@ defmodule AtpClient.ResultNormalization do
   end
 
   defp classify_line(messages) do
+    case find_theorem_name(messages) do
+      {:found, name} -> {:thm, name}
+      :no_theorem -> classify_text(messages)
+    end
+  end
+
+  defp classify_text(messages) do
     text = Enum.map_join(messages, "\n", &Map.get(&1, "message", ""))
 
-    case find_theorem_name(messages) do
-      :no_theorem -> classify_text(text, messages)
-      name -> {:thm, name}
-    end
-  end
-
-  defp classify_text(text, messages) do
-    case classify_status(text, messages) do
+    case scan(text, lemma_text_signals()) || error_kind_signal(messages) do
       nil -> nil
-      result -> {result, nil}
+      status -> {status, nil}
     end
   end
 
-  defp classify_status(text, messages) do
-    cond do
-      nitpick_found?(text, "counterexample") -> :csat
-      quickcheck_found?(text, "counterexample") -> :csat
-      nitpick_found?(text, "model") -> :sat
-      quickcheck_found?(text, "model") -> :sat
-      String.contains?(text, "found a proof") -> :thm
-      String.contains?(text, "Found proof") -> :thm
-      timeout?(text) -> :timeout
-      String.contains?(text, "Out of memory") -> :out_of_resources
-      gave_up?(text) -> :gave_up
-      Enum.any?(messages, &(Map.get(&1, "kind") == "error")) -> :gave_up
-      true -> nil
-    end
+  defp error_kind_signal(messages) do
+    if Enum.any?(messages, &(Map.get(&1, "kind") == "error")), do: :gave_up
   end
 
   defp find_theorem_name(messages) do
@@ -285,10 +311,6 @@ defmodule AtpClient.ResultNormalization do
       text = Map.get(msg, "message", "")
       if theorem_at_start?(text), do: {:found, theorem_name(text)}
     end)
-    |> case do
-      :no_theorem -> :no_theorem
-      {:found, name} -> name
-    end
   end
 
   defp theorem_name("theorem " <> rest), do: rest |> String.split(":") |> hd() |> String.trim()
