@@ -87,9 +87,9 @@ defmodule AtpClient.Isabelle do
 
       {:ok, lemma_results} = AtpClient.Isabelle.query_tptp(problem)
 
-  Lemma names propagate from TPTP formula names. Lemma line numbers refer
-  to the generated theory, not the input TPTP source — match on `:name`
-  for UI attribution.
+  Lemma names propagate from TPTP formula names. Line numbers are not
+  exposed — they would refer to the generated theory, not the input TPTP
+  source. Match on `:name` for UI attribution.
 
   ## Cancellation
 
@@ -374,22 +374,59 @@ defmodule AtpClient.Isabelle do
   defp annotate_path_error(other, _local_dir, _isabelle_dir, _theory_name), do: other
 
   @doc """
+  Extracts the lemma specs (name + body-line range) from a theory body.
+
+  Walks the body line-by-line, picking out `lemma <name>:` or
+  `lemma <name>[…]:` declarations and computing each lemma's range as
+  `[its line .. (line before the next lemma)]`. Used by `prove_lemmas/4`
+  and `prove_tptp/3` to feed `ResultNormalization.per_lemma_results/3`
+  without having to re-parse the body inside the classifier.
+  """
+  @spec lemma_specs(String.t()) :: [ResultNormalization.lemma_spec()]
+  def lemma_specs(theory_text) when is_binary(theory_text) do
+    lines = String.split(theory_text, "\n")
+    total = length(lines)
+
+    starts =
+      lines
+      |> Enum.with_index(1)
+      |> Enum.flat_map(fn {line, line_no} ->
+        case Regex.run(~r/^lemma\s+([A-Za-z_][A-Za-z0-9_'.]*)/, line) do
+          [_, name] -> [{name, line_no}]
+          _ -> []
+        end
+      end)
+
+    starts
+    |> Enum.with_index()
+    |> Enum.map(fn {{name, start}, idx} ->
+      stop =
+        case Enum.at(starts, idx + 1) do
+          {_, next_start} -> next_start - 1
+          nil -> total
+        end
+
+      %{name: name, range: start..stop}
+    end)
+  end
+
+  @doc """
   Like `prove_theory/4`, but returns one result per lemma instead of a single
   consolidated result.
 
   Calls `prove_theory/4` internally with `raw: true` and parses the payload via
-  `AtpClient.ResultNormalization.per_lemma_results/2`. Returns
-  `{:ok, [lemma_result]}` for a finished task, where each entry is:
+  `AtpClient.ResultNormalization.per_lemma_results/3`. Returns
+  `{:ok, [lemma_result]}` for a finished task, where entries follow the order
+  of the `lemma <name>:` declarations in the input body:
 
       %{
-        line:   non_neg_integer() | nil,  # line in the caller's text (1-based)
-        name:   String.t() | nil,          # lemma name, or nil for anonymous
-        result: {:ok, :thm} | {:ok, :gave_up}
+        name:   String.t(),                # lemma name from the body
+        result: {:ok, :thm} | {:ok, :csat} | {:ok, :sat}
+              | {:ok, :gave_up} | {:ok, :timeout} | {:ok, :out_of_resources}
       }
 
-  The list is sorted by line number. When auto-wrapping is applied (the text
-  does not begin with `theory`), Isabelle's reported line numbers are adjusted
-  so that the first line of the body is line 1.
+  Unnamed `lemma "…" by …` declarations are not represented in the result —
+  the classifier buckets messages by lemma name extracted from the body.
 
   Returns `{:error, term()}` for connection failures and for tasks that fail
   before producing any messages (e.g. unreadable theory files).
@@ -402,11 +439,20 @@ defmodule AtpClient.Isabelle do
           {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
   def prove_lemmas(%Session{} = session, theory_text, theory_name, opts \\ [])
       when is_binary(theory_text) and is_binary(theory_name) do
+    specs = lemma_specs(theory_text)
+    # Auto-wrapping prepends `theory <name> imports <…> begin\n`, which
+    # shifts every line of the body down by one in the on-disk file.
     line_offset = if needs_wrap?(theory_text), do: 1, else: 0
 
     case prove_theory(session, theory_text, theory_name, Keyword.put(opts, :raw, true)) do
       {:ok, payload} ->
-        {:ok, ResultNormalization.per_lemma_results(payload, line_offset: line_offset)}
+        {:ok,
+         ResultNormalization.per_lemma_results(
+           payload,
+           specs,
+           file: "/" <> theory_name <> ".thy",
+           line_offset: line_offset
+         )}
 
       {:error, {:isabelle_failed, _, _}} = err ->
         err
@@ -455,12 +501,13 @@ defmodule AtpClient.Isabelle do
   `imports "TPTP"` from the generated theory file. Existing files are not
   overwritten.
 
-  ## Lemma line numbers
+  ## Result attribution
 
-  Lemma line numbers in the returned `lemma_result()` entries refer to the
-  *generated* theory, not the input TPTP source. Match on `:name`
-  (carried over from the TPTP formula name) rather than `:line` for UI
-  attribution.
+  Entries in the returned `lemma_result()` list follow the order of the
+  `thf(…, conjecture, …)` declarations in the input problem and carry the
+  TPTP formula name as `:name`. Line numbers are intentionally not
+  exposed: they would refer to the generated theory body rather than the
+  caller's TPTP source.
 
   ## Options
 

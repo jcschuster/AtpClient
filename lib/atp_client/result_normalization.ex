@@ -154,25 +154,6 @@ defmodule AtpClient.ResultNormalization do
     ]
   end
 
-  # Like `theorem_signals/0`, but for the per-lemma classifier: adds the
-  # alternate "Found proof" spelling some tools emit, and reverses the
-  # gave_up/timeout precedence (a `timed out` message at a single lemma
-  # line is reported as a timeout even when accompanied by "No proof
-  # found"). The trailing error-kind check fires from `classify_text/1`.
-  defp lemma_text_signals do
-    [
-      {&nitpick_counterexample?/1, :csat},
-      {&quickcheck_counterexample?/1, :csat},
-      {&nitpick_model?/1, :sat},
-      {&quickcheck_model?/1, :sat},
-      {&found_a_proof?/1, :thm},
-      {&found_proof?/1, :thm},
-      {&timeout?/1, :timeout},
-      {&out_of_memory?/1, :out_of_resources},
-      {&gave_up?/1, :gave_up}
-    ]
-  end
-
   defp scan(text, signals) do
     Enum.find_value(signals, fn {predicate, status} ->
       if predicate.(text), do: status
@@ -222,103 +203,160 @@ defmodule AtpClient.ResultNormalization do
   def extract_isabelle_text(payload) when is_map(payload), do: extract_text(payload)
 
   @typedoc """
-  Per-lemma result returned by `per_lemma_results/2`.
+  Specification for one lemma in a generated theory body, as computed by
+  `AtpClient.Isabelle.lemma_specs/1`.
 
-    * `line` — source line in the theory file as reported by Isabelle; `nil`
-      when the underlying message carries no position. If the theory was
-      auto-wrapped by `prove_lemmas/4`, this is already adjusted to the
-      caller's line numbering (body line 1 = 1, not 2).
-    * `name` — lemma name extracted from Isabelle's completion message, or
-      `nil` for anonymous lemmas, sledgehammer/nitpick verdicts (which
-      Isabelle does not tag with the lemma name), and unnamed error entries.
-    * `result` — any value of `atp_result/0`. The same signal-table
-      classifier used by `interpret_isabelle_result/1` runs per line, so
-      `sledgehammer ... oops` and `nitpick` verdicts surface as
-      `{:ok, :thm}` / `{:ok, :csat}` / `{:ok, :sat}` / `{:ok, :gave_up}` /
-      `{:ok, :timeout}` / `{:ok, :out_of_resources}` instead of collapsing
-      to `:gave_up`.
+    * `name` — lemma name as written in the body (the same string the
+      classifier surfaces in `t:lemma_result/0`).
+    * `range` — body-line range (inclusive) the lemma covers, from its
+      `lemma <name>:` line through the line before the next `lemma` (or
+      the end of the body). Used by `per_lemma_results/3` to bucket
+      Isabelle messages without relying on the exact `pos.line` of each
+      message, which is noisy for sledgehammer / nitpick output.
   """
-  @type lemma_result :: %{
-          line: non_neg_integer() | nil,
-          name: String.t() | nil,
-          result: atp_result()
-        }
+  @type lemma_spec :: %{name: String.t(), range: Range.t()}
+
+  @typedoc """
+  Per-lemma result returned by `per_lemma_results/3`.
+
+  Carries the lemma name from the input body (not parsed out of Isabelle
+  messages, which omit it for `oops`-based diagnostic methods) and the
+  classified outcome. The on-disk line number is intentionally not
+  exposed: it refers to the generated theory file, not the caller's TPTP
+  source, so it would mislead more often than it would help.
+  """
+  @type lemma_result :: %{name: String.t() | nil, result: atp_result()}
 
   @doc """
-  Parses a finished `use_theories` payload into one entry per lemma.
+  Classifies a finished `use_theories` payload into one entry per lemma,
+  in the order given by `lemma_specs`.
 
-  Returns a list of `t:lemma_result/0` maps sorted by line number. Messages
-  are grouped by their reported `pos.line` and each group is classified in
-  this order:
+  Messages from each lemma's body-line range are bucketed and scanned
+  one-at-a-time — never across the concatenated text of a bucket. The
+  cross-message scan that earlier versions of this function used produced
+  false `:csat` verdicts when one message read `Nitpick found a model`
+  and another read `Nitpick found no counterexample` (the
+  `"Nitpick found a" + "counterexample"` substring test fires across the
+  two), and false `:thm` verdicts when `by auto` failed on a False goal
+  (Isabelle still echoes `theorem name: <goal>` at the `by` position next
+  to the `Failed to finish proof` error).
 
-    * Isabelle's `"theorem name:"` completion notification → `{:ok, :thm}`,
-      with `name` extracted from the message;
-    * `"Nitpick found a counterexample"` → `{:ok, :csat}`;
-    * `"Nitpick found a model"` → `{:ok, :sat}`;
-    * Sledgehammer `"found a proof"` → `{:ok, :thm}` (name `nil` — the
-      message does not carry the lemma name);
-    * `"timed out"` / `"TIMEOUT"` → `{:ok, :timeout}`;
-    * `"Out of memory"` → `{:ok, :out_of_resources}`;
-    * `"Nitpick found no …"` / `"No proof found"` → `{:ok, :gave_up}`;
-    * any other error-kind message at this line → `{:ok, :gave_up}`;
-    * groups with none of the above produce no entry.
+  ## Options
 
-  Groups with `pos.line == nil` are classified the same way; the resulting
-  entry carries `line: nil`.
+    * `:file` — keep only messages whose `pos.file` ends with the given
+      suffix (typically `"/<theory_name>.thy"`). Messages from the bundled
+      `TPTP.thy` and from transitively imported theories are dropped.
+      Defaults to no filter.
+    * `:line_offset` — number to subtract from each Isabelle-reported
+      `pos.line` before comparing against `lemma_spec.range`. Auto-wrap
+      adds one line (`theory <name> imports … begin`) to the on-disk
+      file, so callers that pass a body without the header set this to
+      `1`. Defaults to `0`.
 
-  Pass `line_offset: n` to subtract `n` from all Isabelle-reported line
-  numbers. `AtpClient.Isabelle.prove_lemmas/4` uses this to undo the +1 shift
-  introduced by auto-wrapping.
+  ## Verdict precedence
+
+  Within a lemma bucket, signals collected per-message are reconciled in
+  this order (each step short-circuits):
+
+    1. `:csat` (Nitpick / Quickcheck counter-example) — disproves the
+       goal; dominates any concurrent proof attempt.
+    2. `:thm` from a sledgehammer / metis `"found a proof"` line.
+    3. `:sat` (Nitpick / Quickcheck model).
+    4. Proof-method failure veto — an `error`-kind message containing
+       `"Failed to finish proof"` cancels a `theorem name:` verdict from
+       the same bucket.
+    5. `:thm` from a `theorem name:` completion notification.
+    6. `:timeout`, `:out_of_resources`, then `:gave_up`.
+
+  Lemmas whose bucket is empty come back as `{:ok, :gave_up}`.
   """
-  @spec per_lemma_results(map(), keyword()) :: [lemma_result()]
-  def per_lemma_results(payload, opts \\ []) when is_map(payload) do
-    offset = Keyword.get(opts, :line_offset, 0)
+  @spec per_lemma_results(map(), [lemma_spec()], keyword()) :: [lemma_result()]
+  def per_lemma_results(payload, lemma_specs, opts \\ []) when is_map(payload) do
+    file_suffix = Keyword.get(opts, :file)
+    line_offset = Keyword.get(opts, :line_offset, 0)
 
-    payload
-    |> extract_messages()
-    |> Enum.group_by(&get_in(&1, ["pos", "line"]))
-    |> Enum.flat_map(fn {line, msgs} ->
-      case classify_line(msgs) do
-        nil -> []
-        {result, name} -> [%{line: adjust(line, offset), name: name, result: {:ok, result}}]
+    messages =
+      payload
+      |> extract_messages()
+      |> filter_by_file(file_suffix)
+
+    Enum.map(lemma_specs, fn %{name: name, range: range} ->
+      in_range = Enum.filter(messages, &message_in_range?(&1, range, line_offset))
+      %{name: name, result: {:ok, classify_lemma_bucket(in_range)}}
+    end)
+  end
+
+  defp filter_by_file(messages, nil), do: messages
+
+  defp filter_by_file(messages, suffix) when is_binary(suffix) do
+    Enum.filter(messages, fn msg ->
+      case get_in(msg, ["pos", "file"]) do
+        file when is_binary(file) -> String.ends_with?(file, suffix)
+        _ -> false
       end
     end)
-    |> Enum.sort_by(&(&1.line || 0))
   end
 
-  defp classify_line(messages) do
-    case find_theorem_name(messages) do
-      {:found, name} -> {:thm, name}
-      :no_theorem -> classify_text(messages)
+  defp message_in_range?(msg, range, line_offset) do
+    case get_in(msg, ["pos", "line"]) do
+      line when is_integer(line) -> line - line_offset in range
+      _ -> false
     end
   end
 
-  defp classify_text(messages) do
-    text = Enum.map_join(messages, "\n", &Map.get(&1, "message", ""))
+  defp classify_lemma_bucket(messages) do
+    verdicts =
+      messages
+      |> Enum.map(&classify_lemma_message/1)
+      |> Enum.reject(&is_nil/1)
 
-    case scan(text, lemma_text_signals()) || error_kind_signal(messages) do
-      nil -> nil
-      status -> {status, nil}
+    cond do
+      :csat in verdicts -> :csat
+      :thm_proof in verdicts -> :thm
+      :sat in verdicts -> :sat
+      proof_method_failure?(messages) -> :gave_up
+      :thm_completion in verdicts -> :thm
+      :timeout in verdicts -> :timeout
+      :out_of_resources in verdicts -> :out_of_resources
+      :gave_up_hint in verdicts -> :gave_up
+      any_error?(messages) -> :gave_up
+      true -> :gave_up
     end
   end
 
-  defp error_kind_signal(messages) do
-    if Enum.any?(messages, &(Map.get(&1, "kind") == "error")), do: :gave_up
+  defp classify_lemma_message(msg) do
+    text = Map.get(msg, "message", "")
+
+    cond do
+      nitpick_found?(text, "counterexample") -> :csat
+      quickcheck_found?(text, "counterexample") -> :csat
+      nitpick_found?(text, "model") -> :sat
+      quickcheck_found?(text, "model") -> :sat
+      found_a_proof?(text) -> :thm_proof
+      found_proof?(text) -> :thm_proof
+      timeout?(text) -> :timeout
+      out_of_memory?(text) -> :out_of_resources
+      gave_up?(text) -> :gave_up_hint
+      theorem_at_start?(text) -> :thm_completion
+      true -> nil
+    end
   end
 
-  defp find_theorem_name(messages) do
-    Enum.find_value(messages, :no_theorem, fn msg ->
-      text = Map.get(msg, "message", "")
-      if theorem_at_start?(text), do: {:found, theorem_name(text)}
+  # Isabelle echoes `theorem name: <goal>` at the `by` position even for a
+  # tactic that fails to discharge the goal — the message is just the
+  # current proof state, not a success notification. The accompanying
+  # `Failed to finish proof` error tells us the goal stayed open.
+  defp proof_method_failure?(messages) do
+    Enum.any?(messages, fn msg ->
+      Map.get(msg, "kind") == "error" and
+        msg
+        |> Map.get("message", "")
+        |> String.contains?("Failed to finish proof")
     end)
   end
 
-  defp theorem_name("theorem " <> rest), do: rest |> String.split(":") |> hd() |> String.trim()
-  defp theorem_name(_), do: nil
-
-  defp adjust(nil, _offset), do: nil
-  defp adjust(line, 0), do: line
-  defp adjust(line, offset), do: line - offset
+  defp any_error?(messages),
+    do: Enum.any?(messages, &(Map.get(&1, "kind") == "error"))
 
   defp extract_text(payload) do
     payload

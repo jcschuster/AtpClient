@@ -88,12 +88,12 @@ results
 <!-- livebook:{"output":true} -->
 
 ```
-[%{line: 6, name: "g", result: {:ok, :thm}}]
+[%{name: "g", result: {:ok, :thm}}]
 ```
 
 Expected: a single-element list with `name: "g"` and `result: {:ok, :thm}`.
-Match on `:name` rather than `:line` — line numbers refer to the generated
-theory, not this notebook's input.
+Line numbers are not exposed — entries are attributed by `:name`, carried
+over from the TPTP formula name.
 
 ## 2. Stable theory name
 
@@ -144,14 +144,14 @@ end
 <!-- livebook:{"output":true} -->
 
 ```
-{:ok, [%{line: 8, name: "g1", result: {:ok, :thm}}, %{line: 11, name: "g2", result: {:ok, :thm}}]}
+{:ok, [%{name: "g1", result: {:ok, :thm}}, %{name: "g2", result: {:ok, :thm}}]}
 ```
 
 Expected: two entries, names `"g1"` and `"g2"`, both `{:ok, :thm}`.
 
 ## 4. Sledgehammer / Nitpick as proof method
 
-`per_lemma_results/2` applies the same tool-signal classifier as the
+`per_lemma_results/3` applies the same tool-signal classifier as the
 single-result mode, so `proof_method: "sledgehammer nitpick oops"` produces
 `{:ok, :thm}` when sledgehammer finds a proof and `{:ok, :csat}` when
 nitpick finds a counterexample — even though `oops` withdraws the goal and
@@ -172,13 +172,13 @@ AtpClient.Isabelle.query_tptp(
 <!-- livebook:{"output":true} -->
 
 ```
-{:ok, [%{line: 4, name: nil, result: {:ok, :thm}}, %{line: 7, name: nil, result: {:ok, :csat}}]}
+{:ok, [%{name: "g_taut", result: {:ok, :thm}}, %{name: "g_false", result: {:ok, :csat}}]}
 ```
 
 Expected: `g_taut` → `{:ok, :thm}`, `g_false` → `{:ok, :csat}`. Lemma names
-in this mode are `nil`, because the sledgehammer/nitpick messages do not
-carry the lemma name (only Isabelle's `theorem name:` completion does, and
-`oops` suppresses that).
+come through regardless of proof method — they are read from the body, not
+parsed out of Isabelle's per-message text (which omits the name for
+`oops`-based diagnostic methods).
 
 ## 5. Shut the server down
 
@@ -205,8 +205,8 @@ IsabelleClient.Server.kill(server.name)
 * `{:error, {:isabelle_failed, %{"message" => msg}, _}}` where `msg` mentions
   `unbundle from_TPTP` or unknown syntax — the bundled `TPTP.thy` was found
   but `unbundle from_TPTP` did not activate; check the dep version.
-* Every lemma comes back `{:ok, :gave_up}` with `name: nil` — the
-  `:proof_method` did not close any goal. Either the tactic is wrong for
-  the problem class (try `"by metis"` for first-order problems) or the
-  default `"by auto"` is too weak. The same shape with the proof method
-  omitted entirely is a regression of the proof-injection step.
+* Every lemma comes back `{:ok, :gave_up}` — the `:proof_method` did not
+  close any goal. Either the tactic is wrong for the problem class (try
+  `"by metis"` for first-order problems) or the default `"by auto"` is
+  too weak. The same shape with the proof method omitted entirely is a
+  regression of the proof-injection step.

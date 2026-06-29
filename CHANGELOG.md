@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-29
+
+### Changed
+
+- **`AtpClient.ResultNormalization.per_lemma_results/2` becomes `/3`** and
+  now takes `(payload, lemma_specs, opts)` instead of `(payload, opts)`. The
+  caller supplies one `%{name: String.t(), range: Range.t()}` spec per
+  lemma (`AtpClient.Isabelle.lemma_specs/1` builds these from the theory
+  body) and the classifier buckets messages by body-line range rather than
+  re-deriving structure from `pos.line` alone. Returned `lemma_result()`
+  maps lose the `:line` field — line numbers referred to the generated
+  theory file, not the caller's source, and were ambiguous when a bucket
+  contained multiple messages.
+- **Per-lemma classifier no longer scans concatenated text across
+  messages.** Each message is classified individually before the bucket is
+  reconciled. This fixes two regressions visible with multi-lemma Isabelle
+  jobs: (a) `Nitpick found a model` + `Nitpick found no counterexample`
+  surfaced as `:csat` because the `"Nitpick found a" + "counterexample"`
+  substring test fired across the message join, and (b) `by <tactic>`
+  failing on a False goal was reported as `:thm` because Isabelle echoes
+  `theorem name: <goal>` at the `by` position alongside the
+  `Failed to finish proof` error. Verdict precedence is documented on
+  `per_lemma_results/3`.
+- **`per_lemma_results/3` accepts `:file`** to drop messages whose
+  `pos.file` does not end with a given suffix. `prove_lemmas/4` uses this
+  to filter out noise from the bundled `TPTP.thy` and other transitively
+  imported theories that previously produced phantom lemma rows.
+- **Lemma names always come through** on the per-lemma path — the name
+  comes from the body (via `lemma_specs/1`), not from parsing `theorem
+  name:` out of Isabelle messages. Sledgehammer / Nitpick verdicts no
+  longer surface as `name: nil`.
+
+### Added
+
+- **`AtpClient.Isabelle.lemma_specs/1`** — extracts `[%{name, range}]` from
+  a theory body. Used internally by `prove_lemmas/4` and `prove_tptp/3`;
+  exposed for callers that want to pre-compute specs.
+
+### Migration notes
+
+- If you call `ResultNormalization.per_lemma_results(payload)` or
+  `per_lemma_results(payload, line_offset: n)`, switch to
+  `per_lemma_results(payload, specs, opts)` where `specs` come from
+  `AtpClient.Isabelle.lemma_specs(body)`. The high-level
+  `prove_lemmas/4` / `prove_tptp/3` / `query_tptp/2` entry points already
+  do this for you.
+- Drop reads of the `:line` field on `lemma_result` entries. Attribute by
+  `:name` instead — line numbers were a generated-theory leak and have
+  been removed from the returned shape.
+
 ## [0.3.0] - 2026-06-26
 
 ### Added

@@ -95,32 +95,37 @@ defmodule AtpClient.ResultNormalizationTest do
   end
 
   # ──────────────────────────────────────────────────────────────────────────
-  # per_lemma_results/2
+  # per_lemma_results/3
   # ──────────────────────────────────────────────────────────────────────────
 
   defp msg_at(text, line, kind \\ "writeln"),
     do: %{"kind" => kind, "message" => text, "pos" => %{"line" => line}}
 
-  describe "per_lemma_results/2 — basic cases" do
-    test "empty payload returns empty list" do
-      assert ResultNormalization.per_lemma_results(%{"nodes" => [], "ok" => true}) == []
-    end
+  defp spec(name, range), do: %{name: name, range: range}
 
-    test "single named proved lemma" do
+  describe "per_lemma_results/3 — basic cases" do
+    test "empty specs returns empty list regardless of payload" do
       p = payload([theory_node([msg_at("theorem foo:\n  P", 2)])])
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 2, name: "foo", result: {:ok, :thm}}
+      assert ResultNormalization.per_lemma_results(p, []) == []
+    end
+
+    test "spec with no in-range messages buckets to :gave_up" do
+      p = payload([theory_node([])])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("g", 2..3)]) == [
+               %{name: "g", result: {:ok, :gave_up}}
              ]
     end
 
-    test "single anonymous proved lemma" do
-      p = payload([theory_node([msg_at("theorem:\n  True", 2)])])
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 2, name: nil, result: {:ok, :thm}}
+    test "single named proved lemma — theorem completion in range" do
+      p = payload([theory_node([msg_at("theorem foo:\n  P", 2)])])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("foo", 2..3)]) == [
+               %{name: "foo", result: {:ok, :thm}}
              ]
     end
 
-    test "multiple lemmas sorted by line" do
+    test "multiple lemmas — order follows specs, not message order" do
       p =
         payload([
           theory_node([
@@ -129,202 +134,239 @@ defmodule AtpClient.ResultNormalizationTest do
           ])
         ])
 
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 2, name: "foo", result: {:ok, :thm}},
-               %{line: 5, name: "bar", result: {:ok, :thm}}
+      specs = [spec("foo", 2..4), spec("bar", 5..7)]
+
+      assert ResultNormalization.per_lemma_results(p, specs) == [
+               %{name: "foo", result: {:ok, :thm}},
+               %{name: "bar", result: {:ok, :thm}}
              ]
     end
 
-    test "failed lemma (error message, no theorem)" do
-      p = payload([theory_node([msg_at("Failed to finish proof", 3, "error")])])
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: nil, result: {:ok, :gave_up}}
+    test "messages without pos.line are ignored" do
+      p = payload([theory_node([msg("theorem foo:\n  P")])])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("foo", 1..3)]) == [
+               %{name: "foo", result: {:ok, :gave_up}}
              ]
     end
 
-    test "mixed: some proved, some failed" do
-      p =
-        payload([
-          theory_node([
-            msg_at("theorem foo:\n  P", 2),
-            msg_at("Failed to finish proof", 5, "error")
-          ])
-        ])
+    test "messages outside any spec range do not affect verdicts" do
+      p = payload([theory_node([msg_at("theorem foo:\n  P", 99)])])
 
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 2, name: "foo", result: {:ok, :thm}},
-               %{line: 5, name: nil, result: {:ok, :gave_up}}
+      assert ResultNormalization.per_lemma_results(p, [spec("foo", 2..3)]) == [
+               %{name: "foo", result: {:ok, :gave_up}}
              ]
-    end
-
-    test "error at the same line as a theorem completion is not double-reported" do
-      p =
-        payload([
-          theory_node([
-            msg_at("theorem foo:\n  P", 2),
-            msg_at("some error", 2, "error")
-          ])
-        ])
-
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 2, name: "foo", result: {:ok, :thm}}
-             ]
-    end
-
-    test "duplicate errors at the same line produce one entry" do
-      p =
-        payload([
-          theory_node([
-            msg_at("Failed", 4, "error"),
-            msg_at("Also failed", 4, "error")
-          ])
-        ])
-
-      assert length(ResultNormalization.per_lemma_results(p)) == 1
     end
   end
 
-  describe "per_lemma_results/2 — Sledgehammer / Nitpick signals" do
-    test "Sledgehammer 'found a proof' at a specific line → :thm with nil name" do
-      p = payload([theory_node([msg_at("Sledgehammer: found a proof", 3)])])
-
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: nil, result: {:ok, :thm}}
-             ]
-    end
-
-    test "Nitpick counterexample at a specific line → :csat" do
-      p = payload([theory_node([msg_at("Nitpick found a counterexample", 3)])])
-
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: nil, result: {:ok, :csat}}
-             ]
-    end
-
-    test "Nitpick model at a specific line → :sat" do
-      p = payload([theory_node([msg_at("Nitpick found a model", 3)])])
-
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: nil, result: {:ok, :sat}}
-             ]
-    end
-
-    test "Sledgehammer + Nitpick on a tautology: 'found a proof' wins over 'found no counterexample'" do
+  describe "per_lemma_results/3 — verdict precedence" do
+    test "Nitpick counterexample dominates a sledgehammer proof in the same bucket" do
       p =
         payload([
           theory_node([
             msg_at("Sledgehammer: found a proof", 3),
-            msg_at("Nitpick found no counterexample", 3)
-          ])
-        ])
-
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: nil, result: {:ok, :thm}}
-             ]
-    end
-
-    test "Sledgehammer fail + Nitpick counterexample: :csat wins" do
-      p =
-        payload([
-          theory_node([
-            msg_at("Sledgehammer: No proof found", 3),
             msg_at("Nitpick found a counterexample", 3)
           ])
         ])
 
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: nil, result: {:ok, :csat}}
+      assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
+               %{name: "g", result: {:ok, :csat}}
              ]
     end
 
-    test "Sledgehammer fail + Nitpick no counterexample: :gave_up" do
-      p =
-        payload([
-          theory_node([
-            msg_at("Sledgehammer: No proof found", 3),
-            msg_at("Nitpick found no counterexample", 3)
-          ])
-        ])
-
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: nil, result: {:ok, :gave_up}}
-             ]
-    end
-
-    test "theorem completion at the same line as a tool signal: theorem wins (and carries the name)" do
+    test "'found a proof' beats 'Nitpick found a model' (sat) in the same bucket" do
       p =
         payload([
           theory_node([
             msg_at("Sledgehammer: found a proof", 3),
-            msg_at("theorem foo:\n  P ∨ ¬ P", 3)
+            msg_at("Nitpick found a model", 3)
           ])
         ])
 
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: "foo", result: {:ok, :thm}}
+      assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
+               %{name: "g", result: {:ok, :thm}}
              ]
     end
 
-    test "Sledgehammer timed out → :timeout" do
+    test "Nitpick model classifies as :sat" do
+      p = payload([theory_node([msg_at("Nitpick found a model", 3)])])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
+               %{name: "g", result: {:ok, :sat}}
+             ]
+    end
+
+    test "'Failed to finish proof' error vetoes a theorem echo at the same position" do
+      # Regression for `by auto` against False: Isabelle echoes
+      # `theorem name: <goal>` at the `by` line even though the goal stays open.
+      p =
+        payload([
+          theory_node([
+            msg_at("theorem a:\n  P ∧ ¬ P", 3),
+            msg_at("Failed to finish proof", 3, "error")
+          ])
+        ])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("a", 3..3)]) == [
+               %{name: "a", result: {:ok, :gave_up}}
+             ]
+    end
+
+    test "theorem completion without a failure error counts as :thm" do
+      p = payload([theory_node([msg_at("theorem foo:\n  P", 3)])])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("foo", 3..3)]) == [
+               %{name: "foo", result: {:ok, :thm}}
+             ]
+    end
+
+    test "timed out signal classifies as :timeout" do
       p = payload([theory_node([msg_at("Sledgehammer: timed out", 3)])])
 
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: nil, result: {:ok, :timeout}}
+      assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
+               %{name: "g", result: {:ok, :timeout}}
              ]
     end
 
-    test "Out of memory → :out_of_resources" do
+    test "Out of memory classifies as :out_of_resources" do
       p = payload([theory_node([msg_at("Out of memory", 3)])])
 
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 3, name: nil, result: {:ok, :out_of_resources}}
+      assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
+               %{name: "g", result: {:ok, :out_of_resources}}
              ]
     end
 
-    test "multi-lemma: each line classified independently" do
+    test "'No proof found' classifies as :gave_up" do
+      p = payload([theory_node([msg_at("Sledgehammer: No proof found", 3)])])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
+               %{name: "g", result: {:ok, :gave_up}}
+             ]
+    end
+
+    test "error-kind message without classifying text yields :gave_up" do
+      p = payload([theory_node([msg_at("some unspecified error", 3, "error")])])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
+               %{name: "g", result: {:ok, :gave_up}}
+             ]
+    end
+  end
+
+  describe "per_lemma_results/3 — multi-message bug regressions" do
+    test "Nitpick model + Nitpick found no counterexample → :sat, not :csat" do
+      # The pre-fix classifier concatenated both messages and ran the
+      # `"Nitpick found a" + "counterexample"` substring test across the
+      # join, producing a spurious `:csat`. Now each message is scanned
+      # individually, so the model wins.
+      p =
+        payload([
+          theory_node([
+            msg_at("Nitpick found a model", 3),
+            msg_at("Nitpick found no counterexample", 3)
+          ])
+        ])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
+               %{name: "g", result: {:ok, :sat}}
+             ]
+    end
+  end
+
+  describe "per_lemma_results/3 — bucketing by range" do
+    test "two lemmas, each gets exactly the messages in its range" do
       p =
         payload([
           theory_node([
             msg_at("theorem g1:\n  P", 2),
-            msg_at("Nitpick found a counterexample", 4),
-            msg_at("Sledgehammer: found a proof", 6)
+            msg_at("Nitpick found a counterexample", 5),
+            msg_at("Sledgehammer: found a proof", 8)
           ])
         ])
 
-      assert ResultNormalization.per_lemma_results(p) == [
-               %{line: 2, name: "g1", result: {:ok, :thm}},
-               %{line: 4, name: nil, result: {:ok, :csat}},
-               %{line: 6, name: nil, result: {:ok, :thm}}
+      specs = [spec("g1", 2..4), spec("g2", 5..7), spec("g3", 8..10)]
+
+      assert ResultNormalization.per_lemma_results(p, specs) == [
+               %{name: "g1", result: {:ok, :thm}},
+               %{name: "g2", result: {:ok, :csat}},
+               %{name: "g3", result: {:ok, :thm}}
              ]
     end
 
-    test "pure informational message at a line produces no entry" do
-      p = payload([theory_node([msg_at("Auto Quickcheck found no counterexample", 3)])])
+    test "an in-range and out-of-range message stay separated" do
+      p =
+        payload([
+          theory_node([
+            msg_at("theorem g1:\n  P", 3),
+            msg_at("theorem g2:\n  Q", 7)
+          ])
+        ])
 
-      assert ResultNormalization.per_lemma_results(p) == []
+      specs = [spec("g1", 3..5), spec("g2", 6..9)]
+
+      assert ResultNormalization.per_lemma_results(p, specs) == [
+               %{name: "g1", result: {:ok, :thm}},
+               %{name: "g2", result: {:ok, :thm}}
+             ]
     end
   end
 
-  describe "per_lemma_results/2 — line_offset option" do
-    test "subtracts offset from all reported lines" do
+  describe "per_lemma_results/3 — :line_offset option" do
+    test "subtracts offset before bucketing" do
+      # Body line 2 lands at on-disk line 3 after auto-wrap (+1 header line).
       p = payload([theory_node([msg_at("theorem foo:\n  P", 3)])])
 
-      assert ResultNormalization.per_lemma_results(p, line_offset: 1) == [
-               %{line: 2, name: "foo", result: {:ok, :thm}}
+      assert ResultNormalization.per_lemma_results(p, [spec("foo", 2..2)], line_offset: 1) == [
+               %{name: "foo", result: {:ok, :thm}}
              ]
     end
 
     test "offset 0 leaves lines unchanged" do
       p = payload([theory_node([msg_at("theorem foo:\n  P", 2)])])
-      assert ResultNormalization.per_lemma_results(p, line_offset: 0) == [
-               %{line: 2, name: "foo", result: {:ok, :thm}}
+
+      assert ResultNormalization.per_lemma_results(p, [spec("foo", 2..2)], line_offset: 0) == [
+               %{name: "foo", result: {:ok, :thm}}
              ]
     end
+  end
 
-    test "nil position survives offset unchanged" do
-      p = payload([theory_node([msg("theorem foo:\n  P")])])
-      [entry] = ResultNormalization.per_lemma_results(p, line_offset: 1)
-      assert entry.line == nil
+  describe "per_lemma_results/3 — :file option" do
+    defp msg_in(text, line, file, kind \\ "writeln"),
+      do: %{"kind" => kind, "message" => text, "pos" => %{"line" => line, "file" => file}}
+
+    test "drops messages whose pos.file does not end with the given suffix" do
+      # Phantom messages from TPTP.thy should not pollute the lemma bucket.
+      p =
+        payload([
+          theory_node([
+            msg_in("noise from imported theory", 3, "/srv/isa/TPTP.thy"),
+            msg_in("theorem foo:\n  P", 3, "/srv/isa/Example.thy")
+          ])
+        ])
+
+      assert ResultNormalization.per_lemma_results(
+               p,
+               [spec("foo", 3..3)],
+               file: "/Example.thy"
+             ) == [%{name: "foo", result: {:ok, :thm}}]
+    end
+
+    test "messages with no pos.file are dropped when a :file filter is active" do
+      p = payload([theory_node([msg_at("theorem foo:\n  P", 3)])])
+
+      assert ResultNormalization.per_lemma_results(
+               p,
+               [spec("foo", 3..3)],
+               file: "/Example.thy"
+             ) == [%{name: "foo", result: {:ok, :gave_up}}]
+    end
+
+    test "with no :file filter, all positioned messages are kept" do
+      p = payload([theory_node([msg_in("theorem foo:\n  P", 3, "/srv/isa/TPTP.thy")])])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("foo", 3..3)]) == [
+               %{name: "foo", result: {:ok, :thm}}
+             ]
     end
   end
 end
