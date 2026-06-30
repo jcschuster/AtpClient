@@ -151,8 +151,8 @@ defmodule AtpClient.IsabelleTest do
 
       try do
         result = Isabelle.prove_theory(fresh, "lemma ok: \"True\" by simp\n", "Sanity", opts)
-        # prove_theory wraps the normalized result: {:ok, {:ok, :thm}}.
-        assert {:ok, {:ok, :thm}} = result
+        # prove_theory wraps the normalized result: {:ok, {:ok, :theorem}}.
+        assert {:ok, {:ok, :theorem}} = result
       after
         Isabelle.close_session(fresh)
       end

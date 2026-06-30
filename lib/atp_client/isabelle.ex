@@ -62,8 +62,8 @@ defmodule AtpClient.Isabelle do
       lemma "P \\<or> \\<not> P" by auto
       \"\"\"
 
-      {:ok, :thm} = AtpClient.Isabelle.query(theory, "Example", [])
-      {:ok, :thm} = AtpClient.Isabelle.query(body, "Example", [])
+      {:ok, :theorem} = AtpClient.Isabelle.query(theory, "Example", [])
+      {:ok, :theorem} = AtpClient.Isabelle.query(body, "Example", [])
 
   For fine-grained workflows, open a session once and reuse it:
 
@@ -421,8 +421,8 @@ defmodule AtpClient.Isabelle do
 
       %{
         name:   String.t(),                # lemma name from the body
-        result: {:ok, :thm} | {:ok, :csat} | {:ok, :sat}
-              | {:ok, :gave_up} | {:ok, :timeout} | {:ok, :out_of_resources}
+        result: {:ok, :theorem} | {:ok, :counter_satisfiable} | {:ok, :satisfiable}
+              | {:ok, :gave_up} | {:ok, :timeout} | {:ok, :memory_out}
       }
 
   Unnamed `lemma "…" by …` declarations are not represented in the result —
@@ -524,9 +524,9 @@ defmodule AtpClient.Isabelle do
       `"sledgehammer nitpick oops"` to probe both proof and
       countersatisfiability; the latter relies on the per-lemma classifier
       recognising sledgehammer's `"found a proof"` and nitpick's verdicts
-      directly, so `oops` is fine — `{:ok, :thm}` / `{:ok, :csat}` /
-      `{:ok, :sat}` come from the tool messages, not from a `theorem name:`
-      completion.
+      directly, so `oops` is fine — `{:ok, :theorem}` /
+      `{:ok, :counter_satisfiable}` / `{:ok, :satisfiable}` come from the
+      tool messages, not from a `theorem name:` completion.
 
   ## Errors
 
@@ -579,10 +579,10 @@ defmodule AtpClient.Isabelle do
   collapses the per-lemma results from `query_tptp/2` into a single
   `t:AtpClient.ResultNormalization.atp_result/0`.
 
-  Aggregation is weakest-link: any non-`{:ok, :thm}` entry wins, so the
-  unified result only reads `{:ok, :thm}` when every isabellized lemma was
-  discharged. Callers that need per-lemma detail should use `query_tptp/2`
-  directly.
+  Aggregation is weakest-link: any non-`{:ok, :theorem}` entry wins, so the
+  unified result only reads `{:ok, :theorem}` when every isabellized lemma
+  was discharged. Callers that need per-lemma detail should use
+  `query_tptp/2` directly.
   """
   @spec query(String.t(), keyword()) ::
           ResultNormalization.atp_result() | {:error, term()}
@@ -596,8 +596,8 @@ defmodule AtpClient.Isabelle do
   defp aggregate_lemma_results([]), do: {:ok, :gave_up}
 
   defp aggregate_lemma_results(lemmas) do
-    Enum.find_value(lemmas, {:ok, :thm}, fn %{result: r} ->
-      if r != {:ok, :thm}, do: r
+    Enum.find_value(lemmas, {:ok, :theorem}, fn %{result: r} ->
+      if r != {:ok, :theorem}, do: r
     end)
   end
 

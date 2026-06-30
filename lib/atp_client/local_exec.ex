@@ -30,7 +30,7 @@ defmodule AtpClient.LocalExec do
       via the configured `:args`. A prover that honors it (E's `--cpu-limit`,
       Vampire's `-t`, …) will exit cleanly and emit a real
       `SZS status Timeout` or `SZS status ResourceOut` — the classifier maps
-      both to `{:ok, :timeout}` / `{:ok, :out_of_resources}`.
+      these to `{:ok, :timeout}` / `{:ok, :resource_out}`.
     * The **wall-clock timeout** (`:wall_timeout_ms`) is enforced on the BEAM
       side: when it fires, the port is closed and the OS child is killed,
       and the kill is mapped to the same `{:ok, :timeout}`.

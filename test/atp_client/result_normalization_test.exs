@@ -26,22 +26,22 @@ defmodule AtpClient.ResultNormalizationTest do
   describe "interpret_isabelle_result/1 — theorem detection" do
     test "recognizes proof-completion message for a named lemma" do
       p = payload([theory_node([msg("theorem foo:\n  P ∨ ¬ P")])])
-      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :thm}
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :theorem}
     end
 
     test "recognizes proof-completion message for an anonymous lemma" do
       p = payload([theory_node([msg("theorem:\n  True")])])
-      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :thm}
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :theorem}
     end
 
     test "recognizes theorem message that is not the first message" do
       p = payload([theory_node([msg("Auto Quickcheck found no counterexample"), msg("theorem foo:\n  P")])])
-      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :thm}
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :theorem}
     end
 
     test "recognizes multiple theorem messages (multi-lemma theory)" do
       p = payload([theory_node([msg("theorem foo:\n  P"), msg("theorem bar:\n  Q")])])
-      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :thm}
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :theorem}
     end
 
     test "returns :gave_up when theory compiles but no theorem message is emitted" do
@@ -58,17 +58,17 @@ defmodule AtpClient.ResultNormalizationTest do
   describe "interpret_isabelle_result/1 — Sledgehammer / Nitpick signals" do
     test "Sledgehammer found a proof" do
       p = payload([theory_node([msg("found a proof")])])
-      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :thm}
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :theorem}
     end
 
-    test "Nitpick found a counterexample → :csat" do
+    test "Nitpick found a counterexample → :counter_satisfiable" do
       p = payload([theory_node([msg("Nitpick found a counterexample")])])
-      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :csat}
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :counter_satisfiable}
     end
 
-    test "Nitpick found a model → :sat" do
+    test "Nitpick found a model → :satisfiable" do
       p = payload([theory_node([msg("Nitpick found a model")])])
-      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :sat}
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :satisfiable}
     end
 
     test "Nitpick found no counterexample without a theorem message → :gave_up" do
@@ -81,14 +81,14 @@ defmodule AtpClient.ResultNormalizationTest do
       assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :timeout}
     end
 
-    test "Out of memory → :out_of_resources" do
+    test "Out of memory → :memory_out" do
       p = payload([theory_node([msg("Out of memory")])])
-      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :out_of_resources}
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :memory_out}
     end
   end
 
   describe "interpret_isabelle_result/1 — no false positives" do
-    test "message containing 'theorem' mid-sentence does not trigger :thm" do
+    test "message containing 'theorem' mid-sentence does not trigger :theorem" do
       p = payload([theory_node([msg("The theorem prover gave up")])])
       assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :gave_up}
     end
@@ -121,7 +121,7 @@ defmodule AtpClient.ResultNormalizationTest do
       p = payload([theory_node([msg_at("theorem foo:\n  P", 2)])])
 
       assert ResultNormalization.per_lemma_results(p, [spec("foo", 2..3)]) == [
-               %{name: "foo", result: {:ok, :thm}}
+               %{name: "foo", result: {:ok, :theorem}}
              ]
     end
 
@@ -137,8 +137,8 @@ defmodule AtpClient.ResultNormalizationTest do
       specs = [spec("foo", 2..4), spec("bar", 5..7)]
 
       assert ResultNormalization.per_lemma_results(p, specs) == [
-               %{name: "foo", result: {:ok, :thm}},
-               %{name: "bar", result: {:ok, :thm}}
+               %{name: "foo", result: {:ok, :theorem}},
+               %{name: "bar", result: {:ok, :theorem}}
              ]
     end
 
@@ -170,11 +170,11 @@ defmodule AtpClient.ResultNormalizationTest do
         ])
 
       assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
-               %{name: "g", result: {:ok, :csat}}
+               %{name: "g", result: {:ok, :counter_satisfiable}}
              ]
     end
 
-    test "'found a proof' beats 'Nitpick found a model' (sat) in the same bucket" do
+    test "'found a proof' beats 'Nitpick found a model' in the same bucket" do
       p =
         payload([
           theory_node([
@@ -184,15 +184,15 @@ defmodule AtpClient.ResultNormalizationTest do
         ])
 
       assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
-               %{name: "g", result: {:ok, :thm}}
+               %{name: "g", result: {:ok, :theorem}}
              ]
     end
 
-    test "Nitpick model classifies as :sat" do
+    test "Nitpick model classifies as :satisfiable" do
       p = payload([theory_node([msg_at("Nitpick found a model", 3)])])
 
       assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
-               %{name: "g", result: {:ok, :sat}}
+               %{name: "g", result: {:ok, :satisfiable}}
              ]
     end
 
@@ -212,11 +212,11 @@ defmodule AtpClient.ResultNormalizationTest do
              ]
     end
 
-    test "theorem completion without a failure error counts as :thm" do
+    test "theorem completion without a failure error counts as :theorem" do
       p = payload([theory_node([msg_at("theorem foo:\n  P", 3)])])
 
       assert ResultNormalization.per_lemma_results(p, [spec("foo", 3..3)]) == [
-               %{name: "foo", result: {:ok, :thm}}
+               %{name: "foo", result: {:ok, :theorem}}
              ]
     end
 
@@ -228,11 +228,11 @@ defmodule AtpClient.ResultNormalizationTest do
              ]
     end
 
-    test "Out of memory classifies as :out_of_resources" do
+    test "Out of memory classifies as :memory_out" do
       p = payload([theory_node([msg_at("Out of memory", 3)])])
 
       assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
-               %{name: "g", result: {:ok, :out_of_resources}}
+               %{name: "g", result: {:ok, :memory_out}}
              ]
     end
 
@@ -254,11 +254,11 @@ defmodule AtpClient.ResultNormalizationTest do
   end
 
   describe "per_lemma_results/3 — multi-message bug regressions" do
-    test "Nitpick model + Nitpick found no counterexample → :sat, not :csat" do
+    test "Nitpick model + Nitpick found no counterexample → :satisfiable, not :counter_satisfiable" do
       # The pre-fix classifier concatenated both messages and ran the
       # `"Nitpick found a" + "counterexample"` substring test across the
-      # join, producing a spurious `:csat`. Now each message is scanned
-      # individually, so the model wins.
+      # join, producing a spurious `:counter_satisfiable`. Now each message
+      # is scanned individually, so the model wins.
       p =
         payload([
           theory_node([
@@ -268,7 +268,7 @@ defmodule AtpClient.ResultNormalizationTest do
         ])
 
       assert ResultNormalization.per_lemma_results(p, [spec("g", 3..3)]) == [
-               %{name: "g", result: {:ok, :sat}}
+               %{name: "g", result: {:ok, :satisfiable}}
              ]
     end
   end
@@ -287,9 +287,9 @@ defmodule AtpClient.ResultNormalizationTest do
       specs = [spec("g1", 2..4), spec("g2", 5..7), spec("g3", 8..10)]
 
       assert ResultNormalization.per_lemma_results(p, specs) == [
-               %{name: "g1", result: {:ok, :thm}},
-               %{name: "g2", result: {:ok, :csat}},
-               %{name: "g3", result: {:ok, :thm}}
+               %{name: "g1", result: {:ok, :theorem}},
+               %{name: "g2", result: {:ok, :counter_satisfiable}},
+               %{name: "g3", result: {:ok, :theorem}}
              ]
     end
 
@@ -305,8 +305,8 @@ defmodule AtpClient.ResultNormalizationTest do
       specs = [spec("g1", 3..5), spec("g2", 6..9)]
 
       assert ResultNormalization.per_lemma_results(p, specs) == [
-               %{name: "g1", result: {:ok, :thm}},
-               %{name: "g2", result: {:ok, :thm}}
+               %{name: "g1", result: {:ok, :theorem}},
+               %{name: "g2", result: {:ok, :theorem}}
              ]
     end
   end
@@ -317,7 +317,7 @@ defmodule AtpClient.ResultNormalizationTest do
       p = payload([theory_node([msg_at("theorem foo:\n  P", 3)])])
 
       assert ResultNormalization.per_lemma_results(p, [spec("foo", 2..2)], line_offset: 1) == [
-               %{name: "foo", result: {:ok, :thm}}
+               %{name: "foo", result: {:ok, :theorem}}
              ]
     end
 
@@ -325,7 +325,7 @@ defmodule AtpClient.ResultNormalizationTest do
       p = payload([theory_node([msg_at("theorem foo:\n  P", 2)])])
 
       assert ResultNormalization.per_lemma_results(p, [spec("foo", 2..2)], line_offset: 0) == [
-               %{name: "foo", result: {:ok, :thm}}
+               %{name: "foo", result: {:ok, :theorem}}
              ]
     end
   end
@@ -348,7 +348,7 @@ defmodule AtpClient.ResultNormalizationTest do
                p,
                [spec("foo", 3..3)],
                file: "/Example.thy"
-             ) == [%{name: "foo", result: {:ok, :thm}}]
+             ) == [%{name: "foo", result: {:ok, :theorem}}]
     end
 
     test "messages with no pos.file are dropped when a :file filter is active" do
@@ -365,8 +365,180 @@ defmodule AtpClient.ResultNormalizationTest do
       p = payload([theory_node([msg_in("theorem foo:\n  P", 3, "/srv/isa/TPTP.thy")])])
 
       assert ResultNormalization.per_lemma_results(p, [spec("foo", 3..3)]) == [
-               %{name: "foo", result: {:ok, :thm}}
+               %{name: "foo", result: {:ok, :theorem}}
              ]
+    end
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # interpret_result/1 — SZS-faithful pass-through
+  # ──────────────────────────────────────────────────────────────────────────
+
+  describe "interpret_result/1 — SZS Ontology pass-through" do
+    test "Theorem and Unsatisfiable are kept distinct" do
+      assert ResultNormalization.interpret_result("% SZS status Theorem for x") ==
+               {:ok, :theorem}
+
+      assert ResultNormalization.interpret_result("% SZS status Unsatisfiable for x") ==
+               {:ok, :unsatisfiable}
+    end
+
+    test "Satisfiable and CounterSatisfiable are kept distinct" do
+      assert ResultNormalization.interpret_result("% SZS status Satisfiable for x") ==
+               {:ok, :satisfiable}
+
+      assert ResultNormalization.interpret_result("% SZS status CounterSatisfiable for x") ==
+               {:ok, :counter_satisfiable}
+    end
+
+    test "NoSuccess statuses preserve their SZS names" do
+      for {szs, atom} <- [
+            {"GaveUp", :gave_up},
+            {"Unknown", :unknown},
+            {"Incomplete", :incomplete},
+            {"Timeout", :timeout},
+            {"ResourceOut", :resource_out},
+            {"MemoryOut", :memory_out},
+            {"Forced", :forced},
+            {"User", :user},
+            {"Inappropriate", :inappropriate}
+          ] do
+        assert ResultNormalization.interpret_result("% SZS status #{szs} for x") ==
+                 {:ok, atom}
+      end
+    end
+
+    test "ContradictoryAxioms is recognized" do
+      assert ResultNormalization.interpret_result("% SZS status ContradictoryAxioms for x") ==
+               {:ok, :contradictory_axioms}
+    end
+
+    test "Error and InputError (NoSuccess Error sub-tree) are recognized" do
+      assert ResultNormalization.interpret_result("% SZS status Error for x") ==
+               {:ok, :error}
+
+      assert ResultNormalization.interpret_result("% SZS status InputError for x") ==
+               {:ok, :input_error}
+    end
+
+    test "Less common Success atoms pass through with the correct snake_case name" do
+      for {szs, atom} <- [
+            {"Tautology", :tautology},
+            {"TautologousConclusion", :tautologous_conclusion},
+            {"WeakerConclusion", :weaker_conclusion},
+            {"Equivalent", :equivalent},
+            {"CounterEquivalent", :counter_equivalent},
+            {"CounterTheorem", :counter_theorem},
+            {"EquivalentCounterTheorem", :equivalent_counter_theorem},
+            {"EquiSatisfiable", :equi_satisfiable},
+            {"NoConsequence", :no_consequence}
+          ] do
+        assert ResultNormalization.interpret_result("% SZS status #{szs} for x") ==
+                 {:ok, atom}
+      end
+    end
+
+    test "longer/more-specific names take precedence over shorter prefixes" do
+      # "ContradictoryAxioms" must not collapse onto "Theorem" via substring.
+      assert ResultNormalization.interpret_result("% SZS status ContradictoryAxioms for x") ==
+               {:ok, :contradictory_axioms}
+
+      # "CounterSatisfiable" must not collapse onto "Satisfiable".
+      assert ResultNormalization.interpret_result("% SZS status CounterSatisfiable for x") ==
+               {:ok, :counter_satisfiable}
+
+      # "InputError" must not collapse onto "Error".
+      assert ResultNormalization.interpret_result("% SZS status InputError for x") ==
+               {:ok, :input_error}
+    end
+
+    test "unmatched output flows through as {:error, {:unrecognized_output, _}}" do
+      assert ResultNormalization.interpret_result("nothing helpful here") ==
+               {:error, {:unrecognized_output, "nothing helpful here"}}
+    end
+  end
+
+  describe "interpret_result/1 — permissive SZS fallback" do
+    test "unrecognised SZS status passes through as snake_case atom" do
+      # `EquivalentTheorem` is in the SZS Ontology but not in the explicit
+      # table; the permissive fallback should still surface it.
+      assert ResultNormalization.interpret_result("% SZS status EquivalentTheorem for x") ==
+               {:ok, :equivalent_theorem}
+    end
+
+    test "permissive fallback respects 'says' prefix too" do
+      assert ResultNormalization.interpret_result("FooProver says FiniteTheorem for problem") ==
+               {:ok, :finite_theorem}
+    end
+
+    test "garbage after 'SZS status' does not match (strict CamelCase)" do
+      # lowercase first character is not a valid SZS name
+      assert ResultNormalization.interpret_result("SZS status theorem garbage") ==
+               {:error, {:unrecognized_output, "SZS status theorem garbage"}}
+    end
+
+    test "explicit table wins over permissive fallback" do
+      # Even though `Theorem` could match permissively too, the explicit
+      # table entry takes precedence (proves we evaluate in the right order).
+      assert ResultNormalization.interpret_result("% SZS status Theorem for x") ==
+               {:ok, :theorem}
+    end
+  end
+
+  describe "interpret_result/1 — prover-specific signals map to honest SZS atoms" do
+    test "iProver CNFRefutation marker → :unsatisfiable (not :theorem)" do
+      assert ResultNormalization.interpret_result("% SZS output start CNFRefutation") ==
+               {:ok, :unsatisfiable}
+    end
+
+    test "SPASS Completion found → :satisfiable" do
+      assert ResultNormalization.interpret_result("SPASS beiseite: Completion found") ==
+               {:ok, :satisfiable}
+    end
+
+    test "SPASS unreadable input → {:ok, :input_error} (prover's SZS InputError verdict)" do
+      assert ResultNormalization.interpret_result("No formulae and clauses found in input file") ==
+               {:ok, :input_error}
+    end
+
+    test "SPASS \"Undefined symbol\" → {:ok, :input_error}" do
+      assert ResultNormalization.interpret_result("Undefined symbol foo in line 3") ==
+               {:ok, :input_error}
+    end
+
+    test "Waldmeister \"Unexpected end of file\" → {:ok, :input_error}" do
+      assert ResultNormalization.interpret_result("****  Unexpected end of file.") ==
+               {:ok, :input_error}
+    end
+
+    test "SPASS \"Please report this error\" stays in {:error, :internal_error}" do
+      assert ResultNormalization.interpret_result("Please report this error to the SPASS team.") ==
+               {:error, :internal_error}
+    end
+
+    test "Waldmeister SegFault stays in {:error, :internal_error}" do
+      assert ResultNormalization.interpret_result("Unrecoverable Segmentation Fault") ==
+               {:error, :internal_error}
+    end
+
+    test "Vampire SIGINT → :forced" do
+      assert ResultNormalization.interpret_result("Aborted by signal SIGINT") ==
+               {:ok, :forced}
+    end
+
+    test "Vampire Satisfiability detected → :satisfiable" do
+      assert ResultNormalization.interpret_result("Satisfiability detected") ==
+               {:ok, :satisfiable}
+    end
+
+    test "Alt-Ergo Valid → :theorem" do
+      assert ResultNormalization.interpret_result("File foo.ae: Valid (0.01s)") ==
+               {:ok, :theorem}
+    end
+
+    test "Alt-Ergo Unknown → :unknown (not :gave_up)" do
+      assert ResultNormalization.interpret_result("File foo.ae: Unknown (0.01s)") ==
+               {:ok, :unknown}
     end
   end
 end

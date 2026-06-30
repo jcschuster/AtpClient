@@ -93,14 +93,27 @@ defmodule AtpClient.LocalExecTest do
   describe "query/2 — happy path" do
     @describetag :posix_shell
 
-    test "Theorem output is classified as {:ok, :thm}", %{tmp_dir: tmp} do
+    test "Theorem output is classified as {:ok, :theorem}", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_thm", "# SZS status Theorem for x")
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :thm}
+      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :theorem}
     end
 
-    test "CounterSatisfiable output is classified as {:ok, :csat}", %{tmp_dir: tmp} do
+    test "Unsatisfiable output is kept distinct from Theorem", %{tmp_dir: tmp} do
+      exe = fake_prover(tmp, "prover_uns", "# SZS status Unsatisfiable for x")
+      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :unsatisfiable}
+    end
+
+    test "CounterSatisfiable output is classified as {:ok, :counter_satisfiable}",
+         %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_csat", "# SZS status CounterSatisfiable for x")
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :csat}
+
+      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) ==
+               {:ok, :counter_satisfiable}
+    end
+
+    test "Satisfiable output is kept distinct from CounterSatisfiable", %{tmp_dir: tmp} do
+      exe = fake_prover(tmp, "prover_sat", "# SZS status Satisfiable for x")
+      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :satisfiable}
     end
 
     test "prover-reported Timeout maps to {:ok, :timeout}", %{tmp_dir: tmp} do
@@ -110,7 +123,7 @@ defmodule AtpClient.LocalExecTest do
 
     test "non-zero exit does not override SZS classification", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_thm_exit1", "# SZS status Theorem for x", exit_code: 1)
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :thm}
+      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :theorem}
     end
 
     test "unrecognized stdout yields {:error, {:unrecognized_output, ...}}",
@@ -206,7 +219,7 @@ defmodule AtpClient.LocalExecTest do
       exe = fake_prover(tmp, "prover_fast", "# SZS status Theorem for x")
 
       assert LocalExec.query("fof(a, conjecture, p).", binary: exe, cpu_timeout_s: 0) ==
-               {:ok, :thm}
+               {:ok, :theorem}
     end
   end
 
@@ -275,7 +288,7 @@ defmodule AtpClient.LocalExecTest do
       assert LocalExec.query("fof(a, conjecture, p).",
                binary: path,
                args: ["--auto", "--cpu-limit=5"]
-             ) == {:ok, :thm}
+             ) == {:ok, :theorem}
     end
 
     test "{{problem}} placeholder is substituted with the temp file path",
@@ -298,7 +311,7 @@ defmodule AtpClient.LocalExecTest do
       assert LocalExec.query("fof(a, conjecture, p).",
                binary: path,
                args: ["{{problem}}", "--auto"]
-             ) == {:ok, :thm}
+             ) == {:ok, :theorem}
     end
   end
 
@@ -316,7 +329,7 @@ defmodule AtpClient.LocalExecTest do
       assert LocalExec.query(@trivial_problem,
                binary: "eprover",
                args: ["--auto", "--cpu-limit=5", "--tstp-format"]
-             ) == {:ok, :thm}
+             ) == {:ok, :theorem}
     end
   end
 end

@@ -229,7 +229,7 @@ File.write!("test/fixtures/starexec_stdout_thm.txt", stdout_thm)
 IO.puts("Saved stdout fixture → test/fixtures/starexec_stdout_thm.txt")
 
 result_thm = ResultNormalization.interpret_result(stdout_thm)
-SmokeTest.assert_eq!("Theorem result", result_thm, {:ok, :thm})
+SmokeTest.assert_eq!("Theorem result", result_thm, {:ok, :theorem})
 
 # ---------------------------------------------------------------------------
 # Case 2: CounterSatisfiable
@@ -247,7 +247,7 @@ File.write!("test/fixtures/starexec_stdout_csat.txt", stdout_csat)
 IO.puts("Saved stdout fixture → test/fixtures/starexec_stdout_csat.txt")
 
 result_csat = ResultNormalization.interpret_result(stdout_csat)
-SmokeTest.assert_eq!("CounterSat result", result_csat, {:ok, :csat})
+SmokeTest.assert_eq!("CounterSat result", result_csat, {:ok, :counter_satisfiable})
 
 # ---------------------------------------------------------------------------
 # Logout and summary

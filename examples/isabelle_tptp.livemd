@@ -88,10 +88,10 @@ results
 <!-- livebook:{"output":true} -->
 
 ```
-[%{name: "g", result: {:ok, :thm}}]
+[%{name: "g", result: {:ok, :theorem}}]
 ```
 
-Expected: a single-element list with `name: "g"` and `result: {:ok, :thm}`.
+Expected: a single-element list with `name: "g"` and `result: {:ok, :theorem}`.
 Line numbers are not exposed — entries are attributed by `:name`, carried
 over from the TPTP formula name.
 
@@ -144,17 +144,18 @@ end
 <!-- livebook:{"output":true} -->
 
 ```
-{:ok, [%{name: "g1", result: {:ok, :thm}}, %{name: "g2", result: {:ok, :thm}}]}
+{:ok, [%{name: "g1", result: {:ok, :theorem}}, %{name: "g2", result: {:ok, :theorem}}]}
 ```
 
-Expected: two entries, names `"g1"` and `"g2"`, both `{:ok, :thm}`.
+Expected: two entries, names `"g1"` and `"g2"`, both `{:ok, :theorem}`.
 
 ## 4. Sledgehammer / Nitpick as proof method
 
 `per_lemma_results/3` applies the same tool-signal classifier as the
 single-result mode, so `proof_method: "sledgehammer nitpick oops"` produces
-`{:ok, :thm}` when sledgehammer finds a proof and `{:ok, :csat}` when
-nitpick finds a counterexample — even though `oops` withdraws the goal and
+`{:ok, :theorem}` when sledgehammer finds a proof and
+`{:ok, :counter_satisfiable}` when nitpick finds a counterexample — even
+though `oops` withdraws the goal and
 no `theorem name:` completion message is ever emitted.
 
 ```elixir
@@ -172,10 +173,10 @@ AtpClient.Isabelle.query_tptp(
 <!-- livebook:{"output":true} -->
 
 ```
-{:ok, [%{name: "g_taut", result: {:ok, :thm}}, %{name: "g_false", result: {:ok, :csat}}]}
+{:ok, [%{name: "g_taut", result: {:ok, :theorem}}, %{name: "g_false", result: {:ok, :counter_satisfiable}}]}
 ```
 
-Expected: `g_taut` → `{:ok, :thm}`, `g_false` → `{:ok, :csat}`. Lemma names
+Expected: `g_taut` → `{:ok, :theorem}`, `g_false` → `{:ok, :counter_satisfiable}`. Lemma names
 come through regardless of proof method — they are read from the body, not
 parsed out of Isabelle's per-message text (which omits the name for
 `oops`-based diagnostic methods).

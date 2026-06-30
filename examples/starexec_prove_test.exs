@@ -53,12 +53,12 @@ IO.puts("\n=== Login ===")
 IO.puts("\n=== Theorem case ===")
 result_thm = StarExec.prove(session, theorem, opts)
 IO.puts("prove/3 returned: #{inspect(result_thm)}")
-{:ok, :thm} = result_thm
+{:ok, :theorem} = result_thm
 
 IO.puts("\n=== CounterSatisfiable case ===")
 result_csat = StarExec.prove(session, countersat, opts)
 IO.puts("prove/3 returned: #{inspect(result_csat)}")
-{:ok, :csat} = result_csat
+{:ok, :counter_satisfiable} = result_csat
 
 IO.puts("\n=== Logout ===")
 :ok = StarExec.logout(session, opts)

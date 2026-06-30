@@ -20,7 +20,7 @@ defmodule AtpClient.SystemOnTptp do
 
       # system IDs returned by list_provers/0, e.g. "Vampire-FMo---5.0.1"
       {:ok, result} = AtpClient.SystemOnTptp.query_system(thf_problem, "Vampire-FMo---5.0.1")
-      # => {:ok, :thm}
+      # => {:ok, :theorem}
 
   ## Cancellation
 

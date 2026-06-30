@@ -11,8 +11,14 @@ supported:
   (E, Vampire, …) invoked via `System.cmd/3`.
 
 All backends return results normalized to
-`AtpClient.ResultNormalization.atp_result` so that comparing provers across
-backends is straightforward and can be used in downstream tasks.
+`AtpClient.ResultNormalization.atp_result` — a `{:ok, status}` tuple whose
+`status` is the SZS Ontology verdict downcased to an Elixir atom
+(`:theorem`, `:unsatisfiable`, `:counter_satisfiable`, `:satisfiable`,
+`:gave_up`, `:timeout`, …) — so that comparing provers across backends is
+straightforward without conflating semantically distinct verdicts
+(`:theorem` ≠ `:unsatisfiable`, `:counter_satisfiable` ≠ `:satisfiable`).
+Errors that prevented any SZS verdict (network failure, malformed input,
+missing binary) come back as `{:error, reason}`.
 
 Each backend also implements the `AtpClient.Backend` behaviour
 (`config_key/0`, `label/0`, `config_schema/0`, `verify/1`, `query/2`), so a
@@ -96,13 +102,13 @@ AtpClient.SystemOnTptp.list_provers()
 # => ["Alt-Ergo---0.95.2", "cvc5---1.3.0", ...]
 
 AtpClient.SystemOnTptp.query_system(problem, "cvc5---1.3.0", time_limit_sec: 10)
-# => {:ok, :thm}
+# => {:ok, :theorem}
 
 AtpClient.SystemOnTptp.query_selected_systems(problem, ["cvc5---1.3.0", "Vampire---5.0"], time_limit_sec: 5)
-# => {:ok, [{"cvc5---1.3.0", {:ok, :thm}}, {"Vampire---5.0", {:ok, :thm}}]}
+# => {:ok, [{"cvc5---1.3.0", {:ok, :theorem}}, {"Vampire---5.0", {:ok, :theorem}}]}
 
 AtpClient.SystemOnTptp.query_all_systems(problem, time_limit_sec: 5)
-# => {:ok, [{"Alt-Ergo---0.95.3", {:ok, :thm}}, ...]}
+# => {:ok, [{"Alt-Ergo---0.95.3", {:ok, :theorem}}, ...]}
 ```
 
 ### StarExec
@@ -128,7 +134,7 @@ job_id = extract_job_id(response)   # deployment-specific
 # SystemOnTPTP output:
 {:ok, stdout} = AtpClient.StarExec.get_pair_stdout(session, pair_id)
 AtpClient.ResultNormalization.interpret_result(stdout)
-# => {:ok, :thm}
+# => {:ok, :theorem}
 
 AtpClient.StarExec.logout(session)
 ```
@@ -155,7 +161,7 @@ end
 # finding a proof or countermodel, take precedence. Multiple formulae are not
 # supported.
 AtpClient.Isabelle.query(theory)
-# => {:ok, {:ok, :thm}}
+# => {:ok, :theorem}
 
 # With an existing session, reuse the socket for multiple theories:
 {:ok, session} = AtpClient.Isabelle.open_session()
@@ -185,7 +191,7 @@ AtpClient.LocalExec.query(problem,
   binary: "eprover",
   args: ["--auto", "--tstp-format", "--cpu-limit=10"]
 )
-# => {:ok, :thm}
+# => {:ok, :theorem}
 ```
 
 `scripts/build_eprover.sh` builds the E theorem prover from source and
