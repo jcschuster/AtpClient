@@ -34,7 +34,7 @@ Add `:atp_client` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:atp_client, "~> 0.3"}
+    {:atp_client, "~> 0.5"}
   ]
 end
 ```
@@ -99,16 +99,16 @@ fof(goal, conjecture, q).
 """
 
 AtpClient.SystemOnTptp.list_provers()
-# => ["Alt-Ergo---0.95.2", "cvc5---1.3.0", ...]
+# => ["Alt-Ergo---0.95.2", "Beagle---0.9.52", ...]
 
-AtpClient.SystemOnTptp.query_system(problem, "cvc5---1.3.0", time_limit_sec: 10)
+AtpClient.SystemOnTptp.query_system(problem, "cvc5---1.3.4", time_limit_sec: 10)
 # => {:ok, :theorem}
 
-AtpClient.SystemOnTptp.query_selected_systems(problem, ["cvc5---1.3.0", "Vampire---5.0"], time_limit_sec: 5)
-# => {:ok, [{"cvc5---1.3.0", {:ok, :theorem}}, {"Vampire---5.0", {:ok, :theorem}}]}
+AtpClient.SystemOnTptp.query_selected_systems(problem, ["cvc5---1.3.4", "Vampire---5.0.1"], time_limit_sec: 5)
+# => {:ok, [{"cvc5---1.3.4", {:ok, :theorem}}, {"Vampire---5.0.1", {:ok, :theorem}}]}
 
 AtpClient.SystemOnTptp.query_all_systems(problem, time_limit_sec: 5)
-# => {:ok, [{"Alt-Ergo---0.95.3", {:ok, :theorem}}, ...]}
+# => {:ok, [{"Alt-Ergo---0.95.2", {:ok, :theorem}}, ...]}
 ```
 
 ### StarExec
@@ -221,7 +221,7 @@ AtpClient.StarExec.verify(
 
 # And run a problem through any backend uniformly:
 AtpClient.LocalExec.query(problem, binary: "eprover")
-AtpClient.SystemOnTptp.query(problem, default_system: "cvc5---1.3.0")
+AtpClient.SystemOnTptp.query(problem, default_system: "cvc5---1.3.2")
 ```
 
 ## License

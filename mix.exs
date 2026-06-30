@@ -29,7 +29,7 @@ defmodule AtpClient.MixProject do
   defp deps do
     [
       {:jason, "~> 1.4"},
-      {:req, "~> 0.5"},
+      {:req, "~> 0.6"},
       {:isabelle_elixir, "~> 0.4"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

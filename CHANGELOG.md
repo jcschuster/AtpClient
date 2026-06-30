@@ -6,6 +6,139 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-06-30
+
+### Changed
+
+- **`AtpClient.ResultNormalization.atp_result()` now surfaces the full SZS
+  Ontology.** `{:ok, status}` carries the SZS verdict as a downcased atom
+  rather than one of six collapsed atoms that lost information. The
+  recognised vocabulary covers every Success and NoSuccess atom a
+  sledgehammer-targeted prover (or a contemporary TPTP-compliant
+  deployment) is likely to emit:
+
+      Success:    :theorem, :unsatisfiable, :satisfiable, :counter_satisfiable,
+                  :contradictory_axioms, :equivalent, :counter_equivalent,
+                  :counter_theorem, :equivalent_counter_theorem, :equi_satisfiable,
+                  :tautology, :tautologous_conclusion, :weaker_conclusion,
+                  :no_consequence
+      NoSuccess:  :gave_up, :unknown, :incomplete, :timeout, :resource_out,
+                  :memory_out, :forced, :user, :inappropriate, :error, :input_error
+
+  The most consequential distinctions the previous shape collapsed are
+  `:theorem` ("conjecture follows from the axioms", e.g. Isabelle and
+  model-checker endorsement) vs `:unsatisfiable` ("the negated-conjecture
+  clause set has no model", e.g. TPTP refutation provers), and
+  `:satisfiable` ("a model of the premises was found") vs
+  `:counter_satisfiable` ("a model of the negated conjecture was found").
+  See <https://tptp.org/Seminars/SZSOntologies/Summary.html> for the full
+  ontology.
+- **Prover-specific patterns are reclassified to honest SZS atoms** rather
+  than sledgehammer's negated-conjecture reading. SPASS "Completion found"
+  becomes `:satisfiable` (was `:gave_up`); iProver "CNFRefutation" becomes
+  `:unsatisfiable` (was `:theorem`); Vampire "Satisfiability detected" and
+  "Termination reason: Satisfiable" become `:satisfiable` (were `:csat`);
+  Alt-Ergo "Unknown" becomes `:unknown` (was `:gave_up`); Vampire SIGINT
+  becomes `:forced` (was `:interrupted`). Callers running a
+  negated-conjecture refutation pipeline should treat `:satisfiable` from
+  these provers as a counter-model to the original goal.
+- **SPASS / Waldmeister input-rejection patterns move from
+  `{:error, :malformed_input}` to `{:ok, :input_error}`.** SPASS "Undefined
+  symbol", "Free Variable", "No formulae and clauses found in input file",
+  and Waldmeister "Unexpected end of file" are the prover's own SZS
+  InputError verdict — the prover ran, read the input, and rejected it.
+  SPASS "Please report this error" and Waldmeister "Unrecoverable
+  Segmentation Fault" remain `{:error, :internal_error}` because those are
+  prover crashes, not verdicts. The SZS `Inappropriate` status likewise
+  moved from `{:error, :malformed_input}` to `{:ok, :inappropriate}`.
+- **`req` bumped to `~> 0.6`.** Resolves `GHSA-655f-mp8p-96gv`
+  (decompression-bomb DoS via auto-decoded archive / compressed response
+  bodies, HIGH) and `GHSA-px9f-whj3-246m` (multipart form-data header
+  injection, LOW). No API changes at the AtpClient surface.
+
+### Added
+
+- **`t:szs_status/0`, `t:szs_success/0`, `t:szs_no_success/0`** typespecs
+  on `AtpClient.ResultNormalization` enumerate the SZS atoms recognised
+  explicitly. `szs_status` widens to `atom()` to admit the permissive
+  fallback below.
+- **Permissive SZS fallback.** Any unrecognised
+  `% SZS status <CamelCase>` (or `… says <CamelCase>`) line passes through
+  as its snake_case atom — so SZS additions like `EquivalentTheorem`
+  become `{:ok, :equivalent_theorem}` without a code change. Bounded
+  length and strict CamelCase keep the atom table safe against pathological
+  input.
+- **Word-boundary SZS line extraction.** Replaces substring matching, so
+  longer names no longer collapse onto shorter prefixes:
+  `EquivalentTheorem` ≠ `Equivalent`, `CounterSatisfiable` ≠ `Satisfiable`,
+  `InputError` ≠ `Error`.
+
+### Breaking
+
+- The collapsed `t:success_t/0` atoms (`:thm`, `:csat`, `:sat`,
+  `:out_of_resources`, `:interrupted`) are gone from
+  `AtpClient.ResultNormalization.atp_result()` and from
+  `AtpClient.Isabelle` (which produced `:thm` / `:csat` / `:sat` /
+  `:timeout` / `:out_of_resources` / `:gave_up` from the Isabelle message
+  scanner). Pattern matches must be rewritten — see the migration notes.
+- The `{:error, :malformed_input}` failure path is gone. SPASS /
+  Waldmeister input-rejection patterns and the SZS `Inappropriate` status
+  surface in the `{:ok, _}` channel as `:input_error` / `:inappropriate`
+  respectively. `failure_t()` no longer lists `:malformed_input`.
+
+### Migration notes
+
+A given old atom can map to one of several SZS atoms depending on which
+prover family produced the result. Match the disjunction to preserve
+coverage:
+
+- `:thm` → `:theorem` (Isabelle / Sledgehammer / Alt-Ergo Valid) **or**
+  `:unsatisfiable` (TPTP refutation provers, iProver CNFRefutation).
+- `:csat` → `:counter_satisfiable` (SZS CounterSatisfiable, Isabelle /
+  Nitpick counter-example) **or** `:satisfiable` (SZS Satisfiable,
+  Isabelle / Nitpick model, Vampire "Satisfiability detected", SPASS
+  "Completion found").
+- `:sat` → `:satisfiable` (only emitted by the Isabelle classifier for
+  Nitpick / Quickcheck models).
+- `:out_of_resources` → `:resource_out` (SZS ResourceOut, SPASS / Waldmeister
+  resource patterns) **or** `:memory_out` (SZS MemoryOut, Isabelle "Out of
+  memory").
+- `:interrupted` → `:forced` (SZS Forced, Vampire SIGINT) **or** `:user`
+  (SZS User).
+- `:gave_up` against an Alt-Ergo verdict → `:unknown`; against SZS
+  `Incomplete` → `:incomplete`; otherwise still `:gave_up`.
+- `{:error, :malformed_input}` → match `{:ok, :input_error}` instead.
+
+So a previously written TPTP triage like
+
+```elixir
+case AtpClient.SystemOnTptp.query(problem, default_system: "cvc5---1.3.0") do
+  {:ok, :thm}                       -> :proved
+  {:ok, :csat}                      -> :disproved
+  {:ok, atom} when atom in [:timeout, :out_of_resources, :gave_up, :interrupted]
+                                    -> :inconclusive
+  {:error, :malformed_input}        -> :bad_input
+  {:error, _}                       -> :error
+end
+```
+
+becomes
+
+```elixir
+case AtpClient.SystemOnTptp.query(problem, default_system: "cvc5---1.3.0") do
+  {:ok, status} when status in [:theorem, :unsatisfiable]
+                                    -> :proved
+  {:ok, status} when status in [:satisfiable, :counter_satisfiable]
+                                    -> :disproved
+  {:ok, status} when status in [:timeout, :resource_out, :memory_out,
+                                :gave_up, :unknown, :incomplete,
+                                :forced, :user, :inappropriate]
+                                    -> :inconclusive
+  {:ok, :input_error}               -> :bad_input
+  {:error, _}                       -> :error
+end
+```
+
 ## [0.4.0] - 2026-06-29
 
 ### Changed

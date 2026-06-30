@@ -13,7 +13,7 @@ having `isabelle` on `PATH` (or `ISABELLE_TOOL` pointing at the executable).
 
 ```elixir
 Mix.install([
-  {:atp_client, "~> 0.3"}
+  {:atp_client, "~> 0.5"}
 ])
 ```
 
@@ -195,18 +195,18 @@ IsabelleClient.Server.kill(server.name)
 
 ## 6. What to look for if something fails
 
-* `{:error, :isabelle_not_found}` from `IsabelleClient.Server.executable/0` —
+- `{:error, :isabelle_not_found}` from `IsabelleClient.Server.executable/0` —
   `isabelle` is not on `PATH`. Set `ISABELLE_TOOL` to the executable path.
-* `{:error, {:tptp_thy_copy_failed, _}}` — `:local_dir` is not writable, or the
+- `{:error, {:tptp_thy_copy_failed, _}}` — `:local_dir` is not writable, or the
   dep is not loaded correctly. Check that `IsabelleClient.TPTP.source_path()`
   in the `isabelle_elixir` dep resolves to a real file.
-* `{:error, {:isabelle_failed, %{"message" => "Cannot load theory file"}, [hint: _, …]}}` —
+- `{:error, {:isabelle_failed, %{"message" => "Cannot load theory file"}, [hint: _, …]}}` —
   Isabelle could not read `TPTP.thy` or the generated theory. Inspect the
   hint's `:local_dir`/`:isabelle_dir` to check the cross-mount.
-* `{:error, {:isabelle_failed, %{"message" => msg}, _}}` where `msg` mentions
+- `{:error, {:isabelle_failed, %{"message" => msg}, _}}` where `msg` mentions
   `unbundle from_TPTP` or unknown syntax — the bundled `TPTP.thy` was found
   but `unbundle from_TPTP` did not activate; check the dep version.
-* Every lemma comes back `{:ok, :gave_up}` — the `:proof_method` did not
+- Every lemma comes back `{:ok, :gave_up}` — the `:proof_method` did not
   close any goal. Either the tactic is wrong for the problem class (try
   `"by metis"` for first-order problems) or the default `"by auto"` is
   too weak. The same shape with the proof method omitted entirely is a
