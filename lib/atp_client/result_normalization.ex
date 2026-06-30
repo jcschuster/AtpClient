@@ -15,6 +15,10 @@ defmodule AtpClient.ResultNormalization do
   TPTP-oriented prover outputs (SystemOnTPTP, StarExec, LocalExec) are
   classified by `interpret_result/1`; Isabelle `use_theories` payloads by
   `interpret_isabelle_result/1` and `per_lemma_results/3`.
+
+  Consumers that want a fixed four-way switch (UIs, MCP integrations) can
+  call `classify/1` to collapse the full SZS vocabulary down to
+  `:proved | :disproved | :inconclusive | :error`.
   """
 
   @typedoc "Standardized format for ATP outputs."
@@ -87,6 +91,37 @@ defmodule AtpClient.ResultNormalization do
           | :input_error
           | {:prover_not_found, String.t()}
           | {:unrecognized_output, String.t()}
+
+  @typedoc """
+  Coarse four-way triage produced by `classify/1`.
+
+    * `:proved` — the prover affirms the conjecture.
+    * `:disproved` — the prover affirms a counter-model or the negation.
+    * `:inconclusive` — the prover finished without a verdict on the
+      conjecture, or with a Success answer that does not settle the
+      conjecture (e.g. `:no_consequence`, `:equi_satisfiable`).
+    * `:error` — something prevented the prover from running, or it
+      reported its own error (SZS `Error` / `InputError`).
+  """
+  @type verdict :: :proved | :disproved | :inconclusive | :error
+
+  @proved_atoms ~w(
+    theorem
+    unsatisfiable
+    contradictory_axioms
+    tautology
+    tautologous_conclusion
+    equivalent
+    weaker_conclusion
+  )a
+
+  @disproved_atoms ~w(
+    counter_satisfiable
+    satisfiable
+    counter_theorem
+    counter_equivalent
+    equivalent_counter_theorem
+  )a
 
   # Matched via word-boundary regex extraction in `szs_line_match/1`, so
   # entry order does not affect precedence — only the set of names matters.
@@ -227,6 +262,42 @@ defmodule AtpClient.ResultNormalization do
   defp known_szs_map do
     Map.new(@known_szs_results, fn {name, result} -> {name, result} end)
   end
+
+  @doc """
+  Collapses an `t:atp_result/0` into the four-way `t:verdict/0` triage —
+  for callers that don't need the full SZS vocabulary (Smart Cells,
+  MCP-style integrations, "did it prove the conjecture?" UI tags).
+
+  Bucketing follows the SZS Success/NoSuccess hierarchy:
+
+    * `:proved` — `:theorem`, `:unsatisfiable` (refutation success on the
+      negated conjecture), `:contradictory_axioms`, `:tautology`,
+      `:tautologous_conclusion`, `:equivalent`, `:weaker_conclusion`.
+    * `:disproved` — `:counter_satisfiable`, `:satisfiable` (model of the
+      negated conjecture), `:counter_theorem`, `:counter_equivalent`,
+      `:equivalent_counter_theorem`.
+    * `:inconclusive` — every NoSuccess atom outside the Error sub-tree
+      (`:gave_up`, `:unknown`, `:incomplete`, `:timeout`, `:resource_out`,
+      `:memory_out`, `:forced`, `:user`, `:inappropriate`), plus the
+      Success atoms that do not pick a side on the conjecture
+      (`:no_consequence`, `:equi_satisfiable`). Unknown SZS atoms from
+      `interpret_result/1`'s permissive fallback also land here — being
+      conservative is safer than guessing.
+    * `:error` — any `{:error, _}` reason, plus a prover-reported
+      `{:ok, :error}` / `{:ok, :input_error}` SZS verdict.
+
+  Callers that need to distinguish e.g. `:theorem` (Isabelle/model-checker)
+  from `:unsatisfiable` (TPTP refutation) should keep pattern-matching on
+  `t:szs_status/0` directly; that distinction is exactly what this helper
+  intentionally discards.
+  """
+  @spec classify(atp_result()) :: verdict()
+  def classify({:ok, atom}) when atom in @proved_atoms, do: :proved
+  def classify({:ok, atom}) when atom in @disproved_atoms, do: :disproved
+  def classify({:ok, :error}), do: :error
+  def classify({:ok, :input_error}), do: :error
+  def classify({:ok, _szs_atom}), do: :inconclusive
+  def classify({:error, _reason}), do: :error
 
   @doc """
   Interprets the `result` payload of a finished `use_theories` task — the map
