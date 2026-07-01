@@ -50,7 +50,8 @@ defmodule AtpClient.Config do
       url: "https://tptp.org/cgi-bin/SystemOnTPTPFormReply",
       auto_refresh: true,
       refresh_timeout_ms: 15_000,
-      default_time_limit_sec: 5
+      default_time_limit_sec: 5,
+      network_overhead_ms: 30_000
     ],
     starexec: [
       request_timeout_ms: 30_000,

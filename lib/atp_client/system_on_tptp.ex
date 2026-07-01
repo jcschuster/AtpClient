@@ -73,6 +73,19 @@ defmodule AtpClient.SystemOnTptp do
         group: :defaults,
         default: 5,
         label: "Default time limit (s)"
+      },
+      %Field{
+        key: :network_overhead_ms,
+        type: :integer,
+        required?: false,
+        group: :connection,
+        default: 30_000,
+        label: "Network overhead (ms)",
+        doc:
+          "Padding added to the prover time limit when computing the HTTP " <>
+            "receive timeout. Covers server-side form handling and network " <>
+            "latency; SystemOnTPTP's baseline round-trip has been observed " <>
+            "around 13 s."
       }
     ]
   end
@@ -129,6 +142,7 @@ defmodule AtpClient.SystemOnTptp do
       Keyword.get(opts, :time_limit_sec) ||
         Config.fetch(:sotptp, :default_time_limit_sec, 5)
 
+    network_overhead_ms = Config.fetch(:sotptp, :network_overhead_ms, 30_000, opts)
     return_raw = Keyword.get(opts, :raw, false)
 
     case Req.post(
@@ -145,7 +159,7 @@ defmodule AtpClient.SystemOnTptp do
            },
            finch: AtpClient.TptpFinch,
            compressed: false,
-           receive_timeout: (time_limit_sec + 5) * 1000,
+           receive_timeout: time_limit_sec * 1000 + network_overhead_ms,
            retry: :transient,
            retry_delay: fn _ -> 500 end
          ) do
@@ -175,6 +189,7 @@ defmodule AtpClient.SystemOnTptp do
       Keyword.get(opts, :time_limit_sec) ||
         Config.fetch(:sotptp, :default_time_limit_sec, 5)
 
+    network_overhead_ms = Config.fetch(:sotptp, :network_overhead_ms, 30_000, opts)
     return_raw = Keyword.get(opts, :raw, false)
 
     system_fields =
@@ -199,7 +214,7 @@ defmodule AtpClient.SystemOnTptp do
            form: form,
            finch: AtpClient.TptpFinch,
            compressed: false,
-           receive_timeout: (time_limit_sec + 5) * 1000 * length(system_ids),
+           receive_timeout: (time_limit_sec * 1000 + network_overhead_ms) * length(system_ids),
            retry: :transient,
            retry_delay: fn _ -> 500 end
          ) do
