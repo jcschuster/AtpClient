@@ -42,8 +42,9 @@ defmodule AtpClient.Isabelle.Session do
   def client(%__MODULE__{client: pid}), do: pid
 
   @doc """
-  Returns the `AtpClient.Isabelle.SessionOwner` pid that isolates the
-  Shared process's link from the caller.
+  Returns the pid of the private owner process that isolates the
+  Shared process's link from the caller. Used by `close_session/1` and
+  by tests that need to monitor the session's teardown lifecycle.
   """
   @spec owner(t()) :: pid()
   def owner(%__MODULE__{owner: pid}), do: pid
