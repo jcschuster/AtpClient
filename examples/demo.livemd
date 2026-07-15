@@ -1,5 +1,7 @@
 # AtpClient — end-to-end demo
 
+## Section
+
 ```elixir
 Mix.install([
   {:atp_client, "~> 0.6"}
