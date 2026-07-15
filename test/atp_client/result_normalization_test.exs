@@ -92,6 +92,52 @@ defmodule AtpClient.ResultNormalizationTest do
       p = payload([theory_node([msg("The theorem prover gave up")])])
       assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :gave_up}
     end
+
+    test "'Failed to finish proof' error vetoes a theorem echo (P0-7 regression)" do
+      # Regression: old concatenated-text scan returned :theorem for a
+      # failed `by auto` because it saw the theorem-echo without the veto.
+      p =
+        payload(
+          [
+            theory_node([
+              msg("theorem a:\n  P ∧ ¬ P"),
+              msg("Failed to finish proof", "error")
+            ])
+          ],
+          ok: false
+        )
+
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :gave_up}
+    end
+
+    test "'Failed to apply initial proof method' error also vetoes a theorem echo" do
+      p =
+        payload(
+          [
+            theory_node([
+              msg("theorem b:\n  False"),
+              msg("Failed to apply initial proof method", "error")
+            ])
+          ],
+          ok: false
+        )
+
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :gave_up}
+    end
+
+    test "cross-message Nitpick scan does not produce false :counter_satisfiable (P0-7 regression)" do
+      # Old concatenated-text scan: "Nitpick found a model" + "Nitpick found no counterexample"
+      # produced a false :counter_satisfiable via the joined substring match.
+      p =
+        payload([
+          theory_node([
+            msg("Nitpick found a model"),
+            msg("Nitpick found no counterexample")
+          ])
+        ])
+
+      assert ResultNormalization.interpret_isabelle_result(p) == {:ok, :satisfiable}
+    end
   end
 
   # ──────────────────────────────────────────────────────────────────────────
@@ -217,6 +263,20 @@ defmodule AtpClient.ResultNormalizationTest do
 
       assert ResultNormalization.per_lemma_results(p, [spec("foo", 3..3)]) == [
                %{name: "foo", result: {:ok, :theorem}}
+             ]
+    end
+
+    test "'Failed to apply initial proof method' error vetoes a theorem echo" do
+      p =
+        payload([
+          theory_node([
+            msg_at("theorem b:\n  False", 3),
+            msg_at("Failed to apply initial proof method", 3, "error")
+          ])
+        ])
+
+      assert ResultNormalization.per_lemma_results(p, [spec("b", 3..3)]) == [
+               %{name: "b", result: {:ok, :gave_up}}
              ]
     end
 
@@ -485,15 +545,28 @@ defmodule AtpClient.ResultNormalizationTest do
     end
   end
 
-  describe "interpret_result/1 — prover-specific signals map to honest SZS atoms" do
-    test "iProver CNFRefutation marker → :unsatisfiable (not :theorem)" do
-      assert ResultNormalization.interpret_result("% SZS output start CNFRefutation") ==
-               {:ok, :unsatisfiable}
+  describe "interpret_result/1 — SZS line wins over prover-specific patterns (P0-1 regressions)" do
+    test "iProver: SZS status Theorem wins over CNFRefutation pattern" do
+      # CNFRefutation entry was removed (P0-2); iProver classifies via SZS line.
+      output = "% SZS status Theorem for p\n% SZS output start CNFRefutation\n..."
+      assert ResultNormalization.interpret_result(output) == {:ok, :theorem}
     end
 
-    test "SPASS Completion found → :satisfiable" do
+    test "Vampire: SZS status CounterSatisfiable wins over 'Termination reason: Satisfiable'" do
+      output = "% SZS status CounterSatisfiable for p\n...Termination reason: Satisfiable"
+      assert ResultNormalization.interpret_result(output) == {:ok, :counter_satisfiable}
+    end
+
+    test "output with only pattern and no SZS line still classifies via pattern" do
       assert ResultNormalization.interpret_result("SPASS beiseite: Completion found") ==
-               {:ok, :satisfiable}
+               {:ok, :gave_up}
+    end
+  end
+
+  describe "interpret_result/1 — prover-specific signals map to honest SZS atoms" do
+    test "SPASS Completion found → :gave_up (saturation not verifiably sound without strategy info)" do
+      assert ResultNormalization.interpret_result("SPASS beiseite: Completion found") ==
+               {:ok, :gave_up}
     end
 
     test "SPASS unreadable input → {:ok, :input_error} (prover's SZS InputError verdict)" do
@@ -506,9 +579,9 @@ defmodule AtpClient.ResultNormalizationTest do
                {:ok, :input_error}
     end
 
-    test "Waldmeister \"Unexpected end of file\" → {:ok, :input_error}" do
+    test "Waldmeister \"Unexpected end of file\" → {:ok, :inappropriate} (non-UEQ input)" do
       assert ResultNormalization.interpret_result("****  Unexpected end of file.") ==
-               {:ok, :input_error}
+               {:ok, :inappropriate}
     end
 
     test "SPASS \"Please report this error\" stays in {:error, :internal_error}" do
@@ -526,9 +599,19 @@ defmodule AtpClient.ResultNormalizationTest do
                {:ok, :forced}
     end
 
-    test "Vampire Satisfiability detected → :satisfiable" do
+    test "Vampire 'Satisfiability detected' → :gave_up (no conjecture context)" do
       assert ResultNormalization.interpret_result("Satisfiability detected") ==
-               {:ok, :satisfiable}
+               {:ok, :gave_up}
+    end
+
+    test "Vampire 'Termination reason: Satisfiable' → :gave_up (no conjecture context)" do
+      assert ResultNormalization.interpret_result("Termination reason: Satisfiable") ==
+               {:ok, :gave_up}
+    end
+
+    test "Vampire non-SZS time limit → :timeout" do
+      assert ResultNormalization.interpret_result("Time limit reached!") ==
+               {:ok, :timeout}
     end
 
     test "Alt-Ergo Valid → :theorem" do
@@ -539,6 +622,17 @@ defmodule AtpClient.ResultNormalizationTest do
     test "Alt-Ergo Unknown → :unknown (not :gave_up)" do
       assert ResultNormalization.interpret_result("File foo.ae: Unknown (0.01s)") ==
                {:ok, :unknown}
+    end
+
+    test "Alt-Ergo native 'I don't know' → :gave_up" do
+      assert ResultNormalization.interpret_result("I don't know") ==
+               {:ok, :gave_up}
+    end
+
+    test "E memory resource limit → :memory_out" do
+      assert ResultNormalization.interpret_result(
+               "Failure: Resource limit exceeded (memory)"
+             ) == {:ok, :memory_out}
     end
   end
 end

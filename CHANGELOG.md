@@ -6,6 +6,132 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-15
+
+Release focused on API polish and getting the surface area 1.0-ready. No
+behavioural changes to the classifier or backend semantics — the SZS
+ontology, cancellation contracts, and configuration layering are all
+unchanged.
+
+### Changed
+
+- **`AtpClient.Isabelle.prove_theory/4` returns the single-wrapped
+  `atp_result()` shape.** Non-raw mode used to double-wrap the classifier's
+  verdict — `{:ok, {:ok, :theorem}}` — which contradicted the uniform
+  `atp_result()` promise every other backend already met. Success now reads
+  `{:ok, :theorem}`; failures still surface as `{:error, term()}`. Raw mode
+  is unchanged (`{:ok, payload_map}`). See migration notes.
+- **`AtpClient.ResultNormalization.interpret_isabelle_result/1` return
+  typespec tightened from `atp_result()` to `{:ok, szs_status()}`.** The
+  function never emitted `{:error, _}`; the outer failure branch was
+  unreachable and forced callers to write dead code. Runtime behaviour is
+  unchanged.
+- **`AtpClient.StarExec.create_job/3` returns `{:ok, job_id()}`** instead
+  of leaking `Req.Response.t()`. The 302 Location header is parsed for you
+  and diagnostic info is preserved through
+  `{:error, {:create_job_failed, %{status, message}}}` (with `message`
+  carrying the StarExec `STATUS_MESSAGE_STRING` cookie when set) and
+  `{:error, {:no_job_id, location}}` for the malformed-redirect case.
+  Callers wanting the raw response can use `request/4` directly.
+- **`AtpClient.StarExec.upload_benchmark/4` returns `{:ok, name}`** instead
+  of `{:ok, %{name, status_id: nil | pos_integer}}`. Nobody used
+  `:status_id`, and its nullability forced callers to nil-check on every
+  path. `wait_for_benchmark/4` takes the name directly.
+- **`AtpClient.StarExec.request/4` opts routing switched from a denylist
+  to an allowlist.** Options passed through to `Req.request/1` are now
+  drawn from an explicit `@req_pass_through_opts` allowlist derived from
+  `Req.Steps.attach/1`. Adding a new StarExec-consumed option (e.g. a new
+  `*_path`) no longer requires a companion edit to a deny list to prevent
+  Req from rejecting it. No user-visible change for callers that pass
+  documented options.
+- **`AtpClient.Isabelle.Session.t/0` is now `@opaque` — dialyzer-enforced.**
+  Struct fields (`:client`, `:owner`, `:config`) are internal wiring and
+  not part of the public contract; their names and shapes may change
+  across minor releases. Construct only via `open_session/1`, tear down
+  via `close_session/1`. External callers that need the wrapped pids
+  (typically for `Process.monitor/1` in a cancellation test) go through
+  the newly exposed accessors on `AtpClient.Isabelle.Session`:
+  `Session.client/1`, `Session.owner/1`, `Session.config/1`.
+
+  Under the hood: opacity is achieved by routing every construction
+  through `Session.new/3` and every field read through the accessors,
+  so `AtpClient.Isabelle` (which lives outside the struct's defining
+  module) no longer touches struct internals directly. Dialyzer now
+  catches external `%Session{...}` construction handed to a
+  `Session.t()`-typed function (`call_without_opaque`) and
+  body-level destructuring of an opaque return
+  (`%Session{client: _} = open_session(...)` → `opaque_match`).
+
+### Deprecated
+
+- **`AtpClient.Isabelle.query/3`** — kept working with the historical
+  double-wrapped shape (`{:ok, {:ok, :theorem}}`) so callers that depend
+  on it (in particular the code samples in the AtpClient paper) do not
+  break. New code should use `prove_theory/4` with an open session,
+  `query_lemmas/3`/`query_tptp/2` for single-shot theory/TPTP calls, or
+  `query/2` (the `AtpClient.Backend` entry point).
+
+### Removed
+
+- **`AtpClient.LocalExec.resolve_binary/1`.** Was 100% overlap with
+  `verify/1` — `verify` calls the same resolver internally. Callers that
+  need the resolved path can use `System.find_executable/1` directly.
+- **`AtpClient.Isabelle.lemma_specs/1` demoted to `@doc false`.** Still
+  callable from tests, but no longer part of the documented API surface;
+  it's an implementation detail of `prove_lemmas/4` / `prove_tptp/3`.
+
+### Added
+
+- **`AtpClient.Isabelle` — zero-config path documented.** When `isabelle`
+  is on `$PATH` (or reachable via `ISABELLE_TOOL`), the bundled
+  `:isabelle_elixir` package's `IsabelleClient.start_server/1` spins up a
+  local server on demand — no manual server management needed. Reflected
+  in the `AtpClient.Isabelle` moduledoc, `README.md`, and
+  `examples/demo.livemd`.
+- **`AtpClient.Backend` moduledoc — "Two error channels" section.**
+  Explains the distinction between the classifier's `{:error, failure}`
+  branch (from `atp_result()`) and transport / session errors (bare
+  `{:error, term()}`), with a matching idiom.
+- **Uniform `:raw` documentation across backends.** Each `query`-family
+  function now documents the exact shape returned when `raw: true`
+  (`{:ok, stdout_string}`, `{:ok, body_string}`, or `{:ok, payload_map}`
+  depending on the backend).
+- **Docs / examples audit.** `@doc` and `@spec` coverage now spans every
+  public function; `Config.fetch/4`, `Config.fetch!/3`, and
+  `Lint.Local.analyze/1` gained usable examples. `examples/demo.livemd`
+  rewritten to cover all four backends including LocalExec (previously
+  missing) and to use the zero-config Isabelle path; the redundant
+  `examples/isabelle_tptp.livemd` was removed.
+
+### Migration notes
+
+For most callers the upgrade is a no-op — the deprecated `Isabelle.query/3`
+still works, and only the following patterns need to change:
+
+- If you match `{:ok, {:ok, status}}` against `Isabelle.prove_theory/4`
+  results, drop one level of `:ok`:
+
+      # Before
+      {:ok, {:ok, :theorem}} = Isabelle.prove_theory(session, body, "T")
+
+      # After
+      {:ok, :theorem} = Isabelle.prove_theory(session, body, "T")
+
+  Match on `{:error, _}` for both isabelle-side failures (e.g.
+  `{:isabelle_failed, _, _}`) and connection errors as before.
+- If you match `{:ok, %Req.Response{} = resp} = StarExec.create_job(...)`
+  and pull the job id out of `resp.headers` yourself, switch to matching
+  `{:ok, job_id} = StarExec.create_job(...)`. For rich failure
+  diagnostics, match `{:error, {:create_job_failed, %{status: s, message: m}}}`.
+- If you match `{:ok, %{name: name, status_id: _}} = StarExec.upload_benchmark(...)`,
+  switch to `{:ok, name} = StarExec.upload_benchmark(...)`.
+- If you call `AtpClient.LocalExec.resolve_binary/1`, switch to
+  `verify/1` (returns `:ok | {:error, ...}` — drop the resolved path). If
+  you need the resolved path, call `System.find_executable/1` directly.
+- If you call `AtpClient.Isabelle.query/3`, either keep the call and
+  accept the deprecation warning, or migrate to `prove_theory/4` with an
+  open session and unwrap one level of `:ok` from the return value.
+
 ## [0.5.0] - 2026-06-30
 
 ### Changed

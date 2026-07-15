@@ -148,14 +148,14 @@ defmodule AtpClient.LocalExecTest do
                {:error, {:prover_not_found, "definitely_not_a_real_prover_xyz_123"}}
     end
 
-    test "resolve_binary/1 surfaces the same error without running anything" do
-      assert LocalExec.resolve_binary(binary: "definitely_not_a_real_prover_xyz_123") ==
+    test "verify/1 surfaces the same error without running the prover" do
+      assert LocalExec.verify(binary: "definitely_not_a_real_prover_xyz_123") ==
                {:error, {:prover_not_found, "definitely_not_a_real_prover_xyz_123"}}
     end
 
-    test "resolve_binary/1 returns absolute path for a real script", %{tmp_dir: tmp} do
+    test "verify/1 returns :ok for an existing absolute path", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "real_prover", "# SZS status Theorem for x")
-      assert {:ok, ^exe} = LocalExec.resolve_binary(binary: exe)
+      assert :ok = LocalExec.verify(binary: exe)
     end
 
     test "missing :binary config raises ArgumentError" do

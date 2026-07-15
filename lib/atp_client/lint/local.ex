@@ -41,6 +41,21 @@ defmodule AtpClient.Lint.Local do
   symbol declarations. Always returns a `Report` — a lexer-level
   failure (e.g. unterminated block comment) surfaces as a single
   diagnostic and an empty symbol list.
+
+  ## Examples
+
+      # Clean input produces no diagnostics and (for TFF `type` statements)
+      # a symbol table entry per declaration.
+      %AtpClient.Lint.Report{diagnostics: [], symbols: [sym]} =
+        AtpClient.Lint.Local.analyze("tff(nat_type, type, nat: $tType).")
+      sym.name  # => "nat"
+      sym.type  # => "$tType"
+
+      # Structural issues surface as diagnostics at 1-based positions.
+      %AtpClient.Lint.Report{diagnostics: [diag]} =
+        AtpClient.Lint.Local.analyze("fof(a, axim, p).")
+      diag.severity  # => :warning
+      diag.message   # => "unknown TPTP role `axim`; expected one of: ..."
   """
   @spec analyze(String.t()) :: Report.t()
   def analyze(source) when is_binary(source) do

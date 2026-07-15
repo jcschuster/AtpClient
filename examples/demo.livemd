@@ -1,96 +1,232 @@
-# Demo of the AtpClient Package
+# AtpClient — end-to-end demo
 
 ```elixir
 Mix.install([
-  {:atp_client, "~> 0.5"}
+  {:atp_client, "~> 0.6"}
 ])
 ```
 
-## Setup
+`atp_client` exposes a single, normalized interface to four backends for
+automated theorem provers. This notebook walks through each backend with a
+runnable problem — no external servers to configure by hand for the
+same-host paths.
+
+Every backend returns
+`{:ok, szs_status}` (verdict) or `{:error, reason}` (couldn't produce a
+verdict). The `szs_status` is the [SZS
+Ontology](https://tptp.org/Seminars/SZSOntologies/Summary.html) atom
+(`:theorem`, `:unsatisfiable`, `:satisfiable`, `:counter_satisfiable`,
+`:gave_up`, `:timeout`, …).
 
 ```elixir
-alias AtpClient.{SystemOnTptp, Isabelle, StarExec}
+alias AtpClient.{SystemOnTptp, Isabelle, LocalExec, StarExec}
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
 
 ## SystemOnTPTP
 
-```elixir
-SystemOnTptp.list_provers() |> Enum.join("\n") |> IO.puts()
-```
+The public `tptp.org` HTTP form. No configuration needed — the default URL
+already points at `https://tptp.org/cgi-bin/SystemOnTPTPFormReply`.
 
 ```elixir
-thf_problem = "thf(conj,conjecture, ![X: $o]: (X | ~X))."
+problem = ~S"""
+fof(ax1, axiom, p).
+fof(ax2, axiom, (p => q)).
+fof(goal, conjecture, q).
+"""
 ```
 
-When querying a system, setting the `:raw` option to `true` returns the raw system output. Per default, results are interpreted and returned in standardized format.
+`list_provers/0` pulls the current system catalogue from the deployment
+(cached in-process after the first call).
 
 ```elixir
-{:ok, result} = SystemOnTptp.query_system(thf_problem, "Vampire---5.0.1")
+SystemOnTptp.list_provers() |> Enum.take(10)
 ```
+
+Run a single system. Pass `raw: true` if you want the prover's stdout
+instead of the classified `atp_result/0`.
 
 ```elixir
-{:ok, result} = SystemOnTptp.query_system(thf_problem, "Vampire---5.0.1", raw: true)
-IO.puts(result)
+{:ok, status} = SystemOnTptp.query_system(problem, "cvc5---1.3.0", time_limit_sec: 5)
+status
 ```
 
-It is also possible to query more than one (`query_selected_systems`) or all available systems. Results from provers that errored out (e.g. pure first-order provers that received a higher-order problem) are automatically rejected. Querying multiple systems might take a while as this is bundled in a single HTTP request. Parallelizing this task would risk overwhelming the SystemOnTPTP server because of its limited resources.
+Fan out to several systems in one HTTP round-trip. Provers that error out
+(e.g. first-order-only solvers handed a higher-order problem) are dropped
+from the result list.
 
 ```elixir
-{:ok, result} = SystemOnTptp.query_all_systems(thf_problem)
+{:ok, results} =
+  SystemOnTptp.query_selected_systems(
+    problem,
+    ["cvc5---1.3.0", "Vampire---5.0.1"],
+    time_limit_sec: 5
+  )
+
+results
 ```
+
+`query_all_systems/2` uses `list_provers/0` and is convenient for
+benchmarking, but it holds one HTTP connection open for the sum of the
+per-system time limits — set `:time_limit_sec` conservatively.
 
 <!-- livebook:{"branch_parent_index":0} -->
 
 ## Isabelle/HOL
 
-Using the functionality for Isabelle/HOL requires a running Isabelle server. Locally, this can be achieved via the [`isabelle_elixir`](https://hex.pm/packages/isabelle_elixir) package or by running `isabelle server` with the desired configuration in the command line. This information can either be passed directly to the function calls as keyword list or be permanently set in a `config/config.exs` file.
+`AtpClient.Isabelle` talks to an `isabelle server`. When `isabelle` is on
+`$PATH` (or reachable via the `ISABELLE_TOOL` env var), the bundled
+`:isabelle_elixir` package can spin one up for you — no manual server
+management.
 
 ```elixir
-my_server_info = [
-  host: "127.0.0.1",
-  port: 9999,
-  password: "isabelle-server's-password-you-get-on-startup"
+{:ok, server} =
+  IsabelleClient.start_server(
+    server_name: "atp_client_demo_#{System.unique_integer([:positive])}"
+  )
+
+opts = [
+  host: server.host,
+  port: server.port,
+  password: server.password
 ]
 ```
 
-The Isabelle API also needs information about where to store the intermediate `.thy` files (`local_dir`). When operating cross-platform (e.g. via containerized instances or Windows + Cygwin terminal) this path needs to be encoded correspondingly from the other side (`isabelle_dir`).
+`:local_dir` defaults to a subdirectory of `System.tmp_dir!/0`, so the
+same-host case (Isabelle running next to the BEAM) is zero-config. In
+containers or Cygwin where the two see the same directory under different
+paths, set `:local_dir` (BEAM view) and `:isabelle_dir` (server view)
+explicitly.
+
+Pass either a full theory or just a body — bare text is auto-wrapped in
+`theory <name> imports Main begin ... end`. `prove_theory/4` returns the
+same single-wrapped `atp_result()` shape every other backend uses.
 
 ```elixir
-local_dir = "/shared/problems"
-isabelle_dir = "/shared/problems" # defaults to local_dir if not specified
-```
-
-```elixir
-theory = ~S"""
-theory Example imports Main
-begin
+body = ~S"""
 lemma "\<forall>x. P x \<longrightarrow> P x"
   by auto
-end
 """
 
-AtpClient.Isabelle.query(theory, "Example",
-  my_server_info ++ [
-    local_dir:    local_dir,
-    isabelle_dir: isabelle_dir
-  ]
+{:ok, session} = Isabelle.open_session(opts)
+try do
+  Isabelle.prove_theory(session, body, "Reflexivity")
+after
+  Isabelle.close_session(session)
+end
+```
+
+For TPTP/THF problems, `query_tptp/2` routes through
+`IsabelleClient.TPTP.isabellize_theory/1`, injects the configured
+`:proof_method` (default `"by auto"`), and returns one entry per
+conjecture. Names come from the input formulae.
+
+```elixir
+tptp_problem = ~S"""
+thf(p_type, type, p: $i > $o).
+thf(g_taut, conjecture, ! [X: $i]: (p @ X | ~ (p @ X))).
+thf(g_false, conjecture, ! [X: $i]: (p @ X & ~ (p @ X))).
+"""
+
+Isabelle.query_tptp(
+  tptp_problem,
+  opts ++ [proof_method: "sledgehammer nitpick oops", use_theories_timeout_ms: 600_000]
 )
+```
+
+`g_taut` should come back `{:ok, :theorem}` (sledgehammer found a proof),
+`g_false` as `{:ok, :counter_satisfiable}` (nitpick found a counter-model).
+The verdict comes from the tool's own message, so `oops` — which withdraws
+the goal so Isabelle keeps checking the next lemma — is fine.
+
+The session is what's expensive to start (~seconds for `HOL`); each
+`prove_theory/4` call over an open one is fast. The block above already
+demonstrates the pattern.
+
+Shut the server down when you're done with it:
+
+```elixir
+IsabelleClient.Server.kill(server.name)
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
 
-## StarExec (needs testing)
+## LocalExec
+
+Runs a locally installed TPTP-compliant prover binary (E, Vampire, …) via
+a port. The BEAM watches both a prover-side `--cpu-limit` (encoded in
+`:args`) and a wall-clock kill timer, and both fold into
+`{:ok, :timeout}` on the classifier's side.
+
+Point `:binary` at whatever is on `PATH` (or an absolute path). Each
+prover spells the CPU limit differently, so it goes in `:args`:
 
 ```elixir
-{:ok, session} AtpClient.StarExec.login(
-  base_url: "http://your-server-url:port",
-  username: "user",
-  password: "password"
+LocalExec.query(problem,
+  binary: "eprover",
+  args: ["--auto", "--tstp-format", "--cpu-limit=10"],
+  cpu_timeout_s: 10
 )
 ```
 
+If the binary is missing you get `{:error, {:prover_not_found, name}}`
+rather than a crash — cheap to probe reachability before committing to a
+run:
+
 ```elixir
-AtpClient.StarExec.logout(session)
+LocalExec.verify(binary: "definitely-not-a-prover")
+```
+
+`scripts/build_eprover.sh` in the source tree builds E from source into
+`priv/bin/eprover` if you want a self-contained install.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## StarExec
+
+Self-hosted StarExec (Tomcat) instances, driven through the same URLs the
+web UI uses. Nothing to demo without credentials, so this section only
+shows the shape:
+
+```elixir
+{:ok, session} =
+  StarExec.login(
+    base_url: "https://starexec.example.org",
+    username: System.get_env("STAREXEC_USER"),
+    password: System.get_env("STAREXEC_PASS")
+  )
+
+# End-to-end: upload problem, run against the configured solver, wait,
+# fetch stdout, classify.
+StarExec.prove(session, problem,
+  space_id: 42,
+  solver_cfg_id: 137,
+  cpu_timeout_s: 30
+)
+
+StarExec.logout(session)
+```
+
+Death of the process running `prove/3` cancels the remote job (via
+`delete_job/3`), so `Task.shutdown/2` is the natural way to enforce a
+wall-clock budget on top.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Uniform interface
+
+Every backend module implements `AtpClient.Backend`, so a UI can enumerate
+backends, render each one's `config_schema/0` as a form, probe reachability
+with `verify/1`, and dispatch a problem with `query/2` — without
+hard-coding per-backend knowledge.
+
+```elixir
+for module <- AtpClient.backends() do
+  %{
+    key: module.config_key(),
+    label: module.label(),
+    fields: length(module.config_schema())
+  }
+end
 ```

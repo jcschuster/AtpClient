@@ -109,6 +109,19 @@ defmodule AtpClient.Config do
   @doc """
   Returns the value of `key` from the resolved settings for `backend`, falling
   back to the given `default` if unset or set to `nil`.
+
+  Per-call `opts` win over Application env, which wins over library defaults.
+
+  ## Examples
+
+      # Library default from `AtpClient.Config.defaults/0`.
+      AtpClient.Config.fetch(:sotptp, :default_time_limit_sec, 5)
+      # => 5
+
+      # Per-call override wins over defaults and Application env.
+      AtpClient.Config.fetch(:sotptp, :default_time_limit_sec, 5,
+        default_time_limit_sec: 30)
+      # => 30
   """
   @spec fetch(backend(), atom(), any(), keyword()) :: any()
   def fetch(backend, key, default, opts \\ []) do
@@ -124,6 +137,15 @@ defmodule AtpClient.Config do
 
   Use this for settings that have no sensible default (for example
   `:base_url`, `:password`).
+
+  ## Examples
+
+      AtpClient.Config.fetch!(:sotptp, :url)
+      # => "https://tptp.org/cgi-bin/SystemOnTPTPFormReply"
+
+      AtpClient.Config.fetch!(:starexec, :base_url)
+      # ** (ArgumentError) AtpClient: missing required setting `:base_url`
+      #                    for backend `:starexec`. ...
   """
   @spec fetch!(backend(), atom(), keyword()) :: any()
   def fetch!(backend, key, opts \\ []) do

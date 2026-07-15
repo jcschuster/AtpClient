@@ -23,6 +23,32 @@ defmodule AtpClient.Isabelle do
   there before asking Isabelle to load them. Pass theory text in, get
   results back; the file bookkeeping is hidden.
 
+  ### Zero-config: `isabelle` on `$PATH`
+
+  If the `isabelle` executable is discoverable (either on `$PATH` or via the
+  `ISABELLE_TOOL` environment variable), the bundled `:isabelle_elixir`
+  package can spin up a local resident server on demand. This removes any
+  need to configure host/port/password by hand:
+
+      # Start a throwaway server (uses `isabelle` from $PATH).
+      {:ok, server} = IsabelleClient.start_server()
+
+      opts = [host: server.host, port: server.port, password: server.password]
+
+      {:ok, session} = AtpClient.Isabelle.open_session(opts)
+      {:ok, :theorem} =
+        AtpClient.Isabelle.prove_theory(session, ~S\"\"\"
+        lemma "P \\<or> \\<not> P" by auto
+        \"\"\", "Example")
+      :ok = AtpClient.Isabelle.close_session(session)
+
+      # When you're done, stop the server:
+      IsabelleClient.Server.kill(server.name)
+
+  A minimal `config/config.exs` reduces the per-call `opts` to nothing —
+  after the one-time `start_server/0` call, put the returned coordinates
+  into the application env once and forget about them.
+
   ### Paths: `local_dir` vs. `isabelle_dir`
 
   Only relevant when the BEAM node and the Isabelle server see the shared
@@ -62,15 +88,20 @@ defmodule AtpClient.Isabelle do
       lemma "P \\<or> \\<not> P" by auto
       \"\"\"
 
-      {:ok, :theorem} = AtpClient.Isabelle.query(theory, "Example", [])
-      {:ok, :theorem} = AtpClient.Isabelle.query(body, "Example", [])
-
-  For fine-grained workflows, open a session once and reuse it:
-
+      # Recommended: open a session and drive it directly. `prove_theory/4`
+      # returns the single-wrapped `atp_result()` shape every other backend
+      # already uses.
       {:ok, session} = AtpClient.Isabelle.open_session()
-      {:ok, result1} = AtpClient.Isabelle.prove_theory(session, theory1, "T1")
-      {:ok, result2} = AtpClient.Isabelle.prove_theory(session, theory2, "T2")
+      {:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, theory, "Example")
+      {:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, body, "Example")
       :ok = AtpClient.Isabelle.close_session(session)
+
+  The single-shot `query/3` (session-less) is deprecated but still around
+  for callers that predate 0.6.0 — see the "Deprecations" section below.
+
+  For a single-shot TPTP/THF problem collapsed to one verdict, use `query/2`
+  (the `AtpClient.Backend` entry point); for per-lemma results, use
+  `query_tptp/2`.
 
   ## Submitting TPTP/THF problems
 
@@ -197,11 +228,13 @@ defmodule AtpClient.Isabelle do
   end
 
   @typedoc """
-  The result of a call to `prove_theory/4` or `query/3`:
+  The result of a call to `prove_theory/4`:
 
-    * `{:ok, result}` where `result` is either the normalized ATP result or the
-      raw `use_theories` payload (a map with `"nodes"`, `"errors"`, `"ok"`, …),
-      depending on the `:raw` option;
+    * `{:ok, szs_status}` — the classified SZS verdict (default mode). Matches
+      the shape every other backend returns from its `query/2` entry point;
+    * `{:ok, payload_map}` — when `:raw` is `true`, the full `use_theories`
+      payload (a map with `"nodes"`, `"errors"`, `"ok"`, …) returned by the
+      Isabelle server;
     * `{:error, {:isabelle_failed, payload, notes}}` when the server reports a
       `FAILED` message for the task (e.g. a theory file that Isabelle could not
       load). `notes` is the list of intermediate `NOTE` payloads accumulated by
@@ -213,6 +246,18 @@ defmodule AtpClient.Isabelle do
     * other `{:error, reason}` for connection, session-start, and I/O issues.
   """
   @type result ::
+          {:ok, ResultNormalization.szs_status()}
+          | {:ok, map()}
+          | {:error, term()}
+
+  @typedoc """
+  Legacy shape returned by the deprecated `query/3` only: the non-raw path
+  wraps the normalized ATP result in an extra `:ok`, so success reads
+  `{:ok, {:ok, :theorem}}`. Preserved verbatim for callers that predate the
+  0.6.0 unwrap (notably code samples in the AtpClient paper). Prefer
+  `prove_theory/4` / `query_lemmas/3` / `query_tptp/2` in new code.
+  """
+  @type legacy_result ::
           {:ok, ResultNormalization.atp_result()}
           | {:ok, map()}
           | {:error, term()}
@@ -222,11 +267,12 @@ defmodule AtpClient.Isabelle do
   and returns a `Session` handle.
 
   The handle is backed by a private owner process that holds the link to
-  `IsabelleClient.Shared` for you, so callers do **not** need to trap exits: a failed connection surfaces as `{:error, reason}` and a
-  later crash of the Shared process surfaces as a `:DOWN` if the caller
-  monitors `session.client`. The owner is also caller-monitored, so if the
-  caller dies the session is shut down cleanly instead of orphaning a remote
-  Isabelle session.
+  `IsabelleClient.Shared` for you, so callers do **not** need to trap
+  exits: a failed connection surfaces as `{:error, reason}` and a later
+  crash of the Shared process surfaces as a `:DOWN` if the caller
+  monitors `AtpClient.Isabelle.Session.client/1`. The owner is also
+  caller-monitored, so if the caller dies the session is shut down
+  cleanly instead of orphaning a remote Isabelle session.
 
   The caller is still responsible for eventually passing the handle to
   `close_session/1` under normal control flow.
@@ -260,12 +306,7 @@ defmodule AtpClient.Isabelle do
 
     case SessionOwner.start(shared_opts) do
       {:ok, owner} ->
-        {:ok,
-         %Session{
-           client: SessionOwner.shared_pid(owner),
-           owner: owner,
-           config: config
-         }}
+        {:ok, Session.new(SessionOwner.shared_pid(owner), owner, config)}
 
       {:error, reason} ->
         {:error, reason}
@@ -277,7 +318,8 @@ defmodule AtpClient.Isabelle do
   `IsabelleClient.Shared` GenServer, closing its TCP socket.
   """
   @spec close_session(Session.t()) :: :ok
-  def close_session(%Session{owner: owner}) do
+  def close_session(session) do
+    owner = Session.owner(session)
     if Process.alive?(owner), do: GenServer.stop(owner, :normal)
     :ok
   end
@@ -293,22 +335,35 @@ defmodule AtpClient.Isabelle do
       <theory_text>
       end
 
-  By default the result is interpreted by
-  `AtpClient.ResultNormalization.interpret_isabelle_result/1`. Pass `raw: true`
-  to get back the full `use_theories` payload (a map with `"nodes"`, `"ok"`,
-  `"errors"`, …) returned by the Isabelle server.
+  By default the result is classified by
+  `AtpClient.ResultNormalization.interpret_isabelle_result/1` and returned as
+  `{:ok, szs_status}` — the same shape every other backend produces from its
+  `query/2` entry point. Pass `raw: true` to get back the full `use_theories`
+  payload (a map with `"nodes"`, `"ok"`, `"errors"`, …) as `{:ok, map()}`.
 
   ## Options
 
-    * `:raw` — return the raw payload map (default `false`);
+    * `:raw` — return `{:ok, payload_map}` instead of `{:ok, szs_status}`
+      (default `false`);
     * `:imports` — session/theory to import when auto-wrapping (default `"Main"`);
     * `:use_theories_timeout_ms` — overall deadline for the task (default from
       config, `120_000`).
+
+  ## Examples
+
+      # Non-raw: single-wrap SZS verdict.
+      {:ok, :theorem} =
+        AtpClient.Isabelle.prove_theory(session, "lemma p: True by auto\\n", "P")
+
+      # Raw: full server payload.
+      {:ok, %{"nodes" => _, "ok" => true}} =
+        AtpClient.Isabelle.prove_theory(session, "lemma p: True by auto\\n",
+          "P", raw: true)
   """
   @spec prove_theory(Session.t(), String.t(), String.t(), keyword()) :: result()
-  def prove_theory(%Session{} = session, theory_text, theory_name, opts \\ [])
+  def prove_theory(session, theory_text, theory_name, opts \\ [])
       when is_binary(theory_text) and is_binary(theory_name) do
-    config = Keyword.merge(session.config, opts)
+    config = Keyword.merge(Session.config(session), opts)
     raw? = Keyword.get(opts, :raw, false)
     imports = Keyword.get(opts, :imports, "Main")
 
@@ -328,13 +383,13 @@ defmodule AtpClient.Isabelle do
            :ok <- File.write(Path.join(local_dir, theory_name <> ".thy"), theory_source),
            {:ok, %Task{result: payload}} <-
              Shared.use_theories(
-               session.client,
+               Session.client(session),
                %{"theories" => [theory_name], "master_dir" => isabelle_dir},
                timeout_ms
              ) do
         if raw?,
           do: {:ok, payload},
-          else: {:ok, ResultNormalization.interpret_isabelle_result(payload)}
+          else: ResultNormalization.interpret_isabelle_result(payload)
       else
         {:error, %Task{status: :failed, result: payload, notes: notes}} ->
           {:error, {:isabelle_failed, payload, notes}}
@@ -373,15 +428,14 @@ defmodule AtpClient.Isabelle do
 
   defp annotate_path_error(other, _local_dir, _isabelle_dir, _theory_name), do: other
 
-  @doc """
-  Extracts the lemma specs (name + body-line range) from a theory body.
-
-  Walks the body line-by-line, picking out `lemma <name>:` or
-  `lemma <name>[…]:` declarations and computing each lemma's range as
-  `[its line .. (line before the next lemma)]`. Used by `prove_lemmas/4`
-  and `prove_tptp/3` to feed `ResultNormalization.per_lemma_results/3`
-  without having to re-parse the body inside the classifier.
-  """
+  @doc false
+  # Internal: extracts lemma specs (name + body-line range) from a theory body.
+  # Walks the body line-by-line, picking out `lemma <name>:` declarations and
+  # computing each lemma's range as `[its line .. (line before the next lemma)]`.
+  # Used by `prove_lemmas/4` and `prove_tptp/3` to feed
+  # `ResultNormalization.per_lemma_results/3` without re-parsing inside the
+  # classifier. Retained as public-visibility for tests, not part of the API
+  # contract.
   @spec lemma_specs(String.t()) :: [ResultNormalization.lemma_spec()]
   def lemma_specs(theory_text) when is_binary(theory_text) do
     lines = String.split(theory_text, "\n")
@@ -437,7 +491,7 @@ defmodule AtpClient.Isabelle do
   """
   @spec prove_lemmas(Session.t(), String.t(), String.t(), keyword()) ::
           {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
-  def prove_lemmas(%Session{} = session, theory_text, theory_name, opts \\ [])
+  def prove_lemmas(session, theory_text, theory_name, opts \\ [])
       when is_binary(theory_text) and is_binary(theory_name) do
     specs = lemma_specs(theory_text)
     # Auto-wrapping prepends `theory <name> imports <…> begin\n`, which
@@ -538,8 +592,8 @@ defmodule AtpClient.Isabelle do
   """
   @spec prove_tptp(Session.t(), String.t(), keyword()) ::
           {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
-  def prove_tptp(%Session{} = session, problem, opts \\ []) when is_binary(problem) do
-    config = Keyword.merge(session.config, opts)
+  def prove_tptp(session, problem, opts \\ []) when is_binary(problem) do
+    config = Keyword.merge(Session.config(session), opts)
     local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
     proof_method = Keyword.get(opts, :proof_method, "by auto")
 
@@ -641,18 +695,34 @@ defmodule AtpClient.Isabelle do
   end
 
   @doc """
-  Convenience wrapper: opens a session, calls `prove_theory/4`, and
-  unconditionally closes the session afterwards (even on error).
+  **Deprecated.** Opens a session, calls `prove_theory/4`, closes the
+  session, and returns the historical double-wrapped shape
+  (`{:ok, atp_result()}` in non-raw mode — success reads
+  `{:ok, {:ok, :theorem}}`).
+
+  Preserved verbatim so callers that predate the 0.6.0 unwrap keep
+  working (in particular, the code samples in the AtpClient paper).
+  New code should call one of:
+
+    * `prove_theory/4` with a session you own — returns `{:ok, szs_status()}`
+      (single-wrap), matching every other backend;
+    * `query_lemmas/3` for a one-shot theory with per-lemma results;
+    * `query_tptp/2` for a TPTP/THF problem;
+    * `query/2` (`AtpClient.Backend` entry point) for a TPTP/THF problem
+      collapsed to a single verdict.
 
   `opts` must be passed explicitly (use `[]` for none) — a default value
   would shadow `query/2` from `AtpClient.Backend`.
   """
-  @spec query(String.t(), String.t(), keyword()) :: result()
+  @deprecated "Use prove_theory/4 with an open session, or query_lemmas/3 / query_tptp/2 for one-shot calls. See @typedoc for `legacy_result` for the double-wrap this function preserves."
+  @spec query(String.t(), String.t(), keyword()) :: legacy_result()
   def query(theory_text, theory_name, opts) do
+    raw? = Keyword.get(opts, :raw, false)
+
     case open_session(opts) do
       {:ok, session} ->
         try do
-          prove_theory(session, theory_text, theory_name, opts)
+          legacy_wrap(prove_theory(session, theory_text, theory_name, opts), raw?)
         after
           close_session(session)
         end
@@ -661,4 +731,13 @@ defmodule AtpClient.Isabelle do
         err
     end
   end
+
+  # `prove_theory/4` (post-0.6.0) returns `{:ok, szs_status()}` in non-raw mode
+  # and `{:ok, map()}` in raw mode. The legacy `query/3` contract wraps the
+  # non-raw path in an extra `:ok` (so success reads `{:ok, {:ok, :theorem}}`)
+  # but leaves the raw path shape alone. `:raw` in opts is authoritative
+  # since callers know which mode they asked for.
+  defp legacy_wrap({:error, _} = err, _raw?), do: err
+  defp legacy_wrap({:ok, _} = ok, true), do: ok
+  defp legacy_wrap({:ok, _} = ok, false), do: {:ok, ok}
 end

@@ -122,8 +122,9 @@ defmodule AtpClient.SystemOnTptp do
   ## Options
 
     * `:time_limit_sec` — time limit in seconds (default `5`);
-    * `:raw` — return the raw prover output instead of interpreting it
-      (default `false`);
+    * `:raw` — when `true`, skip `interpret_result/1` and return the raw
+      HTTP response body (the prover's stdout as SystemOnTPTP relays it)
+      as `{:ok, body_string}`. Default `false`;
     * `:url` — override the SystemOnTPTP endpoint URL.
 
   ## Cancellation

@@ -34,7 +34,7 @@ Add `:atp_client` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:atp_client, "~> 0.5"}
+    {:atp_client, "~> 0.6"}
   ]
 end
 ```
@@ -146,34 +146,71 @@ any endpoint this module does not wrap directly.
 
 ### Isabelle
 
+Isabelle needs a running `isabelle server` to talk to. If `isabelle` is on
+your `PATH` (or reachable via `ISABELLE_TOOL`), the bundled
+[`isabelle_elixir`](https://hex.pm/packages/isabelle_elixir) package can
+start one for you — no manual `isabelle server` invocation required:
+
 ```elixir
+{:ok, server} = IsabelleClient.start_server()
+opts = [host: server.host, port: server.port, password: server.password]
+
 theory = ~S"""
-theory Example imports Main
-begin
-
-lemma "! x. P x --> P x"
+lemma "\<forall>x. P x \<longrightarrow> P x"
   by auto
-
-end
 """
 
-# The first result in the output is interpreted. "Successful" tool calls, e.g.
-# finding a proof or countermodel, take precedence. Multiple formulae are not
-# supported.
-AtpClient.Isabelle.query(theory)
-# => {:ok, :theorem}
+# Bare-body input is auto-wrapped in `theory ... imports Main begin ... end`.
+# `prove_theory/4` returns the single-wrapped `atp_result()` shape every
+# other backend already uses.
+{:ok, session} = AtpClient.Isabelle.open_session(opts)
+{:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, theory, "Example")
+:ok = AtpClient.Isabelle.close_session(session)
 
-# With an existing session, reuse the socket for multiple theories:
-{:ok, session} = AtpClient.Isabelle.open_session()
-AtpClient.Isabelle.prove_theory(session, theory)
-AtpClient.Isabelle.prove_theory(session, other_theory)
-AtpClient.Isabelle.close_session(session)
-
-# Pass `raw: true` to inspect the full Isabelle status list instead:
-{:ok, status} = AtpClient.Isabelle.query(theory, raw: true)
-AtpClient.ResultNormalization.extract_isabelle_text(status)
-# => "...\nSledgehammering...\nverit found a proof...\n..."
+# When you're done:
+IsabelleClient.Server.kill(server.name)
 ```
+
+Point at an already-running server by dropping the `start_server/0` call and
+supplying the coordinates directly, either per-call or via `config.exs`. In
+containerised or Cygwin setups where the BEAM and Isabelle see the shared
+theory directory under different paths, set both `:local_dir` (BEAM view)
+and `:isabelle_dir` (server view); when they match, only `:local_dir` (or
+neither — it defaults to a subdirectory of `System.tmp_dir!/0`) is needed.
+
+Sessions are cheap to keep open and expensive to restart. Reuse one across
+multiple theories:
+
+```elixir
+{:ok, session} = AtpClient.Isabelle.open_session(opts)
+try do
+  {:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, theory, "Example")
+  {:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, other_theory, "Other")
+after
+  AtpClient.Isabelle.close_session(session)
+end
+```
+
+> The three-arity `AtpClient.Isabelle.query/3` is deprecated as of 0.6.0 but
+> still available for callers that depend on its double-wrapped return shape
+> (`{:ok, {:ok, :theorem}}`).
+
+Pass a TPTP/THF problem string to `query_tptp/2` (or `prove_tptp/3` with a
+session) to route it through `IsabelleClient.TPTP.isabellize_theory/1` and
+get one result per conjecture:
+
+```elixir
+problem = ~S"""
+thf(p_type, type, p: $i > $o).
+thf(g, conjecture, ! [X: $i]: (p @ X | ~ (p @ X))).
+"""
+
+AtpClient.Isabelle.query_tptp(problem, opts)
+# => {:ok, [%{name: "g", result: {:ok, :theorem}}]}
+```
+
+Pass `raw: true` to `prove_theory/4` to inspect the full `use_theories`
+payload instead of the classified verdict.
 
 ### LocalExec
 

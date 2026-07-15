@@ -2,6 +2,7 @@ defmodule AtpClient.IsabelleTest do
   use ExUnit.Case, async: false
 
   alias AtpClient.Isabelle
+  alias AtpClient.Isabelle.Session
 
   describe "open_session/1 safety" do
     test "returns {:error, _} against an unreachable host without killing a non-trapping caller" do
@@ -75,7 +76,7 @@ defmodule AtpClient.IsabelleTest do
         spawn(fn ->
           case Isabelle.open_session(opts) do
             {:ok, vs} ->
-              send(parent, {:session, vs.owner, vs.client})
+              send(parent, {:session, Session.owner(vs), Session.client(vs)})
               Process.sleep(:infinity)
 
             err ->
@@ -119,7 +120,7 @@ defmodule AtpClient.IsabelleTest do
         spawn(fn ->
           case Isabelle.open_session(opts) do
             {:ok, vs} ->
-              send(parent, {:session, vs.owner, vs.client})
+              send(parent, {:session, Session.owner(vs), Session.client(vs)})
               res = Isabelle.prove_theory(vs, slow_body, "SlowProbe", opts)
               send(parent, {:result, res})
 
@@ -151,8 +152,8 @@ defmodule AtpClient.IsabelleTest do
 
       try do
         result = Isabelle.prove_theory(fresh, "lemma ok: \"True\" by simp\n", "Sanity", opts)
-        # prove_theory wraps the normalized result: {:ok, {:ok, :theorem}}.
-        assert {:ok, {:ok, :theorem}} = result
+        # prove_theory returns the single-wrapped atp_result() since 0.6.0.
+        assert {:ok, :theorem} = result
       after
         Isabelle.close_session(fresh)
       end

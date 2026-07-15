@@ -25,6 +25,34 @@ defmodule AtpClient.Backend do
   `verify/1` accepts the same keyword list every other backend call accepts,
   so the cell can probe without first writing values into `Application` env.
 
+  ## Two error channels
+
+  `query/2` returns either an `t:AtpClient.ResultNormalization.atp_result/0`
+  or an outer `{:error, term()}`. They mean different things and callers
+  usually want to route them differently:
+
+    * `{:ok, szs_status}` and `{:error, failure}` (from `atp_result()`) are
+      the **classifier's** verdict: the prover ran and returned an SZS
+      status the classifier could interpret, or produced output the
+      classifier could not parse. Failure atoms are enumerated in
+      `t:AtpClient.ResultNormalization.failure_t/0` (`:internal_error`,
+      `:input_error`, `{:prover_not_found, name}`,
+      `{:unrecognized_output, raw}`).
+    * `{:error, term()}` outside `failure_t()` is a **transport /
+      session** error: connection refused, HTTP status, session-open
+      failure, missing config, Isabelle "cannot load theory file", etc.
+      The shape is backend-specific and not exhaustively enumerated —
+      match `{:error, _}` as a catch-all after the classified branches.
+
+  A common Idiom:
+
+      case Backend.query(problem, opts) do
+        {:ok, status}                 -> :prover_verdict
+        {:error, {:prover_not_found, _}} -> :missing_binary
+        {:error, {:unrecognized_output, _}} -> :bad_parse
+        {:error, reason}              -> {:transport, reason}
+      end
+
   ## Cancellation contract
 
   Each backend treats the death of the process calling `query/2` as a

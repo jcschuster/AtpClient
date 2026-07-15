@@ -74,56 +74,20 @@ defmodule SmokeTest do
     end
   end
 
-  # A successful create_job is a redirect (302/303) whose Location header
-  # carries the new job id. Anything else is a validation failure; StarExec
-  # encodes the human-readable reason in the STATUS_MESSAGE_STRING cookie
-  # and repeats it in the error body.
-  def extract_job_id!(%{status: status} = resp) when status not in [302, 303] do
+  # `AtpClient.StarExec.create_job/3` (0.6.0+) returns `{:ok, job_id}` on the
+  # normal 302 redirect path and `{:error, {:create_job_failed, %{status,
+  # message}}}` for anything else. `message` is the StarExec
+  # `STATUS_MESSAGE_STRING` cookie value when set.
+  def unwrap_job_id!({:ok, id}) when is_integer(id), do: id
+
+  def unwrap_job_id!({:error, {:create_job_failed, %{status: status, message: msg}}}) do
     raise """
     create_job failed with status #{status}.
-      StarExec reason: #{starexec_status_message(resp) || "(none)"}
-      Body excerpt:    #{body_excerpt(resp.body)}
+      StarExec reason: #{msg || "(none)"}
     """
   end
 
-  def extract_job_id!(%{headers: headers}) do
-    location =
-      headers
-      |> Enum.find_value(fn {k, v} ->
-        if String.downcase(k) == "location", do: v
-      end)
-      |> case do
-        nil -> raise "create_job redirected without a Location header"
-        [v | _] -> v
-        v when is_binary(v) -> v
-      end
-
-    # StarExec's success redirect is /starexec/secure/details/job.jsp?id=N.
-    # Match either ?id=N, ?jobId=N, or a /jobs/N tail to stay tolerant of
-    # other versions.
-    case Regex.run(~r/[?&](?:job)?[Ii]d=(\d+)|\/jobs\/(\d+)/, location) do
-      [_, id, ""] -> String.to_integer(id)
-      [_, "", id] -> String.to_integer(id)
-      [_, id] -> String.to_integer(id)
-      _ -> raise "Could not parse job_id from Location: #{location}"
-    end
-  end
-
-  defp starexec_status_message(%{headers: headers}) do
-    headers
-    |> Enum.flat_map(fn
-      {k, v} -> if String.downcase(k) == "set-cookie", do: List.wrap(v), else: []
-    end)
-    |> Enum.find_value(fn raw ->
-      case String.split(raw, ";", parts: 2) |> hd() |> String.split("=", parts: 2) do
-        ["STATUS_MESSAGE_STRING", v] -> URI.decode(v)
-        _ -> nil
-      end
-    end)
-  end
-
-  defp body_excerpt(body) when is_binary(body), do: String.slice(body, 0, 2_000)
-  defp body_excerpt(body), do: inspect(body) |> String.slice(0, 2_000)
+  def unwrap_job_id!({:error, reason}), do: raise("create_job failed: #{inspect(reason)}")
 
   # The j_outputs ZIP from /secure/download contains one stdout file per pair
   # under a directory layout like Job<id>/<space>/<bench>/<solver>/<config>/.
@@ -212,11 +176,7 @@ IO.puts("Cookies received: #{inspect(Map.keys(session.cookies))}")
 
 IO.puts("\n=== Case 1: Theorem ===")
 fields_thm = SmokeTest.job_fields(space_id, queue_id, solver_cfg_id, bench_thm_id, "Theorem", 30)
-{:ok, resp_thm} = StarExec.create_job(session, fields_thm, opts)
-IO.puts("create_job status: #{resp_thm.status}")
-IO.puts("Location: #{inspect(Enum.find_value(resp_thm.headers, fn {k,v} -> if String.downcase(k)=="location", do: v end))}")
-
-job_id_thm = SmokeTest.extract_job_id!(resp_thm)
+job_id_thm = SmokeTest.unwrap_job_id!(StarExec.create_job(session, fields_thm, opts))
 IO.puts("Job ID: #{job_id_thm}")
 
 {:ok, job_info_thm} = StarExec.wait_for_job(session, job_id_thm, Keyword.merge(opts, timeout_ms: 120_000))
@@ -237,8 +197,7 @@ SmokeTest.assert_eq!("Theorem result", result_thm, {:ok, :theorem})
 
 IO.puts("\n=== Case 2: CounterSatisfiable ===")
 fields_csat = SmokeTest.job_fields(space_id, queue_id, solver_cfg_id, bench_csat_id, "CounterSat", 30)
-{:ok, resp_csat} = StarExec.create_job(session, fields_csat, opts)
-job_id_csat = SmokeTest.extract_job_id!(resp_csat)
+job_id_csat = SmokeTest.unwrap_job_id!(StarExec.create_job(session, fields_csat, opts))
 
 {:ok, job_info_csat} = StarExec.wait_for_job(session, job_id_csat, Keyword.merge(opts, timeout_ms: 120_000))
 {:ok, output_zip_csat} = StarExec.get_job_output(session, job_id_csat, opts)

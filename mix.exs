@@ -1,7 +1,7 @@
 defmodule AtpClient.MixProject do
   use Mix.Project
 
-  @version "0.5.0"
+  @version "0.6.0"
   @source_url "https://github.com/jcschuster/AtpClient"
 
   def project do
@@ -56,11 +56,10 @@ defmodule AtpClient.MixProject do
       extras: [
         "README.md",
         "CHANGELOG.md",
-        "examples/demo.livemd",
-        "examples/isabelle_tptp.livemd"
+        "examples/demo.livemd"
       ],
       groups_for_extras: [
-        Examples: ["examples/demo.livemd", "examples/isabelle_tptp.livemd"]
+        Examples: ["examples/demo.livemd"]
       ],
       # The CHANGELOG documents APIs that were renamed or removed in past
       # releases; ExDoc would otherwise warn on each historical reference.

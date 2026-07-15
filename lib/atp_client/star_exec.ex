@@ -29,9 +29,9 @@ defmodule AtpClient.StarExec do
 
   ## Example
 
-      iex> {:ok, session} = AtpClient.StarExec.login()
-      iex> {:ok, job_info} = AtpClient.StarExec.get_job(session, 1234)
-      iex> :ok = AtpClient.StarExec.logout(session)
+      {:ok, session} = AtpClient.StarExec.login()
+      {:ok, job_info} = AtpClient.StarExec.get_job(session, 1234)
+      :ok = AtpClient.StarExec.logout(session)
 
   ## Configuration
 
@@ -141,33 +141,29 @@ defmodule AtpClient.StarExec do
     end
   end
 
-  # Keys consumed by this module's own configuration / call-time API. They
-  # must be stripped from the keyword list before it is handed to
-  # `Req.request/1`, which validates options and rejects unknown ones.
-  @starexec_only_opts [
-    :username,
-    :password,
-    :request_timeout_ms,
-    :poll_interval_ms,
-    :session_init_path,
-    :login_path,
-    :logout_path,
-    :job_info_path,
-    :job_output_path,
-    :create_job_path,
-    :delete_job_path,
-    :upload_benchmarks_path,
-    :list_space_benchmarks_path,
-    :benchmark_type,
-    :queue_id,
-    :cpu_timeout_s,
-    :wallclock_timeout_s,
-    :space_id,
-    :solver_cfg_id,
-    :timeout_ms,
-    :complete_fun,
-    :path
-  ]
+  # Keys that `Req.request/1` recognizes (and, for a couple, that
+  # `request/4` explicitly forwards on top). Callers can pass any of these
+  # in `opts` and they will flow through to Req; StarExec-specific options
+  # (`:username`, `:*_path`, `:queue_id`, …) are picked up by
+  # `Config.fetch(...)` where relevant and never reach Req, which would
+  # reject them as unknown.
+  #
+  # This is an allowlist by design — the previous denylist required every
+  # new StarExec option to be added here to avoid Req rejecting the
+  # request, which was easy to miss in review. Grown from the register list
+  # in `Req.Steps.attach/1` (Req 0.6); update when adding support for a new
+  # Req feature that a StarExec caller needs to pass through.
+  @req_pass_through_opts ~w(
+    method url base_url headers body params path_params path_params_style
+    form form_multipart json compressed compress_body auth range checksum
+    raw http_errors decode_body decoders decode_json
+    redirect redirect_trusted redirect_log_level max_redirects
+    retry retry_delay retry_log_level max_retries
+    cache cache_dir
+    plug finch finch_request finch_private
+    connect_options inet6 receive_timeout pool_timeout unix_socket
+    pool_max_idle_time user_agent
+  )a
 
   @doc """
   Authenticates against the configured StarExec instance and returns a
@@ -297,19 +293,37 @@ defmodule AtpClient.StarExec do
   end
 
   @doc """
-  Creates a new StarExec job. The `fields` map is sent as the form body and
-  must contain everything the deployment's `/secure/add/job` handler expects.
+  Creates a new StarExec job and returns the numeric job id.
 
-  A typical field set includes `"name"`, `"desc"`, `"queue"`, `"sid"` (space
-  id), `"cpuTimeout"`, `"wallclockTimeout"`, `"benchProcess"`, `"traversal"`,
-  plus any solver/benchmark selection fields. Refer to your StarExec
-  instance's form for the authoritative list.
+  The `fields` map is sent as the form body and must contain everything the
+  deployment's `/secure/add/job` handler expects. A typical field set includes
+  `"name"`, `"desc"`, `"queue"`, `"sid"` (space id), `"cpuTimeout"`,
+  `"wallclockTimeout"`, `"benchProcess"`, `"traversal"`, plus any
+  solver/benchmark selection fields. Refer to your StarExec instance's form
+  for the authoritative list.
 
-  Returns the raw response so the caller can extract the redirect/location
-  that typically contains the new job id.
+  StarExec replies to a successful submission with a 302 to
+  `/secure/details/job.jsp?id=<n>`; this function parses `<n>` out of the
+  Location header for you. For richer diagnostics on non-redirect responses,
+  the error tuple carries the raw status and any StarExec
+  `STATUS_MESSAGE_STRING` cookie value.
+
+  ## Return
+
+    * `{:ok, job_id}` on a 302/303 with a parsable id
+      (`STAREXEC_URL/secure/details/job.jsp?id=<n>` or `/jobs/<n>`);
+    * `{:error, {:create_job_failed, %{status: status, message: msg | nil}}}`
+      on a non-redirect response — `msg` is the `STATUS_MESSAGE_STRING`
+      cookie value if set (StarExec's own validation message);
+    * `{:error, {:no_job_id, location}}` if the redirect landed but the
+      Location header didn't match a known job-id pattern;
+    * anything `request/4` can propagate.
+
+  Callers that want the raw response can use the low-level `request/4`
+  helper directly.
   """
   @spec create_job(Session.t(), map(), keyword()) ::
-          {:ok, Req.Response.t()} | {:error, term()}
+          {:ok, job_id()} | {:error, term()}
   def create_job(%Session{} = session, fields, opts \\ []) when is_map(fields) do
     path =
       Keyword.get(opts, :path) ||
@@ -317,29 +331,65 @@ defmodule AtpClient.StarExec do
 
     body = URI.encode_query(fields)
 
-    request(
-      session,
-      :post,
-      path,
-      Keyword.merge(opts,
-        body: body,
-        headers: [{"content-type", "application/x-www-form-urlencoded"}],
-        # StarExec replies to a successful job creation with a 302 redirect
-        # whose Location carries the new job id. Following the redirect would
-        # turn that into a 200 against the job-detail page and discard the
-        # Location header.
-        redirect: false
+    result =
+      request(
+        session,
+        :post,
+        path,
+        Keyword.merge(opts,
+          body: body,
+          headers: [{"content-type", "application/x-www-form-urlencoded"}],
+          # StarExec replies to a successful job creation with a 302 redirect
+          # whose Location carries the new job id. Following the redirect would
+          # turn that into a 200 against the job-detail page and discard the
+          # Location header.
+          redirect: false
+        )
       )
-    )
+
+    with {:ok, resp} <- result do
+      parse_job_creation_response(resp)
+    end
+  end
+
+  defp parse_job_creation_response(%{status: status, headers: headers})
+       when status in [302, 303] do
+    location = location_header(headers)
+
+    case location && Regex.run(~r/[?&](?:job)?[Ii]d=(\d+)|\/jobs\/(\d+)/, location) do
+      [_, id, ""] -> {:ok, String.to_integer(id)}
+      [_, "", id] -> {:ok, String.to_integer(id)}
+      [_, id] -> {:ok, String.to_integer(id)}
+      _ -> {:error, {:no_job_id, location}}
+    end
+  end
+
+  defp parse_job_creation_response(%{status: status} = resp) do
+    {:error, {:create_job_failed, %{status: status, message: starexec_status_message(resp)}}}
+  end
+
+  defp starexec_status_message(%{headers: headers}) do
+    headers
+    |> Enum.flat_map(fn
+      {k, v} -> if String.downcase(k) == "set-cookie", do: List.wrap(v), else: []
+    end)
+    |> Enum.find_value(fn raw ->
+      case raw |> String.split(";", parts: 2) |> hd() |> String.split("=", parts: 2) do
+        ["STATUS_MESSAGE_STRING", v] -> URI.decode(v)
+        _ -> nil
+      end
+    end)
   end
 
   @doc """
-  Uploads a single TPTP problem to a StarExec space.
+  Uploads a single TPTP problem to a StarExec space and returns the
+  benchmark's filename.
 
   StarExec accepts only archives (.zip / .tar / .tgz) at the benchmark upload
   endpoint, so this function wraps `problem_text` in an in-memory ZIP whose
   sole entry is the new benchmark file. The benchmark's name inside StarExec
-  becomes the entry's filename.
+  becomes the entry's filename (returned as `{:ok, name}` for use with
+  `wait_for_benchmark/4`).
 
   The upload is processed asynchronously on the server, so this function
   returns as soon as the request is accepted. Use `wait_for_benchmark/4`
@@ -353,9 +403,15 @@ defmodule AtpClient.StarExec do
     * `:benchmark_type` — benchmark processor id. Defaults to `1`
       (StarExec's "no type" processor), which accepts any text.
     * `:request_timeout_ms`.
+
+  ## Examples
+
+      {:ok, name} = AtpClient.StarExec.upload_benchmark(session, 42,
+        "fof(c, conjecture, $true).", name: "smoke")
+      # name is "smoke.p", ready to hand to wait_for_benchmark/4.
   """
   @spec upload_benchmark(Session.t(), space_id(), binary(), keyword()) ::
-          {:ok, %{name: String.t(), status_id: pos_integer() | nil}} | {:error, term()}
+          {:ok, String.t()} | {:error, term()}
   def upload_benchmark(%Session{} = session, space_id, problem_text, opts \\ [])
       when is_integer(space_id) and is_binary(problem_text) do
     path =
@@ -388,12 +444,12 @@ defmodule AtpClient.StarExec do
       opts
       |> Keyword.put(:form_multipart, fields)
       # StarExec replies with a 302 to secure/details/uploadStatus.jsp?id=N.
-      # Following would mask the Location and discard the status id.
+      # Following would mask the Location and defeat the redirect check.
       |> Keyword.put(:redirect, false)
 
     case request(session, :post, path, upload_opts) do
-      {:ok, %{status: status} = resp} when status in [302, 303] ->
-        {:ok, %{name: file_name, status_id: extract_status_id(resp)}}
+      {:ok, %{status: status}} when status in [302, 303] ->
+        {:ok, file_name}
 
       {:ok, %{status: status}} ->
         {:error, {:upload_failed, status}}
@@ -513,6 +569,8 @@ defmodule AtpClient.StarExec do
     * `:benchmark_type` (default `1`).
     * `:timeout_ms` — wall-clock budget for the whole pipeline; passed to
       both `wait_for_benchmark/4` and `wait_for_job/3`.
+    * `:raw` — when `true`, skip `interpret_result/1` and return the
+      fetched solver output string as `{:ok, stdout}`.
 
   All other StarExec options (`:base_url`, `:username`, `:password`, …) are
   consumed by `request/4` as usual.
@@ -525,12 +583,13 @@ defmodule AtpClient.StarExec do
     queue_id = Config.fetch(:starexec, :queue_id, 1, opts)
     cpu_timeout_s = Config.fetch(:starexec, :cpu_timeout_s, 60, opts)
     wallclock_timeout_s = Keyword.get(opts, :wallclock_timeout_s, cpu_timeout_s * 2)
+    raw = Keyword.get(opts, :raw, false)
 
-    with {:ok, %{name: bench_name}} <-
+    with {:ok, bench_name} <-
            upload_benchmark(session, space_id, problem_text, opts),
          {:ok, bench_id} <-
            wait_for_benchmark(session, space_id, bench_name, opts),
-         {:ok, job_resp} <-
+         {:ok, job_id} <-
            create_job(
              session,
              prove_job_fields(
@@ -544,11 +603,10 @@ defmodule AtpClient.StarExec do
              ),
              opts
            ),
-         {:ok, job_id} <- job_id_from_response(job_resp),
          {:ok, _job_info} <- wait_for_job(session, job_id, opts),
          {:ok, zip_bytes} <- get_job_output(session, job_id, opts),
          {:ok, stdout} <- single_stdout_from_zip(zip_bytes) do
-      ResultNormalization.interpret_result(stdout)
+      if raw, do: {:ok, stdout}, else: ResultNormalization.interpret_result(stdout)
     end
   end
 
@@ -576,19 +634,6 @@ defmodule AtpClient.StarExec do
       "pause" => "no"
     }
   end
-
-  defp job_id_from_response(%{status: status, headers: headers}) when status in [302, 303] do
-    location = location_header(headers)
-
-    case location && Regex.run(~r/[?&](?:job)?[Ii]d=(\d+)|\/jobs\/(\d+)/, location) do
-      [_, id, ""] -> {:ok, String.to_integer(id)}
-      [_, "", id] -> {:ok, String.to_integer(id)}
-      [_, id] -> {:ok, String.to_integer(id)}
-      _ -> {:error, {:no_job_id, location}}
-    end
-  end
-
-  defp job_id_from_response(%{status: status}), do: {:error, {:create_job_failed, status}}
 
   # Pull the `Location` header off a response, regardless of case or whether
   # the HTTP client returned it as a bare string or a one-element list.
@@ -622,20 +667,6 @@ defmodule AtpClient.StarExec do
   end
 
   # --- upload/list helpers ----------------------------------------------
-
-  defp extract_status_id(%{headers: headers}) do
-    case location_header(headers) do
-      nil -> nil
-      location -> parse_id_from_location(location)
-    end
-  end
-
-  defp parse_id_from_location(loc) do
-    case Regex.run(~r/[?&]id=(\d+)/, loc) do
-      [_, id] -> String.to_integer(id)
-      _ -> nil
-    end
-  end
 
   # The DataTables JSON has shape %{"aaData" => [["<a href=...>name</a>",
   # "<span>type</span>"], ...]}. We pull (id, name) out of the anchor.
@@ -827,7 +858,7 @@ defmodule AtpClient.StarExec do
     req_opts =
       session.opts
       |> Keyword.merge(opts)
-      |> Keyword.drop(@starexec_only_opts)
+      |> Keyword.take(@req_pass_through_opts)
       |> Keyword.merge(
         method: method,
         base_url: session.base_url,

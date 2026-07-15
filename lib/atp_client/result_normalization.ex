@@ -122,25 +122,23 @@ defmodule AtpClient.ResultNormalization do
   ]
 
   # Prover output snippets emitted by solvers that do not (always) print an
-  # SZS status line. Each pattern is mapped to the closest *honest* SZS atom
-  # the prover would have printed had it complied with the ontology — e.g.
-  # SPASS's "Completion found" means a saturated, contradiction-free clause
-  # set was reached, i.e. `:satisfiable`, not `:gave_up`. Callers running a
-  # negated-conjecture refutation pipeline (Sledgehammer-style) should treat
-  # `:satisfiable` here as a counter-model to the original goal.
+  # SZS status line. Each pattern is mapped to the most faithful SZS atom the
+  # classifier can determine from the output alone. Where a verdict is only
+  # sound under specific prover strategy flags that the classifier cannot see
+  # (e.g. SPASS saturation under `-SOS`), the conservative `:gave_up` is
+  # returned; callers who control the prover's flags can use `raw: true` and
+  # interpret the raw output themselves.
   @prover_specific_results [
-    # Alt-Ergo
+    # Alt-Ergo (Why3-wrapped: ": Valid", ": Timeout"; native: "I don't know")
     {": Valid", {:ok, :theorem}},
     {": Timeout", {:ok, :timeout}},
     {": Unknown", {:ok, :unknown}},
+    {"I don't know", {:ok, :gave_up}},
 
     # E
     {"Failure: Resource limit exceeded (time)", {:ok, :timeout}},
+    {"Failure: Resource limit exceeded (memory)", {:ok, :memory_out}},
     {"time limit exceeded", {:ok, :timeout}},
-
-    # iProver: a CNFRefutation literally exhibits unsatisfiability of the
-    # clause set; map to :unsatisfiable, not :theorem.
-    {"% SZS output start CNFRefutation", {:ok, :unsatisfiable}},
 
     # LEO-II
     {"CPU time limit exceeded, terminating", {:ok, :timeout}},
@@ -149,7 +147,11 @@ defmodule AtpClient.ResultNormalization do
     # SPASS — input-error patterns are prover verdicts (SZS InputError),
     # so they go in the {:ok, _} channel; "Please report this error" is a
     # SPASS internal failure that we cannot trust to be a verdict.
-    {"SPASS beiseite: Completion found", {:ok, :satisfiable}},
+    # "Completion found" means the clause set was saturated, which is only a
+    # sound (counter)satisfiability witness under a refutationally complete
+    # strategy; since the classifier cannot verify which strategy was used,
+    # the conservative :gave_up is returned.
+    {"SPASS beiseite: Completion found", {:ok, :gave_up}},
     {"SPASS beiseite: Ran out of time", {:ok, :timeout}},
     {"SPASS beiseite: Maximal number of loops exceeded", {:ok, :resource_out}},
     {"No formulae and clauses found in input file", {:ok, :input_error}},
@@ -157,17 +159,21 @@ defmodule AtpClient.ResultNormalization do
     {"Free Variable", {:ok, :input_error}},
     {"Please report this error", {:error, :internal_error}},
 
-    # Vampire
+    # Vampire — saturation patterns are conservative :gave_up because the
+    # classifier cannot tell whether a conjecture was present; in SZS mode
+    # Vampire emits the correct status line itself (handled by layer 1).
     {"UNPROVABLE", {:ok, :gave_up}},
     {"CANNOT PROVE", {:ok, :gave_up}},
-    {"Satisfiability detected", {:ok, :satisfiable}},
-    {"Termination reason: Satisfiable", {:ok, :satisfiable}},
+    {"Satisfiability detected", {:ok, :gave_up}},
+    {"Termination reason: Satisfiable", {:ok, :gave_up}},
+    {"Time limit reached!", {:ok, :timeout}},
     {"Aborted by signal SIGINT", {:ok, :forced}},
 
     # Waldmeister — same channel split: input rejection is a verdict,
-    # a SegFault is not.
+    # a SegFault is not. "Unexpected end of file" typically means non-UEQ
+    # input handed to a UEQ-only prover → SZS Inappropriate.
     {"Too many function symbols", {:ok, :resource_out}},
-    {"****  Unexpected end of file.", {:ok, :input_error}},
+    {"****  Unexpected end of file.", {:ok, :inappropriate}},
     {"Unrecoverable Segmentation Fault", {:error, :internal_error}}
   ]
 
@@ -177,27 +183,26 @@ defmodule AtpClient.ResultNormalization do
 
   Three layers run in order:
 
-    1. Prover-specific patterns for solvers that do not (always) emit an SZS
-       status line — Alt-Ergo, E, iProver, LEO-II, SPASS, Vampire,
-       Waldmeister. Mirrors the sledgehammer source
-       (https://github.com/seL4/isabelle/blob/master/src/HOL/Tools/Sledgehammer/sledgehammer_atp_systems.ML)
-       but maps to the *honest* SZS atom rather than sledgehammer's
-       negated-conjecture interpretation: e.g. SPASS "Completion found"
-       becomes `{:ok, :satisfiable}`, not `{:ok, :gave_up}`.
-    2. The explicit SZS table (`@known_szs_results`) recognises every status
+    1. The explicit SZS table (`@known_szs_results`) recognises every status
        in `t:szs_success/0` and `t:szs_no_success/0` from a
-       `"SZS status <Name>"` or `" says <Name>"` substring.
-    3. A permissive fallback converts any remaining
+       `"SZS status <Name>"` or `" says <Name>"` substring. An explicit SZS
+       line always wins over any prover-specific pattern.
+    2. A permissive fallback converts any remaining
        `"SZS status <CamelCase>"` (or `" says <CamelCase>"`) line to its
        snake-case atom, so SZS additions like `EquivalentTheorem` become
        `{:ok, :equivalent_theorem}` without a code change.
+    3. Prover-specific patterns for solvers that do not (always) emit an SZS
+       status line — Alt-Ergo, E, LEO-II, SPASS, Vampire, Waldmeister.
+       Mirrors `sledgehammer_atp_systems.ML` (seL4/isabelle mirror, verified
+       2026-07-14). iProver always emits a proper SZS status line and
+       classifies via layer 1.
 
   Output that none of the three layers matches comes back as
   `{:error, {:unrecognized_output, res_str}}`.
   """
   @spec interpret_result(String.t()) :: atp_result()
   def interpret_result(res_str) do
-    prover_specific_match(res_str) || szs_line_match(res_str) ||
+    szs_line_match(res_str) || prover_specific_match(res_str) ||
       {:error, {:unrecognized_output, res_str}}
   end
 
@@ -234,69 +239,26 @@ defmodule AtpClient.ResultNormalization do
   top-level keys `"ok"`, `"errors"`, `"nodes"`, etc.
 
   Classification is driven by the messages Isabelle emits, not by whether the
-  task finished without errors. Isabelle is goal-directed (it proves stated
-  conjectures), so successful proofs map to `:theorem` rather than
-  `:unsatisfiable`, and a refuted goal maps to `:counter_satisfiable`:
+  task finished without errors. Each message is classified individually to
+  avoid false positives from cross-message substring matches. See
+  `per_lemma_results/3` for the verdict precedence; this function applies the
+  same logic treating all messages as a single bucket.
 
-    * a "Nitpick / Quickcheck found a counterexample" message yields
-      `{:ok, :counter_satisfiable}`;
-    * a "Nitpick / Quickcheck found a model" message yields
-      `{:ok, :satisfiable}`;
-    * a Sledgehammer "found a proof" message yields `{:ok, :theorem}`;
-    * any message starting with `"theorem "` (Isabelle's proof-completion
-      notification, emitted for every discharged goal regardless of the tactic
-      used) yields `{:ok, :theorem}`;
-    * a "timed out" / "TIMEOUT" message yields `{:ok, :timeout}`;
-    * a "Out of memory" message yields `{:ok, :memory_out}`;
-    * remaining cases yield `{:ok, :gave_up}`.
-
-  Failed tasks should be surfaced through `AtpClient.Isabelle.prove_theory/4`'s
-  `{:error, {:isabelle_failed, _, _}}` channel and never reach this function.
+  Always returns `{:ok, szs_status()}` — no payload shape currently causes the
+  classifier to bail out with `{:error, _}`. Callers that also handle
+  transport / session failures should catch those at the `AtpClient.Isabelle`
+  layer instead. Note: payloads with `"ok": false` (proof errors) are still
+  handled here — the proof-method failure veto prevents a theorem echo from
+  being mistaken for a proof success.
   """
-  @spec interpret_isabelle_result(map()) :: atp_result()
+  @spec interpret_isabelle_result(map()) :: {:ok, szs_status()}
   def interpret_isabelle_result(payload) when is_map(payload) do
-    text = extract_text(payload)
-    {:ok, scan(text, theorem_signals()) || :gave_up}
+    messages = extract_messages(payload)
+    {:ok, classify_lemma_bucket(messages)}
   end
-
-  # Ordered list of `{predicate, status}` tuples scanned by `scan/2`. The
-  # first matching predicate wins, so the order encodes precedence: tool
-  # verdicts (nitpick / quickcheck / sledgehammer) before the generic
-  # `theorem` completion, and `gave_up` before `timeout` so a "No proof
-  # found, timed out" message classifies as gave_up.
-  defp theorem_signals do
-    [
-      {&nitpick_counterexample?/1, :counter_satisfiable},
-      {&quickcheck_counterexample?/1, :counter_satisfiable},
-      {&nitpick_model?/1, :satisfiable},
-      {&quickcheck_model?/1, :satisfiable},
-      {&found_a_proof?/1, :theorem},
-      {&theorem_proved?/1, :theorem},
-      {&gave_up?/1, :gave_up},
-      {&timeout?/1, :timeout},
-      {&out_of_memory?/1, :memory_out}
-    ]
-  end
-
-  defp scan(text, signals) do
-    Enum.find_value(signals, fn {predicate, status} ->
-      if predicate.(text), do: status
-    end)
-  end
-
-  defp theorem_proved?(text),
-    do:
-      theorem_at_start?(text) or
-        String.contains?(text, "\ntheorem ") or
-        String.contains?(text, "\ntheorem:")
 
   defp theorem_at_start?(text),
     do: String.starts_with?(text, "theorem ") or String.starts_with?(text, "theorem:")
-
-  defp nitpick_counterexample?(text), do: nitpick_found?(text, "counterexample")
-  defp quickcheck_counterexample?(text), do: quickcheck_found?(text, "counterexample")
-  defp nitpick_model?(text), do: nitpick_found?(text, "model")
-  defp quickcheck_model?(text), do: quickcheck_found?(text, "model")
 
   defp nitpick_found?(text, what),
     do: String.contains?(text, "Nitpick found a") and String.contains?(text, what)
@@ -327,8 +289,8 @@ defmodule AtpClient.ResultNormalization do
   def extract_isabelle_text(payload) when is_map(payload), do: extract_text(payload)
 
   @typedoc """
-  Specification for one lemma in a generated theory body, as computed by
-  `AtpClient.Isabelle.lemma_specs/1`.
+  Specification for one lemma in a generated theory body, as computed
+  internally by `AtpClient.Isabelle.prove_lemmas/4` / `prove_tptp/3`.
 
     * `name` — lemma name as written in the body (the same string the
       classifier surfaces in `t:lemma_result/0`).
@@ -468,14 +430,17 @@ defmodule AtpClient.ResultNormalization do
 
   # Isabelle echoes `theorem name: <goal>` at the `by` position even for a
   # tactic that fails to discharge the goal — the message is just the
-  # current proof state, not a success notification. The accompanying
-  # `Failed to finish proof` error tells us the goal stayed open.
+  # current proof state, not a success notification. The accompanying error
+  # message tells us the goal stayed open.
   defp proof_method_failure?(messages) do
     Enum.any?(messages, fn msg ->
       Map.get(msg, "kind") == "error" and
         msg
         |> Map.get("message", "")
-        |> String.contains?("Failed to finish proof")
+        |> then(
+          &(String.contains?(&1, "Failed to finish proof") or
+              String.contains?(&1, "Failed to apply initial proof method"))
+        )
     end)
   end
 
