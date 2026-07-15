@@ -1,6 +1,6 @@
 # AtpClient — end-to-end demo
 
-## Section
+## Setup
 
 ```elixir
 Mix.install([
@@ -50,8 +50,16 @@ Run a single system. Pass `raw: true` if you want the prover's stdout
 instead of the classified `atp_result/0`.
 
 ```elixir
-{:ok, status} = SystemOnTptp.query_system(problem, "cvc5---1.3.0", time_limit_sec: 5)
-status
+zipperposition = SystemOnTptp.list_provers() |> Enum.find(&String.starts_with?(&1, "Zipperpin"))
+
+with {:ok, status} <- SystemOnTptp.query_system(problem, zipperposition, time_limit_sec: 5),
+do: status
+```
+
+```elixir
+with {:ok, status} <- SystemOnTptp.query_system(problem, zipperposition, time_limit_sec: 5,
+  raw: true
+), do: IO.puts(status)
 ```
 
 Fan out to several systems in one HTTP round-trip. Provers that error out
@@ -59,14 +67,16 @@ Fan out to several systems in one HTTP round-trip. Provers that error out
 from the result list.
 
 ```elixir
-{:ok, results} =
+system_ids = SystemOnTptp.list_provers()
+  |> Enum.filter(& String.starts_with?(&1, "cvc5---") or String.starts_with?(&1, "Z3---"))
+
+with {:ok, results} <-
   SystemOnTptp.query_selected_systems(
     problem,
-    ["cvc5---1.3.0", "Vampire---5.0.1"],
-    time_limit_sec: 5
-  )
-
-results
+    system_ids,
+    time_limit_sec: 15
+  ),
+do: results
 ```
 
 `query_all_systems/2` uses `list_provers/0` and is convenient for
