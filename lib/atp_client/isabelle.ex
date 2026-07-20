@@ -702,7 +702,7 @@ defmodule AtpClient.Isabelle do
   > #### THF-only {: .warning}
   >
   > `IsabelleClient.TPTP.isabellize_theory/1` in the currently vendored
-  > `:isabelle_elixir` (0.4.0) only recognises `thf(…)` annotated formulae.
+  > `:isabelle_elixir` (0.4.1) only recognises `thf(…)` annotated formulae.
   > FOF/CNF input is silently dropped by the isabellizer, so `query_tptp/2`
   > returns `{:ok, []}` and this entry point collapses that to
   > `{:ok, :gave_up}` — indistinguishable from an honest failed proof. If
@@ -725,7 +725,7 @@ defmodule AtpClient.Isabelle do
   # An empty list — the `[]` clause — is not a "trivially proved" state: it
   # means the isabellizer produced no `lemma` declarations from the input.
   # In practice that happens whenever the TPTP dialect is unsupported: the
-  # vendored `IsabelleClient.TPTP` (0.4.0) only handles `thf(…)`, so
+  # vendored `IsabelleClient.TPTP` (0.4.1) only handles `thf(…)`, so
   # `fof(…)` / `cnf(…)` problems isabellize to an empty body. We collapse
   # that to `{:ok, :gave_up}` to preserve the SZS shape of the return type,
   # at the cost of conflating "unsupported input" with "honest failure" —
@@ -766,30 +766,13 @@ defmodule AtpClient.Isabelle do
   defp using_clause([]), do: ""
   defp using_clause(names), do: "using " <> Enum.join(names, " ") <> " "
 
-  # Embed `TPTP.thy` at *atp_client* compile time so escript-packaged
-  # callers work today, without waiting on the upstream isabelle_elixir
-  # release that exposes `TPTP.source_text/0` (see
-  # `isabelle_elixir-0.4.0-escript-priv.patch`). Mix escripts bundle only
-  # `ebin/` — the escript itself is a single zip file, so any runtime read
-  # against `Application.app_dir(:isabelle_elixir, "priv/...")` resolves
-  # *through* the escript file and fails with `:enotdir`. At compile time
-  # the dep's `priv/` is a real directory on disk, so we can slurp the
-  # theory once and carry it in this module's beam. `@external_resource`
-  # keeps recompilation honest if the bundled `.thy` changes.
-  #
-  # Once isabelle_elixir ships `source_text/0`, replace the attribute
-  # below with a direct call to it and drop the compile-time read.
-  @tptp_thy_source Application.app_dir(:isabelle_elixir, "priv/isabelle/tptp/TPTP.thy")
-  @external_resource @tptp_thy_source
-  @embedded_tptp_theory File.read!(@tptp_thy_source)
-
   defp ensure_tptp_theory(local_dir) do
     dest = Path.join(local_dir, "TPTP.thy")
 
     if File.exists?(dest) do
       :ok
     else
-      case File.write(dest, @embedded_tptp_theory) do
+      case File.write(dest, TPTP.source_text()) do
         :ok -> :ok
         {:error, reason} -> {:error, {:tptp_thy_copy_failed, reason}}
       end

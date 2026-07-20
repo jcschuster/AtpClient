@@ -6,7 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.1] - 2026-07-20
+## [0.6.2] - 2026-07-20
+
+Point release that drops the compile-time `TPTP.thy` embed in favour of
+`IsabelleClient.TPTP.source_text/0`, which shipped in `:isabelle_elixir`
+0.4.1 and gives escript-packaged callers the same bytes without a
+per-downstream workaround. No API changes.
+
+### Changed
+
+- **`:isabelle_elixir` constraint bumped to `~> 0.4.1`.** 0.4.1 fixed
+  the escript-side `priv/` read that 0.6.1 papered over locally. The
+  bump is the minimum needed for `IsabelleClient.TPTP.source_text/0`
+  to exist.
+- **`AtpClient.Isabelle.ensure_tptp_theory/1` now calls
+  `IsabelleClient.TPTP.source_text/0`** instead of carrying the
+  `TPTP.thy` bytes in an `@external_resource` module attribute. The
+  upstream module reads its own bundled theory at compile time and
+  exposes the string, so the bytes are still safe to read from an
+  escript — atp_client no longer needs to duplicate the embed. Recompile
+  behaviour on `TPTP.thy` changes now follows `:isabelle_elixir`'s
+  build, not this library's.
+
+
 
 Point release focused on making 0.6 escript-ready, adding editor-grade
 option validation, and exposing the per-system flag overrides that
