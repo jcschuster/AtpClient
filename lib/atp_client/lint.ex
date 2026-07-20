@@ -33,6 +33,18 @@ defmodule AtpClient.Lint do
 
   @default_backends [:local, :tptp4x]
 
+  # `:backends` is the only key this module reads; everything else is
+  # forwarded verbatim to `AtpClient.Lint.Tptp4x.check/2`, which validates
+  # its own opts. Keeping this schema in step with that one is the reason
+  # both modules enumerate their keys — see `lint/tptp4x.ex`.
+  @opts_schema NimbleOptions.new!(
+                 backends: [type: {:list, {:in, [:local, :tptp4x]}}],
+                 url: [type: :string],
+                 tptp4x_system: [type: :string],
+                 tptp4x_time_limit_sec: [type: :non_neg_integer],
+                 request_timeout_ms: [type: :non_neg_integer]
+               )
+
   @doc """
   Runs the enabled backends against `problem` and returns a merged
   `Report`.
@@ -52,6 +64,7 @@ defmodule AtpClient.Lint do
   """
   @spec analyze(String.t(), keyword()) :: Report.t()
   def analyze(problem, opts \\ []) when is_binary(problem) do
+    NimbleOptions.validate!(opts, @opts_schema)
     backends = Keyword.get(opts, :backends, @default_backends)
     %Report{diagnostics: local_diags, symbols: symbols} = run_local(backends, problem)
     remote_diags = run_remote(backends, problem, opts, local_diags)
@@ -72,9 +85,13 @@ defmodule AtpClient.Lint do
   # Network issues are surfaced via a separate channel so they don't
   # pollute the editor markers — the Smart Cell can log them or surface
   # them as a non-marker status instead.
+  #
+  # `:backends` is our own key and is not part of `Tptp4x.check/2`'s
+  # schema, so strip it before forwarding — otherwise the callee's
+  # NimbleOptions validator would reject it.
   defp run_remote(backends, problem, opts, local_diags) do
     if :tptp4x in backends and not has_errors?(local_diags) do
-      case AtpClient.Lint.Tptp4x.check(problem, opts) do
+      case AtpClient.Lint.Tptp4x.check(problem, Keyword.delete(opts, :backends)) do
         {:ok, diags} -> diags
         {:error, _reason} -> []
       end
@@ -89,6 +106,7 @@ defmodule AtpClient.Lint do
   """
   @spec check(String.t(), keyword()) :: {:ok, [Diagnostic.t()]}
   def check(problem, opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
     %Report{diagnostics: diags} = analyze(problem, opts)
     {:ok, diags}
   end

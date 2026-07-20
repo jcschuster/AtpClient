@@ -52,6 +52,100 @@ defmodule AtpClient.StarExec do
   @type benchmark_id :: pos_integer()
   @type space_id :: pos_integer()
 
+  # Every StarExec-specific option any public entry point in this module
+  # reads out of `opts`. Composition here is deep — `prove/3` fans out
+  # into `upload_benchmark/4`, `wait_for_benchmark/4`, `create_job/3`,
+  # `wait_for_job/3`, `get_job_output/3`, all of which forward `opts`
+  # wholesale to `request/4` — so we validate against one shared schema
+  # instead of stripping keys at each hop.
+  #
+  # `request/4` itself is the documented Req escape hatch: it takes the
+  # same schema plus any Req pass-through option. Those Req keys are
+  # enumerated in `@req_pass_through_opts` below and folded into the
+  # schema as `type: :any` so a caller who passes e.g. `retry_delay:` to
+  # `login/1` (which flows into `Req.new/1`) isn't rejected here.
+  @starexec_opts [
+    # Schema-declared connection / defaults (see `config_schema/0`).
+    base_url: [type: :string],
+    username: [type: :string],
+    password: [type: :string],
+    space_id: [type: :pos_integer],
+    solver_cfg_id: [type: :pos_integer],
+    queue_id: [type: :pos_integer],
+    cpu_timeout_s: [type: :non_neg_integer],
+
+    # Advanced knobs (read via `Config.fetch/4`, not surfaced in the schema).
+    login_path: [type: :string],
+    session_init_path: [type: :string],
+    logout_path: [type: :string],
+    job_info_path: [type: :string],
+    job_output_path: [type: :string],
+    create_job_path: [type: :string],
+    delete_job_path: [type: :string],
+    upload_benchmarks_path: [type: :string],
+    list_space_benchmarks_path: [type: :string],
+    request_timeout_ms: [type: :non_neg_integer],
+    poll_interval_ms: [type: :non_neg_integer],
+    benchmark_type: [type: :pos_integer],
+
+    # Per-call ephemera.
+    raw: [type: :boolean, doc: "Return raw prover stdout instead of a classified verdict."],
+    timeout_ms: [
+      type: :non_neg_integer,
+      doc: "Wall-clock deadline for pollers (`wait_for_benchmark/4`, `wait_for_job/3`)."
+    ],
+    wallclock_timeout_s: [
+      type: :non_neg_integer,
+      doc: "StarExec-side wallclock timeout (defaults to `cpu_timeout_s * 2`)."
+    ],
+    complete_fun: [
+      type: {:fun, 1},
+      doc: "Custom completion predicate for `wait_for_job/3` (receives the decoded job map)."
+    ],
+    name: [type: :string, doc: "Uploaded benchmark base name (`upload_benchmark/4`)."],
+
+    # Read via `Config.fetch/4` in `login/1`; forwarded to `Req.new/1`.
+    connect_options: [type: :keyword_list],
+    retry: [type: :any]
+  ]
+
+  # Keys that `Req.request/1` recognizes (and, for a couple, that
+  # `request/4` explicitly forwards on top). Callers can pass any of these
+  # in `opts` and they will flow through to Req; StarExec-specific options
+  # (`:username`, `:*_path`, `:queue_id`, …) are picked up by
+  # `Config.fetch(...)` where relevant and never reach Req, which would
+  # reject them as unknown.
+  #
+  # This is an allowlist by design — the previous denylist required every
+  # new StarExec option to be added here to avoid Req rejecting the
+  # request, which was easy to miss in review. Grown from the register list
+  # in `Req.Steps.attach/1` (Req 0.6); update when adding support for a new
+  # Req feature that a StarExec caller needs to pass through.
+  @req_pass_through_opts ~w(
+    method url base_url headers body params path_params path_params_style
+    form form_multipart json compressed compress_body auth range checksum
+    raw http_errors decode_body decoders decode_json
+    redirect redirect_trusted redirect_log_level max_redirects
+    retry retry_delay retry_log_level max_retries
+    cache cache_dir
+    plug finch finch_request finch_private
+    connect_options inet6 receive_timeout pool_timeout unix_socket
+    pool_max_idle_time user_agent
+  )a
+
+  # Compose the final NimbleOptions schema: our own StarExec keys, plus
+  # every Req pass-through key we don't already have a stricter spec for
+  # (typed as `:any` — Req will validate them itself). Dedup against
+  # `@starexec_opts` so keys like `:raw`, `:connect_options`, `:retry`
+  # keep their stricter local type.
+  @opts_schema NimbleOptions.new!(
+                 @starexec_opts ++
+                   Enum.map(
+                     @req_pass_through_opts -- Keyword.keys(@starexec_opts),
+                     &{&1, [type: :any]}
+                   )
+               )
+
   @impl AtpClient.Backend
   def config_key, do: :starexec
 
@@ -119,6 +213,8 @@ defmodule AtpClient.StarExec do
 
   @impl AtpClient.Backend
   def verify(opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
     with {:ok, session} <- login(opts) do
       logout(session, opts)
     end
@@ -128,6 +224,8 @@ defmodule AtpClient.StarExec do
   @spec query(String.t(), keyword()) ::
           ResultNormalization.atp_result() | {:error, term()}
   def query(problem, opts \\ []) when is_binary(problem) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
     case login(opts) do
       {:ok, session} ->
         try do
@@ -140,30 +238,6 @@ defmodule AtpClient.StarExec do
         err
     end
   end
-
-  # Keys that `Req.request/1` recognizes (and, for a couple, that
-  # `request/4` explicitly forwards on top). Callers can pass any of these
-  # in `opts` and they will flow through to Req; StarExec-specific options
-  # (`:username`, `:*_path`, `:queue_id`, …) are picked up by
-  # `Config.fetch(...)` where relevant and never reach Req, which would
-  # reject them as unknown.
-  #
-  # This is an allowlist by design — the previous denylist required every
-  # new StarExec option to be added here to avoid Req rejecting the
-  # request, which was easy to miss in review. Grown from the register list
-  # in `Req.Steps.attach/1` (Req 0.6); update when adding support for a new
-  # Req feature that a StarExec caller needs to pass through.
-  @req_pass_through_opts ~w(
-    method url base_url headers body params path_params path_params_style
-    form form_multipart json compressed compress_body auth range checksum
-    raw http_errors decode_body decoders decode_json
-    redirect redirect_trusted redirect_log_level max_redirects
-    retry retry_delay retry_log_level max_retries
-    cache cache_dir
-    plug finch finch_request finch_private
-    connect_options inet6 receive_timeout pool_timeout unix_socket
-    pool_max_idle_time user_agent
-  )a
 
   @doc """
   Authenticates against the configured StarExec instance and returns a
@@ -178,6 +252,7 @@ defmodule AtpClient.StarExec do
   """
   @spec login(keyword()) :: {:ok, Session.t()} | {:error, term()}
   def login(opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
     base_url = Config.fetch!(:starexec, :base_url, opts)
     username = Config.fetch!(:starexec, :username, opts)
     password = Config.fetch!(:starexec, :password, opts)
@@ -246,6 +321,7 @@ defmodule AtpClient.StarExec do
   """
   @spec logout(Session.t(), keyword()) :: :ok | {:error, term()}
   def logout(%Session{} = session, opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
     path = Config.fetch(:starexec, :logout_path, "/starexec/services/session/logout", opts)
 
     case request(session, :post, path, opts) do
@@ -260,6 +336,7 @@ defmodule AtpClient.StarExec do
   """
   @spec get_job(Session.t(), job_id(), keyword()) :: {:ok, map()} | {:error, term()}
   def get_job(%Session{} = session, job_id, opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
     base = Config.fetch(:starexec, :job_info_path, "/starexec/services/details/job", opts)
     path = "#{base}/#{job_id}"
 
@@ -282,6 +359,7 @@ defmodule AtpClient.StarExec do
   @spec get_job_output(Session.t(), job_id(), keyword()) ::
           {:ok, binary()} | {:error, term()}
   def get_job_output(%Session{} = session, job_id, opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
     base = Config.fetch(:starexec, :job_output_path, "/starexec/secure/download", opts)
     path = "#{base}?type=j_outputs&id=#{job_id}"
 
@@ -325,9 +403,8 @@ defmodule AtpClient.StarExec do
   @spec create_job(Session.t(), map(), keyword()) ::
           {:ok, job_id()} | {:error, term()}
   def create_job(%Session{} = session, fields, opts \\ []) when is_map(fields) do
-    path =
-      Keyword.get(opts, :path) ||
-        Config.fetch(:starexec, :create_job_path, "/starexec/secure/add/job", opts)
+    NimbleOptions.validate!(opts, @opts_schema)
+    path = Config.fetch(:starexec, :create_job_path, "/starexec/secure/add/job", opts)
 
     body = URI.encode_query(fields)
 
@@ -414,6 +491,8 @@ defmodule AtpClient.StarExec do
           {:ok, String.t()} | {:error, term()}
   def upload_benchmark(%Session{} = session, space_id, problem_text, opts \\ [])
       when is_integer(space_id) and is_binary(problem_text) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
     path =
       Config.fetch(
         :starexec,
@@ -470,6 +549,8 @@ defmodule AtpClient.StarExec do
           {:ok, [%{id: benchmark_id(), name: String.t()}]} | {:error, term()}
   def list_space_benchmarks(%Session{} = session, space_id, opts \\ [])
       when is_integer(space_id) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
     template =
       Config.fetch(
         :starexec,
@@ -513,6 +594,7 @@ defmodule AtpClient.StarExec do
           {:ok, benchmark_id()} | {:error, term()}
   def wait_for_benchmark(%Session{} = session, space_id, name, opts \\ [])
       when is_binary(name) do
+    NimbleOptions.validate!(opts, @opts_schema)
     poll_ms = Config.fetch(:starexec, :poll_interval_ms, 2_000, opts)
     timeout_ms = Keyword.get(opts, :timeout_ms, 60_000)
     deadline = System.monotonic_time(:millisecond) + timeout_ms
@@ -578,6 +660,7 @@ defmodule AtpClient.StarExec do
   @spec prove(Session.t(), binary(), keyword()) ::
           ResultNormalization.atp_result() | {:error, term()}
   def prove(%Session{} = session, problem_text, opts \\ []) when is_binary(problem_text) do
+    NimbleOptions.validate!(opts, @opts_schema)
     space_id = Config.fetch!(:starexec, :space_id, opts)
     solver_cfg_id = Config.fetch!(:starexec, :solver_cfg_id, opts)
     queue_id = Config.fetch(:starexec, :queue_id, 1, opts)
@@ -719,6 +802,7 @@ defmodule AtpClient.StarExec do
   @spec wait_for_job(Session.t(), job_id(), keyword()) ::
           {:ok, map()} | {:error, term()}
   def wait_for_job(%Session{} = session, job_id, opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
     poll_ms = Config.fetch(:starexec, :poll_interval_ms, 2_000, opts)
     timeout_ms = Keyword.get(opts, :timeout_ms, 600_000)
     complete_fun = Keyword.get(opts, :complete_fun, &default_complete?/1)
@@ -755,6 +839,7 @@ defmodule AtpClient.StarExec do
   """
   @spec delete_job(Session.t(), job_id(), keyword()) :: :ok | {:error, term()}
   def delete_job(%Session{} = session, job_id, opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
     path = Config.fetch(:starexec, :delete_job_path, "/starexec/services/delete/job", opts)
     body = URI.encode_query([{"selectedIds[]", to_string(job_id)}])
 

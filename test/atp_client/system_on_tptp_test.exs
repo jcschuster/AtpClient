@@ -53,12 +53,18 @@ defmodule AtpClient.SystemOnTptpTest do
       # The pool must still be usable for a fresh request. The fake server
       # never replies, so we expect an error from receive_timeout — not a
       # hang and not a Finch pool checkout timeout.
+      #
+      # `network_overhead_ms: 100` shrinks each attempt's receive_timeout
+      # from the 30 s production default to 100 ms so the Req retry loop
+      # bails out well inside ExUnit's 60 s test timeout: the pool
+      # assertion below is what matters, not how long the retries take.
       result =
         SystemOnTptp.query_system(
           "fof(a, conjecture, p).",
           "Vampire-FMo---5.0.1",
           url: url,
-          time_limit_sec: 0
+          time_limit_sec: 0,
+          network_overhead_ms: 100
         )
 
       assert match?({:error, _}, result),

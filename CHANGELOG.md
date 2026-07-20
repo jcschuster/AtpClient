@@ -6,6 +6,138 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-07-20
+
+Point release focused on making 0.6 escript-ready, adding editor-grade
+option validation, and exposing the per-system flag overrides that
+`SystemOnTPTPFormReply` has always accepted. Nothing about the backend
+semantics, SZS ontology, or documented result shapes changes; the pieces
+that could affect an existing caller are called out under **Changed**.
+
+### Added
+
+- **Per-system flag overrides on `AtpClient.SystemOnTptp`.**
+  `query_system/3`, `query_selected_systems/3`, and (transitively)
+  `query_all_systems/2` accept three new options that are emitted as the
+  corresponding `Command___<sysid>`, `Format___<sysid>`, and
+  `Transform___<sysid>` form fields on the SystemOnTPTPFormReply POST:
+
+    * `:command` — override the per-system command line (e.g.
+      `"run_E %s %d THM"`). **Note**: the public `tptp.org` deployment
+      currently ignores this field and runs the default wrapper; the
+      option is still transmitted for self-hosted SystemOnTPTP instances
+      that honour it. Verified against
+      `https://tptp.org/cgi-bin/SystemOnTPTPFormReply` at release time
+      and locked in by `test/atp_client/system_on_tptp_live_test.exs`.
+    * `:format` — override the input-format module (e.g. `"tptp:raw"`).
+    * `:transform` — override the input-transformation stage (e.g.
+      `"none"`).
+
+  All three default to unset; when omitted, the SystemOnTPTP deployment
+  picks its per-system default and existing behaviour is unchanged.
+
+- **Live SystemOnTPTP smoke tests.**
+  `test/atp_client/system_on_tptp_live_test.exs` (tagged `:sotptp_live`,
+  excluded by default) pins the observed behaviour of the new overrides
+  against `tptp.org`. Run with `mix test --include sotptp_live` when the
+  wire contract needs re-verification.
+
+### Fixed
+
+- **Escript packaging of the bundled `TPTP.thy`.** `AtpClient.Isabelle`
+  now reads `deps/isabelle_elixir/priv/isabelle/tptp/TPTP.thy` at
+  atp_client compile time into a module attribute and writes those bytes
+  from the beam. Mix escripts bundle only `ebin/` (the escript is a
+  single zip file), so any runtime read against
+  `Application.app_dir(:isabelle_elixir, "priv/...")` used to resolve
+  *through* the escript file and fail with `:enotdir` — visible as
+  `{:error, {:tptp_thy_copy_failed, :enotdir}}` from every
+  `prove_tptp/3` / `query_tptp/2` call in escript-packaged
+  downstreams (notably `atp_mcp`). The compile-time embed removes the
+  runtime filesystem dependency and requires no changes to
+  `isabelle_elixir`. `@external_resource` keeps recompilation honest
+  when the bundled `.thy` changes.
+
+- **TPTP axioms are now passed to the injected proof method.**
+  `AtpClient.Isabelle.inject_proof_method/2` prepends a
+  `using <axiom_names>` clause when the isabellized theory contains
+  `axiomatization where …` entries, so `sledgehammer` / `by auto` /
+  `by metis` / … actually see the axioms of the input problem. Without
+  this, TPTP problems whose conjecture depends on named axioms
+  (i.e. almost all of them) surfaced as `:gave_up`.
+
+- **`:isabelle_elixir`-independent TPTP theory loading.** As a
+  consequence of the two fixes above, `AtpClient.Isabelle` no longer
+  needs `isabelle_elixir` to release the pending `source_text/0`
+  patch — the escript path works today against stock 0.4.0.
+
+### Changed
+
+- **Unknown option keys are now rejected at the entry point.** Every
+  public function that takes a keyword-list `opts` argument
+  (`query/2`, `query_system/3`, `query_selected_systems/3`,
+  `query_all_systems/2`, `verify/1` on all four backends,
+  `open_session/1`, `prove_theory/4`, `prove_lemmas/4`,
+  `query_lemmas/3`, `prove_tptp/3`, `query_tptp/2` on Isabelle,
+  `login/1`, `logout/2`, `get_job/3`, `get_job_output/3`,
+  `create_job/3`, `upload_benchmark/4`, `list_space_benchmarks/3`,
+  `wait_for_benchmark/4`, `prove/3`, `wait_for_job/3`,
+  `delete_job/3` on StarExec, plus `AtpClient.Lint.analyze/2` /
+  `check/2` and `AtpClient.Lint.Tptp4x.check/2`) now validates
+  `opts` against a `NimbleOptions` schema before doing any work.
+
+  Practically: a call that used to silently ignore an unknown key —
+  e.g. `SystemOnTptp.query(problem, time_limit: 5)` (missing `_sec`
+  suffix) — now raises `NimbleOptions.ValidationError` (an
+  `ArgumentError` subclass) at the entry point. Documented option
+  spellings and types are unchanged; only unknown keys and
+  obviously-wrong value shapes are rejected. Two escape hatches remain:
+  `AtpClient.StarExec.request/4` still passes any Req option through
+  verbatim (documented escape hatch), and `AtpClient.LocalExec` only
+  validates the *shape* of `:args` (list-of-strings) — the flag
+  contents are prover-specific and stay opaque.
+
+  If you get a `NimbleOptions.ValidationError` after upgrading, check
+  the option name against the current docstring; the schemas mirror
+  the documented `## Options` sections.
+
+- **`nimble_options ~> 1.1` is now a direct dependency.** It was
+  already fetched transitively via Finch; it is now declared on the
+  atp_client side too so the schemas above compile independently of
+  the transitive graph.
+
+### Docs
+
+- **`AtpClient.Isabelle.query/2` — THF-only caveat.** The docstring now
+  includes an admonition that the bundled `isabelle_elixir` release
+  only processes THF cleanly through the isabellizer; FOF and CNF
+  inputs are best routed through a different backend
+  (`SystemOnTptp` / `LocalExec` / `StarExec`) until the isabellizer
+  supports them.
+
+- **`AtpClient.Isabelle.prove_tptp/3` — `:raw` option documented.** The
+  Options section now explains that `:raw` is accepted for API symmetry
+  with the other query-family functions but is ignored here: the
+  per-lemma path returns a structured `[lemma_result()]`, not a payload
+  map, and there is no useful raw body to surface.
+
+- **Private `aggregate_lemma_results/1`** carries an inline comment
+  explaining the empty-list → `{:ok, :gave_up}` collapse and the
+  same THF-only caveat.
+
+### Migration notes
+
+For most callers 0.6.1 is a drop-in upgrade. Action is only needed if:
+
+- **A previously-working call now raises `NimbleOptions.ValidationError`.**
+  You are passing an unknown key (usually a typo). Check the current
+  docstring's `## Options` section for the correct spelling; the schema
+  mirrors it exactly.
+- **You want to send prover flags to SystemOnTPTP.** Pass any of
+  `:command`, `:format`, `:transform` on `query_system/3` /
+  `query_selected_systems/3`. Note the `:command` caveat above for the
+  public `tptp.org` deployment.
+
 ## [0.6.0] - 2026-07-15
 
 Release focused on API polish and getting the surface area 1.0-ready. No

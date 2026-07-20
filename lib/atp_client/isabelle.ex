@@ -153,6 +153,49 @@ defmodule AtpClient.Isabelle do
   alias IsabelleClient.Theory
   alias IsabelleClient.TPTP
 
+  # One shared schema, applied at every public entry point in this module.
+  # The composition here is deep (`query/2` -> `query_tptp/2` ->
+  # `open_session/1` + `prove_tptp/3` -> `prove_lemmas/4` -> `prove_theory/4`)
+  # and each layer forwards `opts` wholesale, so a per-function schema would
+  # need to strip keys at each hop. A shared schema catches typos with far
+  # less ceremony; the tradeoff is that `close_session/1` won't complain if
+  # you pass it `:proof_method` — a harmless overshoot given the alternative.
+  @opts_schema NimbleOptions.new!(
+                 # Schema-declared connection / defaults (see `config_schema/0`).
+                 host: [type: :string],
+                 port: [type: :pos_integer],
+                 password: [type: :string],
+                 session: [type: :string],
+                 local_dir: [type: :string],
+                 isabelle_dir: [type: :string],
+
+                 # Advanced timeouts — never rendered by a UI, read only via
+                 # `Config.fetch/4` in this module.
+                 session_start_timeout_ms: [type: :non_neg_integer],
+                 use_theories_timeout_ms: [type: :non_neg_integer],
+
+                 # Per-call ephemera.
+                 raw: [
+                   type: :boolean,
+                   doc:
+                     "For `prove_theory/4`: return the raw `use_theories` payload " <>
+                       "instead of a classified SZS status. Ignored on the `prove_tptp/3` " <>
+                       "/ `query_tptp/2` / `query/2` path — see `prove_tptp/3` for the " <>
+                       "workaround."
+                 ],
+                 imports: [type: :string, doc: "Isabelle imports clause. Default `\"Main\"`."],
+                 proof_method: [
+                   type: :string,
+                   doc:
+                     "Isabelle tactic appended to each generated `lemma` " <>
+                       "(TPTP path only). Default `\"by auto\"`."
+                 ],
+                 theory_name: [
+                   type: :string,
+                   doc: "Name of the generated theory file (TPTP path only)."
+                 ]
+               )
+
   @impl AtpClient.Backend
   def config_key, do: :isabelle
 
@@ -221,6 +264,8 @@ defmodule AtpClient.Isabelle do
 
   @impl AtpClient.Backend
   def verify(opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
     case open_session(opts) do
       {:ok, session} -> close_session(session)
       {:error, _} = err -> err
@@ -287,6 +332,7 @@ defmodule AtpClient.Isabelle do
   """
   @spec open_session(keyword()) :: {:ok, Session.t()} | {:error, term()}
   def open_session(opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
     config = Config.get(:isabelle, opts)
 
     host = Config.fetch!(:isabelle, :host, config)
@@ -363,6 +409,7 @@ defmodule AtpClient.Isabelle do
   @spec prove_theory(Session.t(), String.t(), String.t(), keyword()) :: result()
   def prove_theory(session, theory_text, theory_name, opts \\ [])
       when is_binary(theory_text) and is_binary(theory_name) do
+    NimbleOptions.validate!(opts, @opts_schema)
     config = Keyword.merge(Session.config(session), opts)
     raw? = Keyword.get(opts, :raw, false)
     imports = Keyword.get(opts, :imports, "Main")
@@ -493,6 +540,7 @@ defmodule AtpClient.Isabelle do
           {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
   def prove_lemmas(session, theory_text, theory_name, opts \\ [])
       when is_binary(theory_text) and is_binary(theory_name) do
+    NimbleOptions.validate!(opts, @opts_schema)
     specs = lemma_specs(theory_text)
     # Auto-wrapping prepends `theory <name> imports <…> begin\n`, which
     # shifts every line of the body down by one in the on-disk file.
@@ -525,6 +573,8 @@ defmodule AtpClient.Isabelle do
   @spec query_lemmas(String.t(), String.t(), keyword()) ::
           {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
   def query_lemmas(theory_text, theory_name, opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
     case open_session(opts) do
       {:ok, session} ->
         try do
@@ -570,6 +620,14 @@ defmodule AtpClient.Isabelle do
     * `:theory_name` — name to use for the generated Isabelle theory
       (default: a content-derived `AtpClient_<hash>` string). Useful for
       stable filenames across runs.
+    * `:raw` — accepted for opts compatibility with `prove_theory/4`, but
+      ignored: the return of `prove_tptp/3` is inherently a per-lemma list,
+      so the raw `use_theories` payload would be attached to the *generated*
+      Isabelle theory (with `axiomatization`, `unbundle from_TPTP`, and the
+      support theory in scope) rather than to the caller's TPTP source, and
+      would carry no useful line/anchor mapping back. If you need the raw
+      payload for a TPTP problem, call `IsabelleClient.TPTP.isabellize_theory/1`
+      yourself and pass the result to `prove_theory/4` with `raw: true`.
     * `:proof_method` — Isabelle tactic appended to each generated `lemma`
       (default `"by auto"`). The isabellizer emits `lemma` declarations
       without proofs, which Isabelle treats as unfinished goals; a tactic
@@ -593,6 +651,7 @@ defmodule AtpClient.Isabelle do
   @spec prove_tptp(Session.t(), String.t(), keyword()) ::
           {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
   def prove_tptp(session, problem, opts \\ []) when is_binary(problem) do
+    NimbleOptions.validate!(opts, @opts_schema)
     config = Keyword.merge(Session.config(session), opts)
     local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
     proof_method = Keyword.get(opts, :proof_method, "by auto")
@@ -614,6 +673,8 @@ defmodule AtpClient.Isabelle do
   @spec query_tptp(String.t(), keyword()) ::
           {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
   def query_tptp(problem, opts \\ []) when is_binary(problem) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
     case open_session(opts) do
       {:ok, session} ->
         try do
@@ -637,16 +698,38 @@ defmodule AtpClient.Isabelle do
   unified result only reads `{:ok, :theorem}` when every isabellized lemma
   was discharged. Callers that need per-lemma detail should use
   `query_tptp/2` directly.
+
+  > #### THF-only {: .warning}
+  >
+  > `IsabelleClient.TPTP.isabellize_theory/1` in the currently vendored
+  > `:isabelle_elixir` (0.4.0) only recognises `thf(…)` annotated formulae.
+  > FOF/CNF input is silently dropped by the isabellizer, so `query_tptp/2`
+  > returns `{:ok, []}` and this entry point collapses that to
+  > `{:ok, :gave_up}` — indistinguishable from an honest failed proof. If
+  > you need FOF/CNF today, route through the `SystemOnTPTP`, `StarExec`,
+  > or `LocalExec` backends instead.
   """
   @spec query(String.t(), keyword()) ::
           ResultNormalization.atp_result() | {:error, term()}
   def query(problem, opts \\ []) when is_binary(problem) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
     case query_tptp(problem, opts) do
       {:ok, lemmas} -> aggregate_lemma_results(lemmas)
       {:error, _} = err -> err
     end
   end
 
+  # Weakest-link fold of the per-lemma results returned by `query_tptp/2`.
+  #
+  # An empty list — the `[]` clause — is not a "trivially proved" state: it
+  # means the isabellizer produced no `lemma` declarations from the input.
+  # In practice that happens whenever the TPTP dialect is unsupported: the
+  # vendored `IsabelleClient.TPTP` (0.4.0) only handles `thf(…)`, so
+  # `fof(…)` / `cnf(…)` problems isabellize to an empty body. We collapse
+  # that to `{:ok, :gave_up}` to preserve the SZS shape of the return type,
+  # at the cost of conflating "unsupported input" with "honest failure" —
+  # see the caveat in `query/2` and prefer another backend for FOF/CNF.
   defp aggregate_lemma_results([]), do: {:ok, :gave_up}
 
   defp aggregate_lemma_results(lemmas) do
@@ -656,16 +739,49 @@ defmodule AtpClient.Isabelle do
   end
 
   defp inject_proof_method(isabellized, proof_method) do
+    using = using_clause(axiom_names(isabellized))
+
     isabellized
     |> String.split(~r/\n\n+/)
     |> Enum.map_join("\n\n", fn item ->
       if String.starts_with?(String.trim_leading(item), "lemma ") do
-        String.trim_trailing(item) <> "\n  " <> proof_method
+        String.trim_trailing(item) <> "\n  " <> using <> proof_method
       else
         item
       end
     end)
   end
+
+  # The isabellizer renders TPTP axioms as `axiomatization where <name>: …`.
+  # Isabelle does not hand those to a tactic on its own, so without an explicit
+  # `using` the goal is attempted against HOL alone and any problem that
+  # actually depends on its axioms comes back `gave_up` — silently, since that
+  # is also what an honest failure looks like.
+  defp axiom_names(isabellized) do
+    ~r/^\s*axiomatization\s+where\s+([A-Za-z_][A-Za-z0-9_']*)\s*:/m
+    |> Regex.scan(isabellized)
+    |> Enum.map(fn [_, name] -> name end)
+  end
+
+  defp using_clause([]), do: ""
+  defp using_clause(names), do: "using " <> Enum.join(names, " ") <> " "
+
+  # Embed `TPTP.thy` at *atp_client* compile time so escript-packaged
+  # callers work today, without waiting on the upstream isabelle_elixir
+  # release that exposes `TPTP.source_text/0` (see
+  # `isabelle_elixir-0.4.0-escript-priv.patch`). Mix escripts bundle only
+  # `ebin/` — the escript itself is a single zip file, so any runtime read
+  # against `Application.app_dir(:isabelle_elixir, "priv/...")` resolves
+  # *through* the escript file and fails with `:enotdir`. At compile time
+  # the dep's `priv/` is a real directory on disk, so we can slurp the
+  # theory once and carry it in this module's beam. `@external_resource`
+  # keeps recompilation honest if the bundled `.thy` changes.
+  #
+  # Once isabelle_elixir ships `source_text/0`, replace the attribute
+  # below with a direct call to it and drop the compile-time read.
+  @tptp_thy_source Application.app_dir(:isabelle_elixir, "priv/isabelle/tptp/TPTP.thy")
+  @external_resource @tptp_thy_source
+  @embedded_tptp_theory File.read!(@tptp_thy_source)
 
   defp ensure_tptp_theory(local_dir) do
     dest = Path.join(local_dir, "TPTP.thy")
@@ -673,7 +789,7 @@ defmodule AtpClient.Isabelle do
     if File.exists?(dest) do
       :ok
     else
-      case File.cp(TPTP.source_path(), dest) do
+      case File.write(dest, @embedded_tptp_theory) do
         :ok -> :ok
         {:error, reason} -> {:error, {:tptp_thy_copy_failed, reason}}
       end
@@ -717,6 +833,7 @@ defmodule AtpClient.Isabelle do
   @deprecated "Use prove_theory/4 with an open session, or query_lemmas/3 / query_tptp/2 for one-shot calls. See @typedoc for `legacy_result` for the double-wrap this function preserves."
   @spec query(String.t(), String.t(), keyword()) :: legacy_result()
   def query(theory_text, theory_name, opts) do
+    NimbleOptions.validate!(opts, @opts_schema)
     raw? = Keyword.get(opts, :raw, false)
 
     case open_session(opts) do

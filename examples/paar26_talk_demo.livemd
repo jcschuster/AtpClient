@@ -19,15 +19,12 @@ pick_prover = fn prefix ->
 end
 
 provers = %{
-  leo3: pick_prover.("Leo-III"),
-  cvc5: pick_prover.("cvc5"),
-  vampire: pick_prover.("Vampire"),
-  zipperposition: pick_prover.("Zipperpin")
+  leo3: pick_prover.("Leo-III---"),
+  cvc5: pick_prover.("cvc5---"),
+  vampire: pick_prover.("Vampire---"),
+  zipperposition: pick_prover.("Zipperpin---")
 }
 ```
-
-Start the Isabelle server now — session startup is the expensive part
-(seconds), and we want beat 1 to be instant:
 
 ```elixir
 {:ok, server} =
@@ -37,8 +34,6 @@ Start the Isabelle server now — session startup is the expensive part
 
 isa_opts = [host: server.host, port: server.port, password: server.password]
 ```
-
-Probe the local prover once so a missing binary surfaces here, not on stage:
 
 ```elixir
 LocalExec.verify(binary: "eprover")

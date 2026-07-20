@@ -71,6 +71,19 @@ defmodule AtpClient.LocalExec do
   alias AtpClient.{Config, ResultNormalization}
   alias AtpClient.Config.Field
 
+  # `:args` is validated as a list of strings only — the *contents* are
+  # prover-specific flags (E's `--cpu-limit`, Vampire's `--time_limit`, …)
+  # that LocalExec deliberately does not parse. See the module doc.
+  @verify_opts_schema NimbleOptions.new!(binary: [type: :string])
+
+  @query_opts_schema NimbleOptions.new!(
+                       binary: [type: :string],
+                       args: [type: {:list, :string}],
+                       cpu_timeout_s: [type: :non_neg_integer],
+                       wall_timeout_ms: [type: :non_neg_integer],
+                       raw: [type: :boolean]
+                     )
+
   @impl AtpClient.Backend
   def config_key, do: :local_exec
 
@@ -118,6 +131,7 @@ defmodule AtpClient.LocalExec do
 
   @impl AtpClient.Backend
   def verify(opts \\ []) do
+    NimbleOptions.validate!(opts, @verify_opts_schema)
     binary = Config.fetch!(:local_exec, :binary, opts)
 
     case resolve(binary) do
@@ -165,6 +179,7 @@ defmodule AtpClient.LocalExec do
   @impl AtpClient.Backend
   @spec query(String.t(), keyword()) :: result()
   def query(problem, opts \\ []) when is_binary(problem) do
+    NimbleOptions.validate!(opts, @query_opts_schema)
     binary = Config.fetch!(:local_exec, :binary, opts)
     args = Config.fetch(:local_exec, :args, [], opts)
     cpu_s = Config.fetch(:local_exec, :cpu_timeout_s, 60, opts)

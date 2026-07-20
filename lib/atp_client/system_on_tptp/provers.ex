@@ -15,6 +15,15 @@ defmodule AtpClient.SystemOnTptp.Provers do
 
   alias AtpClient.Config
 
+  # `refresh_systems_list/1` is called from `AtpClient.SystemOnTptp.verify/1`
+  # with the full sotptp opts keyword — which is validated at that entry
+  # point against `AtpClient.SystemOnTptp`'s schema. It would be wrong to
+  # re-validate against a narrower schema here: `verify/1` legitimately
+  # passes keys like `:default_time_limit_sec` through, and refusing them
+  # at this hop would surface as a spurious `NimbleOptions.ValidationError`
+  # from a valid `verify/1` call. Direct callers (no wrapping entry point)
+  # take the pre-existing behaviour of silently ignoring unknown keys.
+
   # The "ListSystems" request returns all online systems, including format
   # converters, type-checking modes, statistics tools, and other non-prover
   # infrastructure. We exclude those by name prefix; everything else is

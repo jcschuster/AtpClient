@@ -23,6 +23,13 @@ defmodule AtpClient.Lint.Tptp4x do
 
   @diag_re ~r/^%?\s*(?<sev>ERROR|WARNING|INFO)\s*:\s*Line\s+(?<line>\d+)\s+Char\s+(?<col>\d+)\s+(?<msg>.+?)\s*$/
 
+  @opts_schema NimbleOptions.new!(
+                 url: [type: :string],
+                 tptp4x_system: [type: :string],
+                 tptp4x_time_limit_sec: [type: :non_neg_integer],
+                 request_timeout_ms: [type: :non_neg_integer]
+               )
+
   @doc """
   Runs TPTP4X on `problem` via the configured SystemOnTPTP endpoint.
 
@@ -39,6 +46,7 @@ defmodule AtpClient.Lint.Tptp4x do
   """
   @spec check(String.t(), keyword()) :: {:ok, [Diagnostic.t()]} | {:error, term()}
   def check(problem, opts \\ []) when is_binary(problem) do
+    NimbleOptions.validate!(opts, @opts_schema)
     url = Config.fetch!(:sotptp, :url, opts)
     system = Config.fetch(:sotptp, :tptp4x_system, "TPTP4X---0.0", opts)
     time_limit = Config.fetch(:sotptp, :tptp4x_time_limit_sec, 10, opts)
