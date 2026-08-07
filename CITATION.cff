@@ -33,6 +33,4 @@ keywords:
   - SZS
   - Isabelle
   - StarExec
-identifiers:
-  - type: doi
-    value: "10.5281/zenodo.21839442"
+doi: 10.5281/zenodo.21839442
