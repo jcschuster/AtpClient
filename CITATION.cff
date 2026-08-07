@@ -33,11 +33,6 @@ keywords:
   - SZS
   - Isabelle
   - StarExec
-# Nach dem Zenodo-Release die DOI hier ergänzen:
-# identifiers:
-#   - type: doi
-#     value: "10.5281/zenodo.XXXXXXX"
-#
-# Hinweis: J. Schuster ist Hauptentwickler; C. Benzmüller und D. Fuenmayor
-# (Betreuung) sind bewusst als Co-Autoren geführt, damit sie u. a. im
-# DBLP-Eintrag ("Data and Artifacts") des Zenodo-Records erscheinen.
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.21839442"
