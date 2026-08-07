@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+title: "AtpClient"
+abstract: >-
+  AtpClient is an Elixir client library for external automated theorem provers.
+  It provides a uniform interface to multiple backends — SystemOnTPTP, StarExec,
+  Isabelle, and locally installed TPTP-compliant binaries (LocalExec) — and
+  normalises all results to standardised SZS status verdicts (e.g. :theorem,
+  :satisfiable), enabling straightforward cross-prover comparison.
+type: software
+authors:
+  - family-names: Schuster
+    given-names: Johannes
+    orcid: "https://orcid.org/0009-0003-5339-7216"
+    affiliation: "Otto-Friedrich-Universität Bamberg, Germany"
+  - family-names: Benzmüller
+    given-names: Christoph
+    orcid: "https://orcid.org/0000-0002-3392-3093"
+    affiliation: "Otto-Friedrich-Universität Bamberg, Germany"
+  - family-names: Fuenmayor
+    given-names: David
+    orcid: "https://orcid.org/0000-0002-0042-4538"
+    affiliation: "Otto-Friedrich-Universität Bamberg, Germany"
+version: "0.6.2"
+date-released: "2026-07-20"
+license: MIT
+repository-code: "https://github.com/jcschuster/AtpClient"
+url: "https://atp-client.hexdocs.pm"
+keywords:
+  - automated theorem proving
+  - Elixir
+  - TPTP
+  - SZS
+  - Isabelle
+  - StarExec
+# Nach dem Zenodo-Release die DOI hier ergänzen:
+# identifiers:
+#   - type: doi
+#     value: "10.5281/zenodo.XXXXXXX"
+#
+# Hinweis: J. Schuster ist Hauptentwickler; C. Benzmüller und D. Fuenmayor
+# (Betreuung) sind bewusst als Co-Autoren geführt, damit sie u. a. im
+# DBLP-Eintrag ("Data and Artifacts") des Zenodo-Records erscheinen.
