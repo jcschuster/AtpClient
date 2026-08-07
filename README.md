@@ -1,6 +1,6 @@
 # AtpClient
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21839948.svg)](https://doi.org/10.5281/zenodo.21839948)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21839442.svg)](https://doi.org/10.5281/zenodo.21839442)
 
 Elixir client for external automated theorem provers. Four backends are
 supported:
