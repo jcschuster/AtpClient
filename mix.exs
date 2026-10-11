@@ -48,7 +48,7 @@ defmodule AtpClient.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib mix.exs README* LICENSE* CHANGELOG* examples/*.livemd)
+      files: ~w(lib mix.exs README* LICENSE* CHANGELOG* CITATION.cff examples/*.livemd)
     ]
   end
 

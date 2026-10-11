@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.7.0] - Unreleased
+## [0.7.0] - 2026-10-11
 
 The library now sits on [`tptp`](https://hex.pm/packages/tptp), which owns
 the TPTP language — reading, linting, printing, the SZS ontology and the
@@ -14,6 +14,25 @@ status-line reader — leaving this library the transport to the provers.
 Three things change for a caller: what a backend accepts, what it returns,
 and where the diagnostics come from. The direct path is unchanged in cost:
 a backend never parses what it sends.
+
+Requires `{:tptp, "~> 0.1.3"}`, the first release whose SZS reader accepts
+the framing systems print in practice (`#`, no `for <problem>`, StarExec's
+elapsed-time prefix) and whose `Tptp.Span.offset/3` positions TPTP4X's
+findings.
+
+### Upgrading
+
+- `{:ok, :theorem}` → `{:ok, %AtpClient.Result{status: :theorem}}`; match
+  `{:ok, %{status: status}}` or read `result.status`.
+- `raw: true` → read `result.output`.
+- `AtpClient.ResultNormalization.interpret_result(output)` →
+  `AtpClient.Verdict.interpret(output, backend)`.
+- `AtpClient.Lint.analyze(source)` → `Tptp.analyze(source)` for the local
+  pass, `Tptp.Analyzer.run_all(analysis, [AtpClient.Analyzer.Tptp4x])` for
+  the remote one; positions are byte spans, rendered with
+  `Tptp.Analysis.line_column/2`.
+- `AtpClient.Isabelle.query_tptp(problem)` → `AtpClient.Isabelle.query(problem)`;
+  the per-lemma list is `result.details.lemmas`, each `%{name, status}`.
 
 ### Added
 
