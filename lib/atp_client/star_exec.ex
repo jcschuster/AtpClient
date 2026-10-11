@@ -45,8 +45,10 @@ defmodule AtpClient.StarExec do
 
   alias AtpClient.Config
   alias AtpClient.Config.Field
-  alias AtpClient.ResultNormalization
+  alias AtpClient.Problem
+  alias AtpClient.Result
   alias AtpClient.StarExec.Session
+  alias AtpClient.Verdict
 
   @type job_id :: non_neg_integer() | String.t()
   @type benchmark_id :: pos_integer()
@@ -89,7 +91,6 @@ defmodule AtpClient.StarExec do
     benchmark_type: [type: :pos_integer],
 
     # Per-call ephemera.
-    raw: [type: :boolean, doc: "Return raw prover stdout instead of a classified verdict."],
     timeout_ms: [
       type: :non_neg_integer,
       doc: "Wall-clock deadline for pollers (`wait_for_benchmark/4`, `wait_for_job/3`)."
@@ -136,7 +137,7 @@ defmodule AtpClient.StarExec do
   # Compose the final NimbleOptions schema: our own StarExec keys, plus
   # every Req pass-through key we don't already have a stricter spec for
   # (typed as `:any` — Req will validate them itself). Dedup against
-  # `@starexec_opts` so keys like `:raw`, `:connect_options`, `:retry`
+  # `@starexec_opts` so keys like `:connect_options` and `:retry`
   # keep their stricter local type.
   @opts_schema NimbleOptions.new!(
                  @starexec_opts ++
@@ -221,9 +222,8 @@ defmodule AtpClient.StarExec do
   end
 
   @impl AtpClient.Backend
-  @spec query(String.t(), keyword()) ::
-          ResultNormalization.atp_result() | {:error, term()}
-  def query(problem, opts \\ []) when is_binary(problem) do
+  @spec query(Problem.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
+  def query(problem, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
 
     case login(opts) do
@@ -463,7 +463,7 @@ defmodule AtpClient.StarExec do
   benchmark's filename.
 
   StarExec accepts only archives (.zip / .tar / .tgz) at the benchmark upload
-  endpoint, so this function wraps `problem_text` in an in-memory ZIP whose
+  endpoint, so this function wraps the problem's bytes in an in-memory ZIP whose
   sole entry is the new benchmark file. The benchmark's name inside StarExec
   becomes the entry's filename (returned as `{:ok, name}` for use with
   `wait_for_benchmark/4`).
@@ -487,10 +487,10 @@ defmodule AtpClient.StarExec do
         "fof(c, conjecture, $true).", name: "smoke")
       # name is "smoke.p", ready to hand to wait_for_benchmark/4.
   """
-  @spec upload_benchmark(Session.t(), space_id(), binary(), keyword()) ::
+  @spec upload_benchmark(Session.t(), space_id(), Problem.t(), keyword()) ::
           {:ok, String.t()} | {:error, term()}
-  def upload_benchmark(%Session{} = session, space_id, problem_text, opts \\ [])
-      when is_integer(space_id) and is_binary(problem_text) do
+  def upload_benchmark(%Session{} = session, space_id, problem, opts \\ [])
+      when is_integer(space_id) do
     NimbleOptions.validate!(opts, @opts_schema)
 
     path =
@@ -505,8 +505,10 @@ defmodule AtpClient.StarExec do
     name = Keyword.get(opts, :name) || random_benchmark_name()
     file_name = name <> ".p"
 
+    text = problem |> Problem.to_iodata() |> IO.iodata_to_binary()
+
     {:ok, {_zip_name, zip_bytes}} =
-      :zip.create(~c"bench.zip", [{String.to_charlist(file_name), problem_text}], [:memory])
+      :zip.create(~c"bench.zip", [{String.to_charlist(file_name), text}], [:memory])
 
     fields = [
       space: to_string(space_id),
@@ -629,8 +631,9 @@ defmodule AtpClient.StarExec do
   end
 
   @doc """
-  End-to-end: upload `problem_text` as a fresh benchmark, run it against the
-  configured solver, wait for completion, and return the normalized result.
+  End-to-end: upload `problem` as a fresh benchmark, run it against the
+  configured solver, wait for completion, and read the solver's output into an
+  `AtpClient.Result`.
 
   This is the "single shot" entry point that mirrors the other backends'
   prove/2-style helpers. It is implemented purely in terms of the lower-level
@@ -651,25 +654,24 @@ defmodule AtpClient.StarExec do
     * `:benchmark_type` (default `1`).
     * `:timeout_ms` — wall-clock budget for the whole pipeline; passed to
       both `wait_for_benchmark/4` and `wait_for_job/3`.
-    * `:raw` — when `true`, skip `interpret_result/1` and return the
-      fetched solver output string as `{:ok, stdout}`.
+
+  The solver's stdout is kept on the result as `output`, with StarExec's
+  per-line elapsed-time prefix as it came.
 
   All other StarExec options (`:base_url`, `:username`, `:password`, …) are
   consumed by `request/4` as usual.
   """
-  @spec prove(Session.t(), binary(), keyword()) ::
-          ResultNormalization.atp_result() | {:error, term()}
-  def prove(%Session{} = session, problem_text, opts \\ []) when is_binary(problem_text) do
+  @spec prove(Session.t(), Problem.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
+  def prove(%Session{} = session, problem, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
     space_id = Config.fetch!(:starexec, :space_id, opts)
     solver_cfg_id = Config.fetch!(:starexec, :solver_cfg_id, opts)
     queue_id = Config.fetch(:starexec, :queue_id, 1, opts)
     cpu_timeout_s = Config.fetch(:starexec, :cpu_timeout_s, 60, opts)
     wallclock_timeout_s = Keyword.get(opts, :wallclock_timeout_s, cpu_timeout_s * 2)
-    raw = Keyword.get(opts, :raw, false)
 
     with {:ok, bench_name} <-
-           upload_benchmark(session, space_id, problem_text, opts),
+           upload_benchmark(session, space_id, problem, opts),
          {:ok, bench_id} <-
            wait_for_benchmark(session, space_id, bench_name, opts),
          {:ok, job_id} <-
@@ -689,7 +691,7 @@ defmodule AtpClient.StarExec do
          {:ok, _job_info} <- wait_for_job(session, job_id, opts),
          {:ok, zip_bytes} <- get_job_output(session, job_id, opts),
          {:ok, stdout} <- single_stdout_from_zip(zip_bytes) do
-      if raw, do: {:ok, stdout}, else: ResultNormalization.interpret_result(stdout)
+      Verdict.interpret(stdout, __MODULE__, system: to_string(solver_cfg_id))
     end
   end
 

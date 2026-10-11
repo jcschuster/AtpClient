@@ -1,12 +1,18 @@
 defmodule AtpClient.LocalExec do
   @moduledoc """
   Backend that invokes a locally installed, TPTP-compliant prover via
-  `Port.open/2` and normalizes its stdout through
-  `AtpClient.ResultNormalization.interpret_result/1`.
+  `Port.open/2` and reads its stdout through `AtpClient.Verdict`.
 
   No authentication, no polling: the prover runs to completion (or until one of
-  the two timeouts fires) and the captured stdout is classified by the same
-  SZS-aware classifier used for the SystemOnTPTP and StarExec backends.
+  the two timeouts fires) and the captured stdout is read by the same SZS reader
+  used for the SystemOnTPTP and StarExec backends.
+
+  ## Two ways in
+
+  `query/2` takes an `AtpClient.Problem`, writes its bytes to a temporary file
+  and passes that to the prover. `query_file/2` takes a path and passes it to the
+  prover as it is: nothing is read or copied, and the prover resolves the file's
+  `include` directives itself, against the file's directory and `$TPTP`.
 
   ## Cancellation
 
@@ -33,9 +39,9 @@ defmodule AtpClient.LocalExec do
       reflects what the prover reported, not a generic timeout.
     * The **wall-clock timeout** (`:wall_timeout_ms`) is enforced on the BEAM
       side: when it fires, the guardian sends SIGKILL to the OS child and the
-      result is normalised to `{:ok, :timeout}` — the wall-clock kill does not
-      produce a prover SZS line, so only `:timeout` can be returned on that
-      path.
+      result is `:timeout`. The prover printed no status line on that path, so
+      the backend appends one of its own, `% SZS status Timeout : wall-clock kill
+      by AtpClient.LocalExec`, which the result's `output` and `comment` carry.
 
   By default `:wall_timeout_ms` is `(cpu_timeout_s + 10) * 1000`, leaving the
   prover ten extra seconds to flush its `SZS status` line before the kill.
@@ -68,8 +74,11 @@ defmodule AtpClient.LocalExec do
 
   @behaviour AtpClient.Backend
 
-  alias AtpClient.{Config, ResultNormalization}
+  alias AtpClient.Config
   alias AtpClient.Config.Field
+  alias AtpClient.Problem
+  alias AtpClient.Result
+  alias AtpClient.Verdict
 
   # `:args` is validated as a list of strings only — the *contents* are
   # prover-specific flags (E's `--cpu-limit`, Vampire's `--time_limit`, …)
@@ -80,8 +89,7 @@ defmodule AtpClient.LocalExec do
                        binary: [type: :string],
                        args: [type: {:list, :string}],
                        cpu_timeout_s: [type: :non_neg_integer],
-                       wall_timeout_ms: [type: :non_neg_integer],
-                       raw: [type: :boolean]
+                       wall_timeout_ms: [type: :non_neg_integer]
                      )
 
   @impl AtpClient.Backend
@@ -141,24 +149,26 @@ defmodule AtpClient.LocalExec do
   end
 
   @typedoc """
-  Same as `t:AtpClient.ResultNormalization.atp_result/0`, with one extra
-  failure shape specific to `LocalExec`:
+  What `query/2` and `query_file/2` return.
 
+    * `{:ok, %AtpClient.Result{}}` — the prover ran and asserted a status. Both
+      the prover-side CPU limit and the BEAM-side wall-clock kill arrive here as
+      `:timeout`; see "Two-layered timeout" in the module doc.
     * `{:error, {:prover_not_found, name}}` — `System.find_executable/1`
       returned `nil` for the configured `:binary`.
-
-  Both the prover-side CPU limit and the BEAM-side wall-clock kill surface
-  as `{:ok, :timeout}`; see "Two-layered timeout" in the module doc.
+    * `{:error, {:tempfile, reason}}` — the problem could not be written.
+    * `{:error, reason}` from `t:AtpClient.Verdict.failure/0` — the prover ran
+      but its output carries no status the reader recognises.
   """
-  @type result :: ResultNormalization.atp_result() | {:error, term()}
+  @type result :: {:ok, Result.t()} | {:error, term()}
 
   @placeholder "{{problem}}"
 
   @doc """
-  Runs the configured prover against `problem` (a TPTP problem in a string)
-  and returns the normalized result.
+  Runs the configured prover against `problem` and reads the result.
 
-  See the module doc for the option list. All keys may also be set per-call:
+  The problem's bytes are written to a temporary file, which is removed after the
+  run. See the module doc for the option list. All keys may also be set per-call:
 
     * `:binary` (required) — the prover executable name or an absolute path;
     * `:args` — extra arguments to pass before the problem file path
@@ -169,21 +179,52 @@ defmodule AtpClient.LocalExec do
       inject a `--cpu-limit` flag for you — encode that in `:args` so each
       prover gets the flag spelling it understands;
     * `:wall_timeout_ms` — BEAM-side wall-clock kill (default
-      `(cpu_timeout_s + 10) * 1000`);
-    * `:raw` — when `true`, skip `interpret_result/1` and return
-      `{:ok, captured_stdout}` so the caller can inspect the prover's raw
-      output. The `AtpClient.Backend` behaviour's `query/2` entry point always
-      passes `raw: false` so the unified contract always returns an
-      `atp_result()`.
+      `(cpu_timeout_s + 10) * 1000`).
   """
   @impl AtpClient.Backend
-  @spec query(String.t(), keyword()) :: result()
-  def query(problem, opts \\ []) when is_binary(problem) do
+  @spec query(Problem.t(), keyword()) :: result()
+  def query(problem, opts \\ []) do
     NimbleOptions.validate!(opts, @query_opts_schema)
+
+    with {:ok, binary, exe} <- executable(opts),
+         {:ok, problem_path} <- write_temp(Problem.to_iodata(problem)) do
+      try do
+        run_file(problem_path, binary, exe, opts)
+      after
+        _ = File.rm(problem_path)
+      end
+    end
+  end
+
+  @doc """
+  Runs the configured prover against the problem file at `path` and reads the
+  result.
+
+  The path is handed to the prover unchanged: the file is neither read nor
+  copied, and `include` directives in it are the prover's to resolve. Takes the
+  same options as `query/2`.
+  """
+  @spec query_file(Path.t(), keyword()) :: result()
+  def query_file(path, opts \\ []) when is_binary(path) do
+    NimbleOptions.validate!(opts, @query_opts_schema)
+
+    with {:ok, binary, exe} <- executable(opts) do
+      run_file(path, binary, exe, opts)
+    end
+  end
+
+  @spec executable(keyword()) ::
+          {:ok, binary(), Path.t()} | {:error, {:prover_not_found, binary()}}
+  defp executable(opts) do
     binary = Config.fetch!(:local_exec, :binary, opts)
+
+    with {:ok, exe} <- resolve(binary), do: {:ok, binary, exe}
+  end
+
+  @spec run_file(Path.t(), binary(), Path.t(), keyword()) :: result()
+  defp run_file(path, binary, exe, opts) do
     args = Config.fetch(:local_exec, :args, [], opts)
     cpu_s = Config.fetch(:local_exec, :cpu_timeout_s, 60, opts)
-    raw = Keyword.get(opts, :raw, false)
 
     wall_ms =
       case Config.fetch(:local_exec, :wall_timeout_ms, nil, opts) do
@@ -191,16 +232,8 @@ defmodule AtpClient.LocalExec do
         ms -> ms
       end
 
-    with {:ok, exe} <- resolve(binary),
-         {:ok, problem_path} <- write_temp(problem) do
-      try do
-        full_args = build_args(args, problem_path)
-        {:ok, output} = run(exe, full_args, wall_ms)
-        if raw, do: {:ok, output}, else: ResultNormalization.interpret_result(output)
-      after
-        _ = File.rm(problem_path)
-      end
-    end
+    {:ok, output} = run(exe, build_args(args, path), wall_ms)
+    Verdict.interpret(output, __MODULE__, system: binary)
   end
 
   defp resolve(binary) when is_binary(binary) do
@@ -223,12 +256,12 @@ defmodule AtpClient.LocalExec do
     end
   end
 
-  defp write_temp(problem) do
+  defp write_temp(iodata) do
     dir = System.tmp_dir!()
     name = "atp_client_localexec_#{System.unique_integer([:positive])}_#{:os.getpid()}.p"
     path = Path.join(dir, name)
 
-    case File.write(path, problem) do
+    case File.write(path, iodata) do
       :ok -> {:ok, path}
       {:error, reason} -> {:error, {:tempfile, reason}}
     end
@@ -287,16 +320,17 @@ defmodule AtpClient.LocalExec do
 
       {^port, {:exit_status, _code}} ->
         # Non-zero exit is normal for many provers (E exits 1 on Timeout, etc.);
-        # the SZS classifier on stdout is what matters.
+        # the status line on stdout is what matters.
         {:ok, IO.iodata_to_binary(acc)}
     after
       remaining ->
         sigkill(os_pid)
         close_port(port)
-        # Fold into the same :timeout the classifier emits for a clean
-        # prover-reported Timeout — synthesise an SZS line so the result
-        # flows through the same funnel.
-        {:ok, "% SZS status Timeout (wall-clock kill by AtpClient.LocalExec)"}
+        # The prover printed no status; append one so the result flows
+        # through the same reader as a prover-reported Timeout, with the
+        # output the prover did manage to print kept ahead of it.
+        line = Tptp.Szs.status_line(:timeout, nil, "wall-clock kill by AtpClient.LocalExec")
+        {:ok, IO.iodata_to_binary([acc, ?\n, line, ?\n])}
     end
   end
 

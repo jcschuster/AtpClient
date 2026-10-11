@@ -1,7 +1,7 @@
 defmodule AtpClient.MixProject do
   use Mix.Project
 
-  @version "0.6.2"
+  @version "0.7.0"
   @source_url "https://github.com/jcschuster/AtpClient"
 
   def project do
@@ -28,6 +28,7 @@ defmodule AtpClient.MixProject do
 
   defp deps do
     [
+      {:tptp, "~> 0.1.3"},
       {:jason, "~> 1.4"},
       {:req, "~> 0.6"},
       {:nimble_options, "~> 1.1"},
@@ -40,7 +41,7 @@ defmodule AtpClient.MixProject do
 
   defp description do
     "Elixir client for automated theorem provers via SystemOnTPTP, " <>
-      "StarExec, and Isabelle servers."
+      "StarExec, Isabelle servers and local binaries, on the tptp library."
   end
 
   defp package do
@@ -76,18 +77,18 @@ defmodule AtpClient.MixProject do
           AtpClient.Isabelle.Session,
           AtpClient.LocalExec
         ],
-        Lint: [
-          AtpClient.Lint,
-          AtpClient.Lint.Local,
-          AtpClient.Lint.Tptp4x,
-          AtpClient.Lint.Diagnostic,
-          AtpClient.Lint.Symbol,
-          AtpClient.Lint.Report
+        "Problems and results": [
+          AtpClient.Problem,
+          AtpClient.Result,
+          AtpClient.Verdict,
+          AtpClient.Isabelle.Verdict
+        ],
+        Analyzers: [
+          AtpClient.Analyzer.Tptp4x
         ],
         Support: [
           AtpClient.Config,
-          AtpClient.Config.Field,
-          AtpClient.ResultNormalization
+          AtpClient.Config.Field
         ]
       ],
       source_url: @source_url,

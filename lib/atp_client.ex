@@ -10,13 +10,28 @@ defmodule AtpClient do
     * **Isabelle** — `isabelle server` instances via `isabelle_elixir`; see
       `AtpClient.Isabelle`.
     * **LocalExec** — a locally installed TPTP-compliant prover binary
-      (e.g. E, Vampire) invoked via `System.cmd/3`; see `AtpClient.LocalExec`.
+      (e.g. E, Vampire) invoked via `Port.open/2`; see `AtpClient.LocalExec`.
       Run `scripts/build_eprover.sh` to install E into `priv/bin/`.
 
-  Each backend reads its settings through `AtpClient.Config`, which layers
-  `config/config.exs` on top of the library defaults and lets per-call options
-  override everything. See the `AtpClient.Config` module docs for details.
+  Each backend implements `AtpClient.Backend`: `query/2` takes an
+  `AtpClient.Problem` and returns `{:ok, %AtpClient.Result{}}` or
+  `{:error, reason}`.
 
+  ## Problems and results
+
+  A problem is a binary, a `Tptp.File` or a `Tptp.Unit`; see `AtpClient.Problem`
+  for what each sends. A backend never parses what it sends. `preflight/1` is
+  the explicit check for callers who want one — an editor, say — before a
+  round-trip to a prover.
+
+  A result's `status` is a value of `Tptp.Szs.Ontology`, read from the system's
+  output by `AtpClient.Verdict`; see `AtpClient.Result` for the rest of what it
+  carries.
+
+      {:ok, result} = AtpClient.LocalExec.query("fof(c, conjecture, $true).", binary: "eprover")
+      result.status      # :theorem
+      result.evidence    # :szs
+      result.output      # E's stdout
 
   ## Configuration
 
@@ -60,8 +75,11 @@ defmodule AtpClient do
 
   Any setting may be overridden for a single call:
 
-      AtpClient.Isabelle.query(theory, "Example", session: "Main", raw: true)
+      AtpClient.LocalExec.query(problem, binary: "vampire", args: ["--mode", "casc"])
   """
+
+  alias AtpClient.Problem
+  alias AtpClient.Result
 
   @backends [
     AtpClient.SystemOnTptp,
@@ -76,4 +94,59 @@ defmodule AtpClient do
   """
   @spec backends() :: [module()]
   def backends, do: @backends
+
+  @doc """
+  Runs `problem` on `backend`, optionally checking it first.
+
+  Equivalent to `backend.query(problem, opts)` with one option of its own:
+
+    * `:preflight` — when `true`, `preflight/1` runs first and an invalid
+      problem is `{:error, {:invalid_problem, diagnostics}}` without any
+      round-trip. Defaults to `false`: the direct path parses nothing.
+
+      AtpClient.query(AtpClient.SystemOnTptp, problem, preflight: true, time_limit_sec: 10)
+  """
+  @spec query(module(), Problem.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
+  def query(backend, problem, opts \\ []) when is_atom(backend) and is_list(opts) do
+    case Keyword.pop(opts, :preflight, false) do
+      {true, opts} ->
+        with :ok <- preflight(problem), do: backend.query(problem, opts)
+
+      {_false, opts} ->
+        backend.query(problem, opts)
+    end
+  end
+
+  @doc """
+  Reads and lints the problem with `Tptp.analyze/2`, without sending it anywhere.
+
+  A `Tptp.File` or `Tptp.Unit` is analysed as it is; anything else is parsed
+  from its bytes first. Returns `:ok` when no diagnostic is an error, and
+  `{:error, {:invalid_problem, diagnostics}}` with every diagnostic, warnings
+  included, otherwise. The analysis costs what `Tptp.analyze/2` costs — a
+  traversal, and for a binary a parse — which is why no backend does it on
+  its own.
+
+      iex> AtpClient.preflight("fof(a, axiom, p).")
+      :ok
+
+      iex> {:error, {:invalid_problem, diagnostics}} = AtpClient.preflight("fof(a, axiom, p")
+      iex> Tptp.Diagnostic.any_errors?(diagnostics)
+      true
+  """
+  @spec preflight(Problem.t()) :: :ok | {:error, {:invalid_problem, [Tptp.Diagnostic.t()]}}
+  def preflight(problem) do
+    %Tptp.Analysis{diagnostics: diagnostics} = Tptp.analyze(subject(problem))
+
+    if Tptp.Diagnostic.any_errors?(diagnostics) do
+      {:error, {:invalid_problem, diagnostics}}
+    else
+      :ok
+    end
+  end
+
+  @spec subject(Problem.t()) :: binary() | Tptp.File.t() | Tptp.Unit.t()
+  defp subject(%Tptp.File{} = file), do: file
+  defp subject(%Tptp.Unit{} = unit), do: unit
+  defp subject(problem), do: problem |> Problem.to_iodata() |> IO.iodata_to_binary()
 end

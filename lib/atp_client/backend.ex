@@ -27,30 +27,27 @@ defmodule AtpClient.Backend do
 
   ## Two error channels
 
-  `query/2` returns either an `t:AtpClient.ResultNormalization.atp_result/0`
-  or an outer `{:error, term()}`. They mean different things and callers
-  usually want to route them differently:
+  `query/2` returns `{:ok, %AtpClient.Result{}}` or `{:error, term()}`, and the
+  two mean different things:
 
-    * `{:ok, szs_status}` and `{:error, failure}` (from `atp_result()`) are
-      the **classifier's** verdict: the prover ran and returned an SZS
-      status the classifier could interpret, or produced output the
-      classifier could not parse. Failure atoms are enumerated in
-      `t:AtpClient.ResultNormalization.failure_t/0` (`:internal_error`,
-      `:input_error`, `{:prover_not_found, name}`,
-      `{:unrecognized_output, raw}`).
-    * `{:error, term()}` outside `failure_t()` is a **transport /
-      session** error: connection refused, HTTP status, session-open
-      failure, missing config, Isabelle "cannot load theory file", etc.
-      The shape is backend-specific and not exhaustively enumerated —
-      match `{:error, _}` as a catch-all after the classified branches.
+    * `{:ok, result}` is the **system's** verdict: it ran and asserted an SZS
+      status, which `result.status` carries. The no-success values are results
+      too — `:timeout`, `:gave_up` and `:input_error` all arrive here.
+    * `{:error, reason}` means **no status** was obtained. The reasons a reader
+      produces are enumerated in `t:AtpClient.Verdict.failure/0` — output with no
+      status line and no known pattern, a status word outside the ontology, a
+      crash signature. Everything else is a transport or session error:
+      connection refused, an HTTP status, a session that would not open, missing
+      configuration, a missing binary. Their shapes are backend-specific and
+      documented on each backend; match `{:error, _}` last.
 
-  A common Idiom:
+  A common idiom:
 
       case Backend.query(problem, opts) do
-        {:ok, status}                 -> :prover_verdict
+        {:ok, %AtpClient.Result{status: status}} -> {:verdict, status}
         {:error, {:prover_not_found, _}} -> :missing_binary
         {:error, {:unrecognized_output, _}} -> :bad_parse
-        {:error, reason}              -> {:transport, reason}
+        {:error, reason} -> {:transport, reason}
       end
 
   ## Cancellation contract
@@ -89,14 +86,15 @@ defmodule AtpClient.Backend do
   @callback verify(keyword()) :: :ok | {:error, term()}
 
   @doc """
-  Runs `problem` (a TPTP-format string) against the backend with the given
-  `opts` and collapses everything to a single
-  `t:AtpClient.ResultNormalization.atp_result/0`.
+  Runs `problem` against the backend with the given `opts` and reads the
+  system's output into one `AtpClient.Result`.
 
-  Each backend hides its own ceremony (session login/logout, prover
-  selection, theory-file bookkeeping) behind this call so a UI can dispatch
-  on backend module alone.
+  The problem is anything implementing `AtpClient.Problem` — a binary, a
+  `Tptp.File`, a `Tptp.Unit` — and is transmitted as its bytes without being
+  parsed. Each backend hides its own ceremony (session login/logout, prover
+  selection, theory-file bookkeeping) behind this call so a UI can dispatch on
+  backend module alone.
   """
-  @callback query(String.t(), keyword()) ::
-              AtpClient.ResultNormalization.atp_result() | {:error, term()}
+  @callback query(AtpClient.Problem.t(), keyword()) ::
+              {:ok, AtpClient.Result.t()} | {:error, term()}
 end

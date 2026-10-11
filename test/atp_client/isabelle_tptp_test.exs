@@ -33,13 +33,13 @@ defmodule AtpClient.IsabelleTptpTest do
     end
   end
 
-  describe "AtpClient.Isabelle.query_tptp/2 — wiring" do
+  describe "AtpClient.Isabelle.query/2 — wiring" do
     test "routes through open_session so missing required config surfaces as ArgumentError" do
       # :password has no default in mix.exs and is fetched by open_session/1
-      # before any TPTP-specific work runs. This pins query_tptp as a peer of
+      # before any TPTP-specific work runs. This pins query/2 as a peer of
       # query_lemmas (which fails the same way for the same reason).
       assert_raise ArgumentError, ~r/missing required setting `:password`/, fn ->
-        AtpClient.Isabelle.query_tptp(~S"thf(g, conjecture, $true).")
+        AtpClient.Isabelle.query(~S"thf(g, conjecture, $true).")
       end
     end
   end

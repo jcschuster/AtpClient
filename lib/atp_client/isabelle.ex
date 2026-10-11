@@ -36,7 +36,7 @@ defmodule AtpClient.Isabelle do
       opts = [host: server.host, port: server.port, password: server.password]
 
       {:ok, session} = AtpClient.Isabelle.open_session(opts)
-      {:ok, :theorem} =
+      {:ok, %AtpClient.Result{status: :theorem}} =
         AtpClient.Isabelle.prove_theory(session, ~S\"\"\"
         lemma "P \\<or> \\<not> P" by auto
         \"\"\", "Example")
@@ -71,6 +71,23 @@ defmodule AtpClient.Isabelle do
   not try to translate Windows paths to POSIX or vice-versa. When unset,
   `:isabelle_dir` defaults to `:local_dir`.
 
+  ## Results
+
+  Every proving call returns `{:ok, %AtpClient.Result{}}` or `{:error, reason}`.
+  Isabelle prints no SZS lines; the status is read from the server's messages by
+  `AtpClient.Isabelle.Verdict`, and the result's `evidence` is
+  `{:backend, AtpClient.Isabelle}`. `output` is the text of those messages, and
+  `details` carries what the call knows beyond the status:
+
+    * `prove_theory/4` — `%{payload: map()}`, the `use_theories` payload as the
+      server returned it.
+    * `prove_lemmas/4`, `query_lemmas/3`, `prove_tptp/3` and `query/2` —
+      `%{lemmas: [lemma_result], payload: map()}`, one entry per lemma in the
+      order of the `lemma` declarations, each `%{name: name, status: status}`.
+      The result's own `status` is the weakest link: `:theorem` only when every
+      lemma was discharged, otherwise the first other status in lemma order. A
+      body with no lemmas is `:gave_up`.
+
   ## Example
 
   Pass a full theory or just the body — bare text is automatically wrapped in
@@ -88,35 +105,27 @@ defmodule AtpClient.Isabelle do
       lemma "P \\<or> \\<not> P" by auto
       \"\"\"
 
-      # Recommended: open a session and drive it directly. `prove_theory/4`
-      # returns the single-wrapped `atp_result()` shape every other backend
-      # already uses.
       {:ok, session} = AtpClient.Isabelle.open_session()
-      {:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, theory, "Example")
-      {:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, body, "Example")
+      {:ok, %{status: :theorem}} = AtpClient.Isabelle.prove_theory(session, theory, "Example")
+      {:ok, %{status: :theorem}} = AtpClient.Isabelle.prove_theory(session, body, "Example")
       :ok = AtpClient.Isabelle.close_session(session)
-
-  The single-shot `query/3` (session-less) is deprecated but still around
-  for callers that predate 0.6.0 — see the "Deprecations" section below.
-
-  For a single-shot TPTP/THF problem collapsed to one verdict, use `query/2`
-  (the `AtpClient.Backend` entry point); for per-lemma results, use
-  `query_tptp/2`.
 
   ## Submitting TPTP/THF problems
 
-  `query_tptp/2` and `prove_tptp/3` accept a TPTP/THF problem string and
-  route it through `IsabelleClient.TPTP.isabellize_theory/1` before handing
-  it to the per-lemma path. The bundled `TPTP.thy` support theory is copied
-  into `:local_dir` on first use, and the generated theory imports it with
-  `unbundle from_TPTP` active:
+  `query/2` and `prove_tptp/3` take an `AtpClient.Problem` and route it through
+  `IsabelleClient.TPTP.isabellize_theory/1` before handing it to the per-lemma
+  path. The bundled `TPTP.thy` support theory is copied into `:local_dir` on
+  first use, and the generated theory imports it with `unbundle from_TPTP`
+  active:
 
       problem = ~S\"\"\"
       thf(p_type, type, p: $i > $o).
       thf(g, conjecture, ! [X: $i]: (p @ X | ~ (p @ X))).
       \"\"\"
 
-      {:ok, lemma_results} = AtpClient.Isabelle.query_tptp(problem)
+      {:ok, result} = AtpClient.Isabelle.query(problem)
+      result.status           # :theorem
+      result.details.lemmas   # [%{name: "g", status: :theorem}]
 
   Lemma names propagate from TPTP formula names. Line numbers are not
   exposed — they would refer to the generated theory, not the input TPTP
@@ -124,14 +133,12 @@ defmodule AtpClient.Isabelle do
 
   ## Cancellation
 
-  Death of the process calling `query/2`, `query_tptp/2`, or any of the
-  session helpers is the abort signal. The session is owned by an internal
-  GenServer that monitors the caller; on caller `:DOWN` it stops the
-  underlying `IsabelleClient.Shared`, which closes the TCP socket to the
-  Isabelle server. Closing the socket while a
-  `use_theories` task is in flight aborts that task on the server side —
-  per the Isabelle protocol, the running check is dropped along with the
-  session.
+  Death of the process calling `query/2` or any of the session helpers is the
+  abort signal. The session is owned by an internal GenServer that monitors the
+  caller; on caller `:DOWN` it stops the underlying `IsabelleClient.Shared`,
+  which closes the TCP socket to the Isabelle server. Closing the socket while
+  a `use_theories` task is in flight aborts that task on the server side — per
+  the Isabelle protocol, the running check is dropped along with the session.
 
   `IsabelleClient` does not currently expose a way to cancel a single
   in-flight task while keeping the session open, so cancelled calls pay
@@ -147,19 +154,21 @@ defmodule AtpClient.Isabelle do
   alias AtpClient.Config.Field
   alias AtpClient.Isabelle.Session
   alias AtpClient.Isabelle.SessionOwner
-  alias AtpClient.ResultNormalization
+  alias AtpClient.Isabelle.Verdict
+  alias AtpClient.Problem
+  alias AtpClient.Result
   alias IsabelleClient.Shared
   alias IsabelleClient.Task
   alias IsabelleClient.Theory
   alias IsabelleClient.TPTP
 
   # One shared schema, applied at every public entry point in this module.
-  # The composition here is deep (`query/2` -> `query_tptp/2` ->
-  # `open_session/1` + `prove_tptp/3` -> `prove_lemmas/4` -> `prove_theory/4`)
-  # and each layer forwards `opts` wholesale, so a per-function schema would
-  # need to strip keys at each hop. A shared schema catches typos with far
-  # less ceremony; the tradeoff is that `close_session/1` won't complain if
-  # you pass it `:proof_method` — a harmless overshoot given the alternative.
+  # The composition here is deep (`query/2` -> `open_session/1` +
+  # `prove_tptp/3` -> `prove_lemmas/4` -> `run_theory/4`) and each layer
+  # forwards `opts` wholesale, so a per-function schema would need to strip
+  # keys at each hop. A shared schema catches typos with far less ceremony;
+  # the tradeoff is that `close_session/1` won't complain if you pass it
+  # `:proof_method` — a harmless overshoot given the alternative.
   @opts_schema NimbleOptions.new!(
                  # Schema-declared connection / defaults (see `config_schema/0`).
                  host: [type: :string],
@@ -175,14 +184,6 @@ defmodule AtpClient.Isabelle do
                  use_theories_timeout_ms: [type: :non_neg_integer],
 
                  # Per-call ephemera.
-                 raw: [
-                   type: :boolean,
-                   doc:
-                     "For `prove_theory/4`: return the raw `use_theories` payload " <>
-                       "instead of a classified SZS status. Ignored on the `prove_tptp/3` " <>
-                       "/ `query_tptp/2` / `query/2` path — see `prove_tptp/3` for the " <>
-                       "workaround."
-                 ],
                  imports: [type: :string, doc: "Isabelle imports clause. Default `\"Main\"`."],
                  proof_method: [
                    type: :string,
@@ -273,39 +274,19 @@ defmodule AtpClient.Isabelle do
   end
 
   @typedoc """
-  The result of a call to `prove_theory/4`:
+  What a proving call returns.
 
-    * `{:ok, szs_status}` — the classified SZS verdict (default mode). Matches
-      the shape every other backend returns from its `query/2` entry point;
-    * `{:ok, payload_map}` — when `:raw` is `true`, the full `use_theories`
-      payload (a map with `"nodes"`, `"errors"`, `"ok"`, …) returned by the
-      Isabelle server;
-    * `{:error, {:isabelle_failed, payload, notes}}` when the server reports a
-      `FAILED` message for the task (e.g. a theory file that Isabelle could not
-      load). `notes` is the list of intermediate `NOTE` payloads accumulated by
-      `IsabelleClient.Task` before the failure;
-    * `{:error, {:isabelle_failed, payload, hints}}` — same shape, but with
-      `hints` carrying diagnostic suggestions and the `local_dir` /
-      `isabelle_dir` actually used. Currently emitted when the server reports
-      "Cannot load theory file";
+    * `{:ok, %AtpClient.Result{}}` — the task finished; see "Results" in the
+      module documentation for what the result carries.
+    * `{:error, {:isabelle_failed, payload, notes}}` — the server reported a
+      `FAILED` message for the task, such as a theory file it could not load.
+      `notes` is the list of intermediate `NOTE` payloads `IsabelleClient.Task`
+      accumulated before the failure. When the message is "Cannot load theory
+      file", `notes` is replaced by hints carrying the `local_dir` and
+      `isabelle_dir` actually used.
     * other `{:error, reason}` for connection, session-start, and I/O issues.
   """
-  @type result ::
-          {:ok, ResultNormalization.szs_status()}
-          | {:ok, map()}
-          | {:error, term()}
-
-  @typedoc """
-  Legacy shape returned by the deprecated `query/3` only: the non-raw path
-  wraps the normalized ATP result in an extra `:ok`, so success reads
-  `{:ok, {:ok, :theorem}}`. Preserved verbatim for callers that predate the
-  0.6.0 unwrap (notably code samples in the AtpClient paper). Prefer
-  `prove_theory/4` / `query_lemmas/3` / `query_tptp/2` in new code.
-  """
-  @type legacy_result ::
-          {:ok, ResultNormalization.atp_result()}
-          | {:ok, map()}
-          | {:error, term()}
+  @type result :: {:ok, Result.t()} | {:error, term()}
 
   @doc """
   Connects to the Isabelle server, starts a session (typically `HOL` or `Main`),
@@ -381,37 +362,36 @@ defmodule AtpClient.Isabelle do
       <theory_text>
       end
 
-  By default the result is classified by
-  `AtpClient.ResultNormalization.interpret_isabelle_result/1` and returned as
-  `{:ok, szs_status}` — the same shape every other backend produces from its
-  `query/2` entry point. Pass `raw: true` to get back the full `use_theories`
-  payload (a map with `"nodes"`, `"ok"`, `"errors"`, …) as `{:ok, map()}`.
+  The status is read over every message of the task by
+  `AtpClient.Isabelle.Verdict.classify/1`; the `use_theories` payload is in
+  `result.details.payload`.
 
   ## Options
 
-    * `:raw` — return `{:ok, payload_map}` instead of `{:ok, szs_status}`
-      (default `false`);
     * `:imports` — session/theory to import when auto-wrapping (default `"Main"`);
     * `:use_theories_timeout_ms` — overall deadline for the task (default from
       config, `120_000`).
 
   ## Examples
 
-      # Non-raw: single-wrap SZS verdict.
-      {:ok, :theorem} =
+      {:ok, %AtpClient.Result{status: :theorem, details: %{payload: %{"ok" => true}}}} =
         AtpClient.Isabelle.prove_theory(session, "lemma p: True by auto\\n", "P")
-
-      # Raw: full server payload.
-      {:ok, %{"nodes" => _, "ok" => true}} =
-        AtpClient.Isabelle.prove_theory(session, "lemma p: True by auto\\n",
-          "P", raw: true)
   """
   @spec prove_theory(Session.t(), String.t(), String.t(), keyword()) :: result()
   def prove_theory(session, theory_text, theory_name, opts \\ [])
       when is_binary(theory_text) and is_binary(theory_name) do
     NimbleOptions.validate!(opts, @opts_schema)
+
+    with {:ok, payload} <- run_theory(session, theory_text, theory_name, opts) do
+      {:ok, result(Verdict.classify(payload), payload, %{payload: payload})}
+    end
+  end
+
+  # Writes the theory and runs it, returning the `use_theories` payload.
+  @spec run_theory(Session.t(), String.t(), String.t(), keyword()) ::
+          {:ok, map()} | {:error, term()}
+  defp run_theory(session, theory_text, theory_name, opts) do
     config = Keyword.merge(Session.config(session), opts)
-    raw? = Keyword.get(opts, :raw, false)
     imports = Keyword.get(opts, :imports, "Main")
 
     local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
@@ -434,9 +414,7 @@ defmodule AtpClient.Isabelle do
                %{"theories" => [theory_name], "master_dir" => isabelle_dir},
                timeout_ms
              ) do
-        if raw?,
-          do: {:ok, payload},
-          else: ResultNormalization.interpret_isabelle_result(payload)
+        {:ok, payload}
       else
         {:error, %Task{status: :failed, result: payload, notes: notes}} ->
           {:error, {:isabelle_failed, payload, notes}}
@@ -479,11 +457,10 @@ defmodule AtpClient.Isabelle do
   # Internal: extracts lemma specs (name + body-line range) from a theory body.
   # Walks the body line-by-line, picking out `lemma <name>:` declarations and
   # computing each lemma's range as `[its line .. (line before the next lemma)]`.
-  # Used by `prove_lemmas/4` and `prove_tptp/3` to feed
-  # `ResultNormalization.per_lemma_results/3` without re-parsing inside the
-  # classifier. Retained as public-visibility for tests, not part of the API
-  # contract.
-  @spec lemma_specs(String.t()) :: [ResultNormalization.lemma_spec()]
+  # Used by `prove_lemmas/4` to feed `Verdict.per_lemma/3` without re-parsing
+  # inside the classifier. Retained as public-visibility for tests, not part of
+  # the API contract.
+  @spec lemma_specs(String.t()) :: [Verdict.lemma_spec()]
   def lemma_specs(theory_text) when is_binary(theory_text) do
     lines = String.split(theory_text, "\n")
     total = length(lines)
@@ -512,32 +489,19 @@ defmodule AtpClient.Isabelle do
   end
 
   @doc """
-  Like `prove_theory/4`, but returns one result per lemma instead of a single
-  consolidated result.
+  Like `prove_theory/4`, but reads one status per lemma.
 
-  Calls `prove_theory/4` internally with `raw: true` and parses the payload via
-  `AtpClient.ResultNormalization.per_lemma_results/3`. Returns
-  `{:ok, [lemma_result]}` for a finished task, where entries follow the order
-  of the `lemma <name>:` declarations in the input body:
-
-      %{
-        name:   String.t(),                # lemma name from the body
-        result: {:ok, :theorem} | {:ok, :counter_satisfiable} | {:ok, :satisfiable}
-              | {:ok, :gave_up} | {:ok, :timeout} | {:ok, :memory_out}
-      }
-
-  Unnamed `lemma "…" by …` declarations are not represented in the result —
-  the classifier buckets messages by lemma name extracted from the body.
-
-  Returns `{:error, term()}` for connection failures and for tasks that fail
-  before producing any messages (e.g. unreadable theory files).
+  The result's `details.lemmas` holds one entry per `lemma <name>:` declaration
+  in the body, in that order, each `%{name: name, status: status}`; the result's
+  own `status` is the weakest link over them. Unnamed `lemma "…" by …`
+  declarations are not represented — the classifier buckets messages by the
+  lemma names it finds in the body.
 
   ## Options
 
-  Same as `prove_theory/4` except `:raw`, which is always overridden.
+  Same as `prove_theory/4`.
   """
-  @spec prove_lemmas(Session.t(), String.t(), String.t(), keyword()) ::
-          {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
+  @spec prove_lemmas(Session.t(), String.t(), String.t(), keyword()) :: result()
   def prove_lemmas(session, theory_text, theory_name, opts \\ [])
       when is_binary(theory_text) and is_binary(theory_name) do
     NimbleOptions.validate!(opts, @opts_schema)
@@ -546,21 +510,14 @@ defmodule AtpClient.Isabelle do
     # shifts every line of the body down by one in the on-disk file.
     line_offset = if needs_wrap?(theory_text), do: 1, else: 0
 
-    case prove_theory(session, theory_text, theory_name, Keyword.put(opts, :raw, true)) do
-      {:ok, payload} ->
-        {:ok,
-         ResultNormalization.per_lemma_results(
-           payload,
-           specs,
-           file: "/" <> theory_name <> ".thy",
-           line_offset: line_offset
-         )}
+    with {:ok, payload} <- run_theory(session, theory_text, theory_name, opts) do
+      lemmas =
+        Verdict.per_lemma(payload, specs,
+          file: "/" <> theory_name <> ".thy",
+          line_offset: line_offset
+        )
 
-      {:error, {:isabelle_failed, _, _}} = err ->
-        err
-
-      {:error, _} = err ->
-        err
+      {:ok, result(weakest(lemmas), payload, %{lemmas: lemmas, payload: payload})}
     end
   end
 
@@ -570,27 +527,15 @@ defmodule AtpClient.Isabelle do
   Convenience wrapper: opens a session, calls `prove_lemmas/4`, and
   unconditionally closes the session afterwards (even on error).
   """
-  @spec query_lemmas(String.t(), String.t(), keyword()) ::
-          {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
+  @spec query_lemmas(String.t(), String.t(), keyword()) :: result()
   def query_lemmas(theory_text, theory_name, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
-
-    case open_session(opts) do
-      {:ok, session} ->
-        try do
-          prove_lemmas(session, theory_text, theory_name, opts)
-        after
-          close_session(session)
-        end
-
-      {:error, _} = err ->
-        err
-    end
+    with_session(opts, &prove_lemmas(&1, theory_text, theory_name, opts))
   end
 
   @doc """
-  Like `prove_lemmas/4`, but takes a TPTP/THF problem string instead of an
-  Isabelle theory.
+  Like `prove_lemmas/4`, but takes an `AtpClient.Problem` in TPTP/THF instead
+  of an Isabelle theory.
 
   The problem is converted to an Isabelle theory body via
   `IsabelleClient.TPTP.isabellize_theory/1`, which maps `thf(name, axiom, …)`
@@ -607,11 +552,10 @@ defmodule AtpClient.Isabelle do
 
   ## Result attribution
 
-  Entries in the returned `lemma_result()` list follow the order of the
-  `thf(…, conjecture, …)` declarations in the input problem and carry the
-  TPTP formula name as `:name`. Line numbers are intentionally not
-  exposed: they would refer to the generated theory body rather than the
-  caller's TPTP source.
+  `result.details.lemmas` follows the order of the `thf(…, conjecture, …)`
+  declarations in the input problem and carries the TPTP formula name as
+  `:name`. Line numbers are intentionally not exposed: they would refer to
+  the generated theory body rather than the caller's TPTP source.
 
   ## Options
 
@@ -620,14 +564,6 @@ defmodule AtpClient.Isabelle do
     * `:theory_name` — name to use for the generated Isabelle theory
       (default: a content-derived `AtpClient_<hash>` string). Useful for
       stable filenames across runs.
-    * `:raw` — accepted for opts compatibility with `prove_theory/4`, but
-      ignored: the return of `prove_tptp/3` is inherently a per-lemma list,
-      so the raw `use_theories` payload would be attached to the *generated*
-      Isabelle theory (with `axiomatization`, `unbundle from_TPTP`, and the
-      support theory in scope) rather than to the caller's TPTP source, and
-      would carry no useful line/anchor mapping back. If you need the raw
-      payload for a TPTP problem, call `IsabelleClient.TPTP.isabellize_theory/1`
-      yourself and pass the result to `prove_theory/4` with `raw: true`.
     * `:proof_method` — Isabelle tactic appended to each generated `lemma`
       (default `"by auto"`). The isabellizer emits `lemma` declarations
       without proofs, which Isabelle treats as unfinished goals; a tactic
@@ -636,9 +572,9 @@ defmodule AtpClient.Isabelle do
       `"sledgehammer nitpick oops"` to probe both proof and
       countersatisfiability; the latter relies on the per-lemma classifier
       recognising sledgehammer's `"found a proof"` and nitpick's verdicts
-      directly, so `oops` is fine — `{:ok, :theorem}` /
-      `{:ok, :counter_satisfiable}` / `{:ok, :satisfiable}` come from the
-      tool messages, not from a `theorem name:` completion.
+      directly, so `oops` is fine — `:theorem` / `:counter_satisfiable` /
+      `:satisfiable` come from the tool messages, not from a `theorem name:`
+      completion.
 
   ## Errors
 
@@ -648,37 +584,53 @@ defmodule AtpClient.Isabelle do
       (the parser is tolerant by design, so this should be rare);
     * everything `prove_lemmas/4` can return.
   """
-  @spec prove_tptp(Session.t(), String.t(), keyword()) ::
-          {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
-  def prove_tptp(session, problem, opts \\ []) when is_binary(problem) do
+  @spec prove_tptp(Session.t(), Problem.t(), keyword()) :: result()
+  def prove_tptp(session, problem, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
     config = Keyword.merge(Session.config(session), opts)
     local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
     proof_method = Keyword.get(opts, :proof_method, "by auto")
+    text = problem |> Problem.to_iodata() |> IO.iodata_to_binary()
 
     with :ok <- File.mkdir_p(local_dir),
          :ok <- ensure_tptp_theory(local_dir),
-         {:ok, isabellized} <- safe_isabellize(problem) do
-      name = Keyword.get(opts, :theory_name) || derive_name(problem)
+         {:ok, isabellized} <- safe_isabellize(text) do
+      name = Keyword.get(opts, :theory_name) || derive_name(text)
       body = "unbundle from_TPTP\n\n" <> inject_proof_method(isabellized, proof_method)
 
       prove_lemmas(session, body, name, Keyword.put(opts, :imports, ~s("TPTP")))
     end
   end
 
+  @impl AtpClient.Backend
   @doc """
-  Convenience wrapper: opens a session, calls `prove_tptp/3`, and
-  unconditionally closes the session afterwards (even on error).
-  """
-  @spec query_tptp(String.t(), keyword()) ::
-          {:ok, [ResultNormalization.lemma_result()]} | {:error, term()}
-  def query_tptp(problem, opts \\ []) when is_binary(problem) do
-    NimbleOptions.validate!(opts, @opts_schema)
+  Behaviour entry point: opens a session, runs `prove_tptp/3`, and closes the
+  session afterwards, even on error.
 
+  The result's `status` is the weakest link over the isabellized lemmas and
+  `details.lemmas` has each lemma's own status.
+
+  > #### THF-only {: .warning}
+  >
+  > `IsabelleClient.TPTP.isabellize_theory/1` in the currently vendored
+  > `:isabelle_elixir` (0.4.1) only recognises `thf(…)` annotated formulae.
+  > FOF/CNF input is silently dropped by the isabellizer, so the generated
+  > body has no lemmas and the result is `:gave_up` — indistinguishable from
+  > an honest failed proof. If you need FOF/CNF today, route through the
+  > `SystemOnTPTP`, `StarExec`, or `LocalExec` backends instead.
+  """
+  @spec query(Problem.t(), keyword()) :: result()
+  def query(problem, opts \\ []) do
+    NimbleOptions.validate!(opts, @opts_schema)
+    with_session(opts, &prove_tptp(&1, problem, opts))
+  end
+
+  @spec with_session(keyword(), (Session.t() -> result())) :: result()
+  defp with_session(opts, fun) do
     case open_session(opts) do
       {:ok, session} ->
         try do
-          prove_tptp(session, problem, opts)
+          fun.(session)
         after
           close_session(session)
         end
@@ -688,54 +640,28 @@ defmodule AtpClient.Isabelle do
     end
   end
 
-  @impl AtpClient.Backend
-  @doc """
-  Behaviour entry point: proves `problem` (a TPTP-format string) and
-  collapses the per-lemma results from `query_tptp/2` into a single
-  `t:AtpClient.ResultNormalization.atp_result/0`.
+  # Weakest-link fold over per-lemma statuses. An empty list is not a
+  # "trivially proved" state: it means the isabellizer produced no `lemma`
+  # declarations from the input, which is what an unsupported dialect looks
+  # like (see the caveat on `query/2`).
+  @spec weakest([Verdict.lemma_result()]) :: Tptp.Szs.Ontology.t()
+  defp weakest([]), do: :gave_up
 
-  Aggregation is weakest-link: any non-`{:ok, :theorem}` entry wins, so the
-  unified result only reads `{:ok, :theorem}` when every isabellized lemma
-  was discharged. Callers that need per-lemma detail should use
-  `query_tptp/2` directly.
-
-  > #### THF-only {: .warning}
-  >
-  > `IsabelleClient.TPTP.isabellize_theory/1` in the currently vendored
-  > `:isabelle_elixir` (0.4.1) only recognises `thf(…)` annotated formulae.
-  > FOF/CNF input is silently dropped by the isabellizer, so `query_tptp/2`
-  > returns `{:ok, []}` and this entry point collapses that to
-  > `{:ok, :gave_up}` — indistinguishable from an honest failed proof. If
-  > you need FOF/CNF today, route through the `SystemOnTPTP`, `StarExec`,
-  > or `LocalExec` backends instead.
-  """
-  @spec query(String.t(), keyword()) ::
-          ResultNormalization.atp_result() | {:error, term()}
-  def query(problem, opts \\ []) when is_binary(problem) do
-    NimbleOptions.validate!(opts, @opts_schema)
-
-    case query_tptp(problem, opts) do
-      {:ok, lemmas} -> aggregate_lemma_results(lemmas)
-      {:error, _} = err -> err
-    end
+  defp weakest(lemmas) do
+    Enum.find_value(lemmas, :theorem, fn %{status: status} ->
+      if status != :theorem, do: status
+    end)
   end
 
-  # Weakest-link fold of the per-lemma results returned by `query_tptp/2`.
-  #
-  # An empty list — the `[]` clause — is not a "trivially proved" state: it
-  # means the isabellizer produced no `lemma` declarations from the input.
-  # In practice that happens whenever the TPTP dialect is unsupported: the
-  # vendored `IsabelleClient.TPTP` (0.4.1) only handles `thf(…)`, so
-  # `fof(…)` / `cnf(…)` problems isabellize to an empty body. We collapse
-  # that to `{:ok, :gave_up}` to preserve the SZS shape of the return type,
-  # at the cost of conflating "unsupported input" with "honest failure" —
-  # see the caveat in `query/2` and prefer another backend for FOF/CNF.
-  defp aggregate_lemma_results([]), do: {:ok, :gave_up}
-
-  defp aggregate_lemma_results(lemmas) do
-    Enum.find_value(lemmas, {:ok, :theorem}, fn %{result: r} ->
-      if r != {:ok, :theorem}, do: r
-    end)
+  @spec result(Tptp.Szs.Ontology.t(), map(), map()) :: Result.t()
+  defp result(status, payload, details) do
+    %Result{
+      status: status,
+      evidence: {:backend, __MODULE__},
+      output: Verdict.text(payload),
+      backend: __MODULE__,
+      details: details
+    }
   end
 
   defp inject_proof_method(isabellized, proof_method) do
@@ -792,52 +718,4 @@ defmodule AtpClient.Isabelle do
 
     "AtpClient_" <> binary_part(hash, 0, 12)
   end
-
-  @doc """
-  **Deprecated.** Opens a session, calls `prove_theory/4`, closes the
-  session, and returns the historical double-wrapped shape
-  (`{:ok, atp_result()}` in non-raw mode — success reads
-  `{:ok, {:ok, :theorem}}`).
-
-  Preserved verbatim so callers that predate the 0.6.0 unwrap keep
-  working (in particular, the code samples in the AtpClient paper).
-  New code should call one of:
-
-    * `prove_theory/4` with a session you own — returns `{:ok, szs_status()}`
-      (single-wrap), matching every other backend;
-    * `query_lemmas/3` for a one-shot theory with per-lemma results;
-    * `query_tptp/2` for a TPTP/THF problem;
-    * `query/2` (`AtpClient.Backend` entry point) for a TPTP/THF problem
-      collapsed to a single verdict.
-
-  `opts` must be passed explicitly (use `[]` for none) — a default value
-  would shadow `query/2` from `AtpClient.Backend`.
-  """
-  @deprecated "Use prove_theory/4 with an open session, or query_lemmas/3 / query_tptp/2 for one-shot calls. See @typedoc for `legacy_result` for the double-wrap this function preserves."
-  @spec query(String.t(), String.t(), keyword()) :: legacy_result()
-  def query(theory_text, theory_name, opts) do
-    NimbleOptions.validate!(opts, @opts_schema)
-    raw? = Keyword.get(opts, :raw, false)
-
-    case open_session(opts) do
-      {:ok, session} ->
-        try do
-          legacy_wrap(prove_theory(session, theory_text, theory_name, opts), raw?)
-        after
-          close_session(session)
-        end
-
-      {:error, _} = err ->
-        err
-    end
-  end
-
-  # `prove_theory/4` (post-0.6.0) returns `{:ok, szs_status()}` in non-raw mode
-  # and `{:ok, map()}` in raw mode. The legacy `query/3` contract wraps the
-  # non-raw path in an extra `:ok` (so success reads `{:ok, {:ok, :theorem}}`)
-  # but leaves the raw path shape alone. `:raw` in opts is authoritative
-  # since callers know which mode they asked for.
-  defp legacy_wrap({:error, _} = err, _raw?), do: err
-  defp legacy_wrap({:ok, _} = ok, true), do: ok
-  defp legacy_wrap({:ok, _} = ok, false), do: {:ok, ok}
 end

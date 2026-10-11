@@ -10,17 +10,30 @@ supported:
 - **Isabelle** — `isabelle server` instances, via the
   [`isabelle_elixir`](https://hex.pm/packages/isabelle_elixir) package.
 - **LocalExec** — a locally installed TPTP-compliant prover binary
-  (E, Vampire, …) invoked via `System.cmd/3`.
+  (E, Vampire, …) invoked via `Port.open/2`.
 
-All backends return results normalized to
-`AtpClient.ResultNormalization.atp_result` — a `{:ok, status}` tuple whose
-`status` is the SZS Ontology verdict downcased to an Elixir atom
-(`:theorem`, `:unsatisfiable`, `:counter_satisfiable`, `:satisfiable`,
-`:gave_up`, `:timeout`, …) — so that comparing provers across backends is
-straightforward without conflating semantically distinct verdicts
-(`:theorem` ≠ `:unsatisfiable`, `:counter_satisfiable` ≠ `:satisfiable`).
-Errors that prevented any SZS verdict (network failure, malformed input,
-missing binary) come back as `{:error, reason}`.
+The TPTP language itself — reading, linting, printing, the SZS ontology —
+is the [`tptp`](https://hex.pm/packages/tptp) library's; this one is the
+transport to the provers.
+
+Every backend takes an `AtpClient.Problem` — a binary, a `Tptp.File` or a
+`Tptp.Unit` — and returns `{:ok, %AtpClient.Result{}}` or `{:error, reason}`.
+A result's `status` is the system's SZS verdict as a value of
+`Tptp.Szs.Ontology` (`:theorem`, `:unsatisfiable`, `:counter_satisfiable`,
+`:satisfiable`, `:gave_up`, `:timeout`, …), read from the system's output by
+`AtpClient.Verdict`; the output itself, the delimited proof blocks and how
+the status was obtained travel with it. Semantically distinct verdicts stay
+distinct (`:theorem` ≠ `:unsatisfiable`, `:counter_satisfiable` ≠
+`:satisfiable`), and a status word the ontology does not define is reported
+rather than turned into an atom. `{:error, reason}` means no status could
+be obtained: a network failure, a missing binary, output with no status
+line.
+
+A backend never parses what it sends. A binary goes to the prover as it is,
+a `Tptp.File` as the source it was read from, a `Tptp.Unit` as its
+statements sliced from their files — so the direct path from TPTP text to
+prover costs nothing beyond the transport. `AtpClient.preflight/1` is the
+explicit check for callers who want one before a round-trip.
 
 Each backend also implements the `AtpClient.Backend` behaviour
 (`config_key/0`, `label/0`, `config_schema/0`, `verify/1`, `query/2`), so a
@@ -36,7 +49,7 @@ Add `:atp_client` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:atp_client, "~> 0.6"}
+    {:atp_client, "~> 0.7"}
   ]
 end
 ```
@@ -86,7 +99,7 @@ config :atp_client, :local_exec,
 Any setting may be overridden for a single call:
 
 ```elixir
-AtpClient.Isabelle.query(theory, "Example", session: "Main", raw: true)
+AtpClient.LocalExec.query(problem, binary: "vampire", args: ["--mode", "casc"])
 ```
 
 ## Usage
@@ -103,14 +116,30 @@ fof(goal, conjecture, q).
 AtpClient.SystemOnTptp.list_provers()
 # => ["Alt-Ergo---0.95.2", "Beagle---0.9.52", ...]
 
-AtpClient.SystemOnTptp.query_system(problem, "cvc5---1.3.4", time_limit_sec: 10)
-# => {:ok, :theorem}
+{:ok, result} = AtpClient.SystemOnTptp.query_system(problem, "cvc5---1.3.4", time_limit_sec: 10)
+result.status    # => :theorem
+result.evidence  # => :szs
+result.output    # => the prover's stdout as SystemOnTPTP relayed it
 
-AtpClient.SystemOnTptp.query_selected_systems(problem, ["cvc5---1.3.4", "Vampire---5.0.1"], time_limit_sec: 5)
-# => {:ok, [{"cvc5---1.3.4", {:ok, :theorem}}, {"Vampire---5.0.1", {:ok, :theorem}}]}
+{:ok, outcomes} =
+  AtpClient.SystemOnTptp.query_selected_systems(problem, ["cvc5---1.3.4", "Vampire---5.0.1"], time_limit_sec: 5)
+
+for {system, {:ok, result}} <- outcomes, do: {system, result.status}
+# => [{"cvc5---1.3.4", :theorem}, {"Vampire---5.0.1", :theorem}]
 
 AtpClient.SystemOnTptp.query_all_systems(problem, time_limit_sec: 5)
-# => {:ok, [{"Alt-Ergo---0.95.2", {:ok, :theorem}}, ...]}
+# => {:ok, [{"Alt-Ergo---0.95.2", {:ok, %AtpClient.Result{status: :theorem}}}, ...]}
+```
+
+A problem read with `tptp` is sent as the text it was read from, and a
+problem whose `include` directives were resolved locally is sent expanded:
+
+```elixir
+{:ok, file, []} = Tptp.from_file("Problems/PUZ/PUZ001+1.p")
+AtpClient.SystemOnTptp.query_system(file, "E---3.2.5")
+
+{:ok, unit, []} = Tptp.Unit.from_file("my_problem.p", resolver: Tptp.Resolver.Fs)
+AtpClient.LocalExec.query(unit, binary: "eprover")
 ```
 
 ### StarExec
@@ -132,11 +161,11 @@ job_id = extract_job_id(response)   # deployment-specific
 
 {:ok, info} = AtpClient.StarExec.wait_for_job(session, job_id, timeout_ms: 600_000)
 
-# Pair ids come from `info`; stdout is then normalized the same way as
-# SystemOnTPTP output:
-{:ok, stdout} = AtpClient.StarExec.get_pair_stdout(session, pair_id)
-AtpClient.ResultNormalization.interpret_result(stdout)
-# => {:ok, :theorem}
+# Pair stdout is read the same way as SystemOnTPTP output:
+{:ok, zip} = AtpClient.StarExec.get_job_output(session, job_id)
+{:ok, result} = AtpClient.Verdict.interpret(stdout_from(zip), AtpClient.StarExec)
+result.status
+# => :theorem
 
 AtpClient.StarExec.logout(session)
 ```
@@ -163,10 +192,8 @@ lemma "\<forall>x. P x \<longrightarrow> P x"
 """
 
 # Bare-body input is auto-wrapped in `theory ... imports Main begin ... end`.
-# `prove_theory/4` returns the single-wrapped `atp_result()` shape every
-# other backend already uses.
 {:ok, session} = AtpClient.Isabelle.open_session(opts)
-{:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, theory, "Example")
+{:ok, %{status: :theorem}} = AtpClient.Isabelle.prove_theory(session, theory, "Example")
 :ok = AtpClient.Isabelle.close_session(session)
 
 # When you're done:
@@ -186,20 +213,17 @@ multiple theories:
 ```elixir
 {:ok, session} = AtpClient.Isabelle.open_session(opts)
 try do
-  {:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, theory, "Example")
-  {:ok, :theorem} = AtpClient.Isabelle.prove_theory(session, other_theory, "Other")
+  {:ok, %{status: :theorem}} = AtpClient.Isabelle.prove_theory(session, theory, "Example")
+  {:ok, %{status: :theorem}} = AtpClient.Isabelle.prove_theory(session, other_theory, "Other")
 after
   AtpClient.Isabelle.close_session(session)
 end
 ```
 
-> The three-arity `AtpClient.Isabelle.query/3` is deprecated as of 0.6.0 but
-> still available for callers that depend on its double-wrapped return shape
-> (`{:ok, {:ok, :theorem}}`).
-
-Pass a TPTP/THF problem string to `query_tptp/2` (or `prove_tptp/3` with a
-session) to route it through `IsabelleClient.TPTP.isabellize_theory/1` and
-get one result per conjecture:
+Pass a TPTP/THF problem to `query/2` (or `prove_tptp/3` with a session) to
+route it through `IsabelleClient.TPTP.isabellize_theory/1`; the result's
+`status` is the weakest link over the conjectures and `details.lemmas` has
+each one's own:
 
 ```elixir
 problem = ~S"""
@@ -207,12 +231,14 @@ thf(p_type, type, p: $i > $o).
 thf(g, conjecture, ! [X: $i]: (p @ X | ~ (p @ X))).
 """
 
-AtpClient.Isabelle.query_tptp(problem, opts)
-# => {:ok, [%{name: "g", result: {:ok, :theorem}}]}
+{:ok, result} = AtpClient.Isabelle.query(problem, opts)
+result.status          # => :theorem
+result.details.lemmas  # => [%{name: "g", status: :theorem}]
 ```
 
-Pass `raw: true` to `prove_theory/4` to inspect the full `use_theories`
-payload instead of the classified verdict.
+Isabelle prints no SZS lines; its status is read from the server's messages
+(`result.evidence` is `{:backend, AtpClient.Isabelle}`), and the full
+`use_theories` payload is in `result.details.payload`.
 
 ### LocalExec
 
@@ -226,11 +252,23 @@ fof(goal, conjecture, q).
 # `binary` is resolved against $PATH or used as an absolute path; `args`
 # may contain "{{problem}}" to pin the problem-file position (otherwise the
 # path is appended last).
-AtpClient.LocalExec.query(problem,
-  binary: "eprover",
-  args: ["--auto", "--tstp-format", "--cpu-limit=10"]
-)
-# => {:ok, :theorem}
+{:ok, result} =
+  AtpClient.LocalExec.query(problem,
+    binary: "eprover",
+    args: ["--auto", "--tstp-format", "--cpu-limit=10"]
+  )
+
+result.status
+# => :theorem
+
+# A proof the prover delimited with `SZS output start … end` is read as TPTP,
+# with each formula's inference record intact:
+{:ok, proof, []} = AtpClient.Result.proof(result)
+Enum.map(proof.statements, & &1.name.text)
+
+# A file already on disk is handed to the prover by path; nothing is read or
+# copied, and the prover resolves its includes itself.
+AtpClient.LocalExec.query_file("Problems/PUZ/PUZ001+1.p", binary: "eprover")
 ```
 
 `scripts/build_eprover.sh` builds the E theorem prover from source and
@@ -261,6 +299,24 @@ AtpClient.StarExec.verify(
 # And run a problem through any backend uniformly:
 AtpClient.LocalExec.query(problem, binary: "eprover")
 AtpClient.SystemOnTptp.query(problem, default_system: "cvc5---1.3.2")
+
+# `AtpClient.query/3` adds the one thing a backend never does on its own —
+# reading and linting the problem first:
+AtpClient.query(AtpClient.LocalExec, problem, binary: "eprover", preflight: true)
+# => {:error, {:invalid_problem, [%Tptp.Diagnostic{}, ...]}} for a problem that does not parse
+```
+
+### Analyzers
+
+`AtpClient.Analyzer.Tptp4x` runs the TPTP World's own checker, TPTP4X, on the
+SystemOnTPTP deployment as a `Tptp.Analyzer`, so an editor can add its
+findings to `Tptp.Lint`'s:
+
+```elixir
+analysis = Tptp.analyze(source)
+
+Tptp.Analyzer.run_all(analysis, [Tptp.Lint, AtpClient.Analyzer.Tptp4x])
+# => [{:tptp_lint, [...]}, {:tptp4x, [...]}]
 ```
 
 ## License

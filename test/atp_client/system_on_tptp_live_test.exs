@@ -30,7 +30,7 @@ defmodule AtpClient.SystemOnTptpLiveTest do
 
   describe "baseline" do
     test "query_system/3 with no overrides discharges the conjecture" do
-      assert {:ok, :theorem} =
+      assert {:ok, %AtpClient.Result{status: :theorem}} =
                AtpClient.SystemOnTptp.query_system(@socrates, @system, time_limit_sec: 10)
     end
   end
@@ -40,14 +40,13 @@ defmodule AtpClient.SystemOnTptpLiveTest do
       # Confirmed by a hand-crafted curl during design: SotP replies with
       # an `ERROR: Formatter did not create ...` body when the value is
       # not a known format module. That surfaces to us as an
-      # unrecognised-output failure rather than a classified SZS status.
-      {:ok, raw} =
+      # unrecognised-output failure carrying the body, not as an SZS status.
+      {:error, {:unrecognized_output, raw}} =
         AtpClient.SystemOnTptp.query_system(
           @socrates,
           @system,
           time_limit_sec: 5,
-          format: "tptp:definitely_not_a_real_format_module",
-          raw: true
+          format: "tptp:definitely_not_a_real_format_module"
         )
 
       assert raw =~ "Formatter did not create"
@@ -56,7 +55,7 @@ defmodule AtpClient.SystemOnTptpLiveTest do
     test "the default format module `tptp:raw` still discharges the conjecture" do
       # Pinning the null case: passing the *default* value explicitly must
       # behave identically to passing nothing.
-      assert {:ok, :theorem} =
+      assert {:ok, %AtpClient.Result{status: :theorem}} =
                AtpClient.SystemOnTptp.query_system(@socrates, @system,
                  time_limit_sec: 10,
                  format: "tptp:raw"
@@ -68,13 +67,12 @@ defmodule AtpClient.SystemOnTptpLiveTest do
     test "an unknown transform module makes SotP return a Formatter error" do
       # Bogus transforms cascade into the same "Formatter did not create"
       # error path — see the design-time probe.
-      {:ok, raw} =
+      {:error, {:unrecognized_output, raw}} =
         AtpClient.SystemOnTptp.query_system(
           @socrates,
           @system,
           time_limit_sec: 5,
-          transform: "definitely_not_a_real_transform",
-          raw: true
+          transform: "definitely_not_a_real_transform"
         )
 
       assert raw =~ "Formatter did not create"
@@ -88,7 +86,7 @@ defmodule AtpClient.SystemOnTptpLiveTest do
       # that observed behaviour so a future change on the SotP side (e.g.
       # a deployment that starts honouring `Command___`) surfaces here as
       # a red test rather than silently altering results.
-      assert {:ok, :theorem} =
+      assert {:ok, %AtpClient.Result{status: :theorem}} =
                AtpClient.SystemOnTptp.query_system(@socrates, @system,
                  time_limit_sec: 10,
                  command: "/nonexistent/binary %s %d"

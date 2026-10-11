@@ -20,7 +20,8 @@ defmodule AtpClient.SystemOnTptp do
 
       # system IDs returned by list_provers/0, e.g. "Vampire-FMo---5.0.1"
       {:ok, result} = AtpClient.SystemOnTptp.query_system(thf_problem, "Vampire-FMo---5.0.1")
-      # => {:ok, :theorem}
+      result.status   # => :theorem
+      result.output   # => the prover's stdout as SystemOnTPTP relayed it
 
   ## Cancellation
 
@@ -37,8 +38,10 @@ defmodule AtpClient.SystemOnTptp do
 
   alias AtpClient.Config
   alias AtpClient.Config.Field
+  alias AtpClient.Problem
+  alias AtpClient.Result
   alias AtpClient.SystemOnTptp.Provers
-  alias AtpClient.ResultNormalization, as: RN
+  alias AtpClient.Verdict
 
   # Every key any function in this module reads out of `opts` — plus the
   # per-system overrides the tptp.org form exposes. Validated at every
@@ -57,12 +60,6 @@ defmodule AtpClient.SystemOnTptp do
                  time_limit_sec: [
                    type: :non_neg_integer,
                    doc: "Prover CPU time limit in seconds; overrides `:default_time_limit_sec`."
-                 ],
-                 raw: [
-                   type: :boolean,
-                   doc:
-                     "When `true`, return `{:ok, body_string}` instead of the classified " <>
-                       "`atp_result()`. `query/2` (Backend entry point) forces this to `false`."
                  ],
                  command: [
                    type: :string,
@@ -150,12 +147,11 @@ defmodule AtpClient.SystemOnTptp do
   end
 
   @impl AtpClient.Backend
-  @spec query(String.t(), keyword()) :: RN.atp_result() | {:error, term()}
-  def query(problem, opts \\ []) when is_binary(problem) do
+  @spec query(Problem.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
+  def query(problem, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
     system_id = Config.fetch!(:sotptp, :default_system, opts)
-    # Force non-raw so query_system/3 returns an atp_result() and not a body.
-    query_system(problem, system_id, Keyword.put(opts, :raw, false))
+    query_system(problem, system_id, opts)
   end
 
   @doc """
@@ -168,15 +164,16 @@ defmodule AtpClient.SystemOnTptp do
 
   @doc """
   Queries a specific system via SystemOnTPTP. Available systems can be looked
-  up with `list_provers/0`. The problem is expected to be in valid TPTP format
-  and compatible with the selected prover.
+  up with `list_provers/0`. The problem is an `AtpClient.Problem` in a dialect
+  the selected system accepts; SystemOnTPTP resolves `include` directives
+  against its own copy of the TPTP library, so a `Tptp.File` is sent as it is.
+
+  The response body — the system's stdout as SystemOnTPTP relays it — is read
+  by `AtpClient.Verdict` and kept on the result as `output`.
 
   ## Options
 
     * `:time_limit_sec` — time limit in seconds (default `5`);
-    * `:raw` — when `true`, skip `interpret_result/1` and return the raw
-      HTTP response body (the prover's stdout as SystemOnTPTP relays it)
-      as `{:ok, body_string}`. Default `false`;
     * `:url` — override the SystemOnTPTP endpoint URL;
     * `:command`, `:format`, `:transform` — per-system SotP form overrides
       (`Command___<sysid>`, `Format___<sysid>`, `Transform___<sysid>`). Each
@@ -193,8 +190,8 @@ defmodule AtpClient.SystemOnTptp do
   `TimeLimit` on the server**. Set `:time_limit_sec` to bound the server-
   side work; that is the only knob available.
   """
-  @spec query_system(String.t(), String.t(), Keyword.t()) ::
-          {:ok, String.t()} | RN.atp_result() | {:error, term()}
+  @spec query_system(Problem.t(), String.t(), Keyword.t()) ::
+          {:ok, Result.t()} | {:error, term()}
   def query_system(problem, system_id, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
     url = Config.fetch!(:sotptp, :url, opts)
@@ -204,7 +201,6 @@ defmodule AtpClient.SystemOnTptp do
         Config.fetch(:sotptp, :default_time_limit_sec, 5)
 
     network_overhead_ms = Config.fetch(:sotptp, :network_overhead_ms, 30_000, opts)
-    return_raw = Keyword.get(opts, :raw, false)
 
     case Req.post(
            url,
@@ -216,7 +212,7 @@ defmodule AtpClient.SystemOnTptp do
            retry_delay: fn _ -> 500 end
          ) do
       {:ok, %{status: 200, body: body}} ->
-        if return_raw, do: {:ok, body}, else: RN.interpret_result(body)
+        Verdict.interpret(body, __MODULE__, system: system_id)
 
       {:ok, %{status: status}} ->
         {:error, "API Error: status #{status}"}
@@ -233,6 +229,7 @@ defmodule AtpClient.SystemOnTptp do
   # in a multi-system call.
   defp build_form(problem, system_ids, time_limit_sec, opts) do
     time_str = Integer.to_string(time_limit_sec)
+    text = problem |> Problem.to_iodata() |> IO.iodata_to_binary()
 
     per_system_overrides =
       [
@@ -256,7 +253,7 @@ defmodule AtpClient.SystemOnTptp do
     Enum.into(system_fields, %{
       "SubmitButton" => "RunSelectedSystems",
       "ProblemSource" => "FORMULAE",
-      "FORMULAEProblem" => problem,
+      "FORMULAEProblem" => text,
       "NoHTML" => "1",
       "QuietFlag" => "-q01",
       "X2TPTP" => "-S"
@@ -268,10 +265,12 @@ defmodule AtpClient.SystemOnTptp do
   arguments. Accepted options are the same as for `query_system/3`; the
   `:command`, `:format`, and `:transform` overrides — if set — are applied
   identically to every system in `system_ids`.
+
+  Returns one `{system_id, outcome}` per section of the reply, where `outcome`
+  is what `AtpClient.Verdict.interpret/3` read from that system's output.
   """
-  @spec query_selected_systems(String.t(), [String.t()], Keyword.t()) ::
-          {:ok, [{String.t(), RN.atp_result()}]}
-          | {:ok, [{String.t(), String.t()}]}
+  @spec query_selected_systems(Problem.t(), [String.t()], Keyword.t()) ::
+          {:ok, [{String.t(), {:ok, Result.t()} | {:error, Verdict.failure()}}]}
           | {:error, term()}
   def query_selected_systems(problem, system_ids, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
@@ -282,7 +281,6 @@ defmodule AtpClient.SystemOnTptp do
         Config.fetch(:sotptp, :default_time_limit_sec, 5)
 
     network_overhead_ms = Config.fetch(:sotptp, :network_overhead_ms, 30_000, opts)
-    return_raw = Keyword.get(opts, :raw, false)
 
     case Req.post(
            url,
@@ -304,7 +302,7 @@ defmodule AtpClient.SystemOnTptp do
           outputs
           |> Enum.map(&String.trim/1)
           |> Enum.reject(&(&1 == ""))
-          |> Enum.map(&extract_system_result(&1, return_raw))
+          |> Enum.map(&extract_system_result/1)
 
         {:ok, mapped_results}
 
@@ -316,16 +314,14 @@ defmodule AtpClient.SystemOnTptp do
     end
   end
 
-  defp extract_system_result(raw_res, return_raw) do
+  defp extract_system_result(output) do
     system_id =
-      case Regex.run(~r/% File\s*:\s*([^\r\n]+)/, raw_res) do
+      case Regex.run(~r/% File\s*:\s*([^\r\n]+)/, output) do
         [_, name] -> String.trim(name)
         nil -> "UnknownSystem"
       end
 
-    formatted_res = if return_raw, do: raw_res, else: RN.interpret_result(raw_res)
-
-    {system_id, formatted_res}
+    {system_id, Verdict.interpret(output, __MODULE__, system: system_id)}
   end
 
   @doc """
@@ -334,9 +330,8 @@ defmodule AtpClient.SystemOnTptp do
 
   All options accepted by `query_selected_systems/3` are forwarded.
   """
-  @spec query_all_systems(String.t(), Keyword.t()) ::
-          {:ok, [{String.t(), RN.atp_result()}]}
-          | {:ok, [{String.t(), String.t()}]}
+  @spec query_all_systems(Problem.t(), Keyword.t()) ::
+          {:ok, [{String.t(), {:ok, Result.t()} | {:error, Verdict.failure()}}]}
           | {:error, term()}
   def query_all_systems(problem, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)

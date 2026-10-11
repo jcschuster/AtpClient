@@ -13,12 +13,13 @@ automated theorem provers. This notebook walks through each backend with a
 runnable problem — no external servers to configure by hand for the
 same-host paths.
 
-Every backend returns
-`{:ok, szs_status}` (verdict) or `{:error, reason}` (couldn't produce a
-verdict). The `szs_status` is the [SZS
-Ontology](https://tptp.org/Seminars/SZSOntologies/Summary.html) atom
-(`:theorem`, `:unsatisfiable`, `:satisfiable`, `:counter_satisfiable`,
-`:gave_up`, `:timeout`, …).
+Every backend takes an `AtpClient.Problem` — a binary, a `Tptp.File` or a
+`Tptp.Unit` — and returns `{:ok, %AtpClient.Result{}}` (the system asserted
+a verdict) or `{:error, reason}` (none could be obtained). The result's
+`status` is the [SZS Ontology](https://szs.tptp.org) value as a
+`Tptp.Szs.Ontology` atom (`:theorem`, `:unsatisfiable`, `:satisfiable`,
+`:counter_satisfiable`, `:gave_up`, `:timeout`, …); its `output` is the
+system's output verbatim, and `evidence` says how the status was read.
 
 ```elixir
 alias AtpClient.{SystemOnTptp, Isabelle, LocalExec, StarExec}
@@ -46,20 +47,19 @@ fof(goal, conjecture, q).
 SystemOnTptp.list_provers() |> Enum.take(10)
 ```
 
-Run a single system. Pass `raw: true` if you want the prover's stdout
-instead of the classified `atp_result/0`.
+Run a single system. The prover's stdout travels with the result as
+`output`.
 
 ```elixir
 zipperposition = SystemOnTptp.list_provers() |> Enum.find(&String.starts_with?(&1, "Zipperpin"))
 
-with {:ok, status} <- SystemOnTptp.query_system(problem, zipperposition, time_limit_sec: 5),
-do: status
+with {:ok, result} <- SystemOnTptp.query_system(problem, zipperposition, time_limit_sec: 5),
+do: result.status
 ```
 
 ```elixir
-with {:ok, status} <- SystemOnTptp.query_system(problem, zipperposition, time_limit_sec: 5,
-  raw: true
-), do: IO.puts(status)
+with {:ok, result} <- SystemOnTptp.query_system(problem, zipperposition, time_limit_sec: 5),
+do: IO.puts(result.output)
 ```
 
 Fan out to several systems in one HTTP round-trip. Provers that error out
@@ -113,7 +113,9 @@ explicitly.
 
 Pass either a full theory or just a body — bare text is auto-wrapped in
 `theory <name> imports Main begin ... end`. `prove_theory/4` returns the
-same single-wrapped `atp_result()` shape every other backend uses.
+same `%AtpClient.Result{}` every other backend does; Isabelle prints no SZS
+lines, so the status is read from the server's messages and the result's
+`evidence` is `{:backend, AtpClient.Isabelle}`.
 
 ```elixir
 body = ~S"""
@@ -129,10 +131,10 @@ after
 end
 ```
 
-For TPTP/THF problems, `query_tptp/2` routes through
+For TPTP/THF problems, `query/2` routes through
 `IsabelleClient.TPTP.isabellize_theory/1`, injects the configured
-`:proof_method` (default `"by auto"`), and returns one entry per
-conjecture. Names come from the input formulae.
+`:proof_method` (default `"by auto"`), and reads one status per conjecture
+into `result.details.lemmas`. Names come from the input formulae.
 
 ```elixir
 tptp_problem = ~S"""
@@ -141,14 +143,16 @@ thf(g_taut, conjecture, ! [X: $i]: (p @ X | ~ (p @ X))).
 thf(g_false, conjecture, ! [X: $i]: (p @ X & ~ (p @ X))).
 """
 
-Isabelle.query_tptp(
-  tptp_problem,
-  opts ++ [proof_method: "sledgehammer nitpick oops", use_theories_timeout_ms: 600_000]
-)
+with {:ok, result} <-
+       Isabelle.query(
+         tptp_problem,
+         opts ++ [proof_method: "sledgehammer nitpick oops", use_theories_timeout_ms: 600_000]
+       ),
+     do: result.details.lemmas
 ```
 
-`g_taut` should come back `{:ok, :theorem}` (sledgehammer found a proof),
-`g_false` as `{:ok, :counter_satisfiable}` (nitpick found a counter-model).
+`g_taut` should come back `:theorem` (sledgehammer found a proof),
+`g_false` as `:counter_satisfiable` (nitpick found a counter-model).
 The verdict comes from the tool's own message, so `oops` — which withdraws
 the goal so Isabelle keeps checking the next lemma — is fine.
 
@@ -168,8 +172,8 @@ IsabelleClient.Server.kill(server.name)
 
 Runs a locally installed TPTP-compliant prover binary (E, Vampire, …) via
 a port. The BEAM watches both a prover-side `--cpu-limit` (encoded in
-`:args`) and a wall-clock kill timer, and both fold into
-`{:ok, :timeout}` on the classifier's side.
+`:args`) and a wall-clock kill timer, and both arrive as a `:timeout`
+status — the kill appends its own SZS line to whatever the prover printed.
 
 Point `:binary` at whatever is on `PATH` (or an absolute path). Each
 prover spells the CPU limit differently, so it goes in `:args`:

@@ -78,9 +78,10 @@ SystemOnTptp.query_selected_systems(
 ```
 
 **Same TPTP problem, different backend: Isabelle/HOL.**
-`query_tptp/2` isabellizes the annotated formulae and returns one verdict
-*per conjecture* — note the second goal is deliberately false, and the
-result type keeps `:theorem` and `:counter_satisfiable` distinct:
+`query/2` isabellizes the annotated formulae and reads one status
+*per conjecture* into `result.details.lemmas` — note the second goal is
+deliberately false, and the ontology keeps `:theorem` and
+`:counter_satisfiable` distinct:
 
 ```elixir
 tptp_two_goals = problem <> ~S"""
@@ -88,10 +89,12 @@ thf(p_type, type, p: $i > $o).
 thf(g_false, conjecture, ![X: $i]: (p @ X & ~ (p @ X))).
 """
 
-Isabelle.query_tptp(
-  tptp_two_goals,
-  isa_opts ++ [proof_method: "sledgehammer nitpick oops", use_theories_timeout_ms: 600_000]
-)
+with {:ok, result} <-
+       Isabelle.query(
+         tptp_two_goals,
+         isa_opts ++ [proof_method: "sledgehammer nitpick oops", use_theories_timeout_ms: 600_000]
+       ),
+     do: result.details.lemmas
 ```
 
 **One-line backend swap: a local binary, no network.**
@@ -147,7 +150,8 @@ results =
 
     line =
       case outcome do
-        {:ok, {sys, result}} -> "#{dt} ms — #{sys} → #{inspect(result)}"
+        {:ok, {sys, {:ok, result}}} -> "#{dt} ms — #{sys} → #{result.status}"
+        {:ok, {sys, {:error, reason}}} -> "#{dt} ms — #{sys} → #{inspect(reason)}"
         {:exit, :timeout} -> "#{dt} ms — straggler killed at deadline"
       end
 
@@ -155,7 +159,7 @@ results =
     outcome
   end)
 
-Enum.find(results, &match?({:ok, {_sys, {:ok, :theorem}}}, &1))
+Enum.find(results, &match?({:ok, {_sys, {:ok, %{status: :theorem}}}}, &1))
 ```
 
 ---

@@ -41,12 +41,17 @@ defmodule AtpClient.IsabelleTest do
     @describetag :isabelle_server
 
     setup do
-      port = System.get_env("ISABELLE_PORT") |> require_env("ISABELLE_PORT") |> String.to_integer()
+      port =
+        System.get_env("ISABELLE_PORT") |> require_env("ISABELLE_PORT") |> String.to_integer()
+
       password = System.get_env("ISABELLE_PASSWORD") |> require_env("ISABELLE_PASSWORD")
       host = System.get_env("ISABELLE_HOST", "127.0.0.1")
 
       local_dir =
-        Path.join(System.tmp_dir!(), "atp_client_isabelle_test_#{System.unique_integer([:positive])}")
+        Path.join(
+          System.tmp_dir!(),
+          "atp_client_isabelle_test_#{System.unique_integer([:positive])}"
+        )
 
       File.mkdir_p!(local_dir)
       on_exit(fn -> File.rm_rf!(local_dir) end)
@@ -152,8 +157,7 @@ defmodule AtpClient.IsabelleTest do
 
       try do
         result = Isabelle.prove_theory(fresh, "lemma ok: \"True\" by simp\n", "Sanity", opts)
-        # prove_theory returns the single-wrapped atp_result() since 0.6.0.
-        assert {:ok, :theorem} = result
+        assert {:ok, %AtpClient.Result{status: :theorem}} = result
       after
         Isabelle.close_session(fresh)
       end

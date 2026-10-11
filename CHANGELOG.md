@@ -6,6 +6,102 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - Unreleased
+
+The library now sits on [`tptp`](https://hex.pm/packages/tptp), which owns
+the TPTP language — reading, linting, printing, the SZS ontology and the
+status-line reader — leaving this library the transport to the provers.
+Three things change for a caller: what a backend accepts, what it returns,
+and where the diagnostics come from. The direct path is unchanged in cost:
+a backend never parses what it sends.
+
+### Added
+
+- **`AtpClient.Problem`**, the protocol every `query/2` takes. A `binary()`
+  is sent as it is, `iodata()` as given (a tree printed with
+  `Tptp.Printer.Canonical.to_iodata/1`), a `Tptp.File` as the source it was
+  read from, and a `Tptp.Unit` as its statements in textual-inclusion order,
+  each a sub-binary of the file it came from. None of these copies the
+  problem text. Another library can implement the protocol for its own
+  representation without this one depending on it.
+- **`AtpClient.Result`**, what every backend returns on `{:ok, _}`: the SZS
+  `status` as a `Tptp.Szs.Ontology` value, the `evidence` it was read from
+  (`:szs`, `{:pattern, text}` or `{:backend, module}`), the system's
+  `output` verbatim, the delimited SZS output `blocks`, the `problem` and
+  `comment` from the status line, the `backend` and `system`, and
+  backend-specific `details`. `Result.proof/1` reads the first proof-family
+  block as TPTP; `Result.success?/1` follows the ontology.
+- **`AtpClient.Verdict`**, the reader behind every result: the SZS status
+  line through `Tptp.Szs.status/1`, then SystemOnTPTP's `<system> says
+  <Value>` summary, then the prover-specific patterns for systems that print
+  no SZS line. The pattern table is `patterns/0`.
+- **`AtpClient.query/3`** and **`AtpClient.preflight/1`**. `preflight/1`
+  reads and lints a problem with `Tptp.analyze/2` and rejects it on any
+  error diagnostic; `query/3` runs it before a backend when passed
+  `preflight: true`. No backend does this on its own.
+- **`AtpClient.Analyzer.Tptp4x`**, TPTP4X on the SystemOnTPTP deployment as
+  a `Tptp.Analyzer`, so an editor runs it alongside `Tptp.Lint` through
+  `Tptp.Analyzer.run_all/3`. Findings are `Tptp.Diagnostic`s with byte
+  spans on the analysed source, positioned by `Tptp.Span.offset/3`.
+  `analyze/2` returns `[]` when the deployment cannot be reached; `check/2`
+  returns the reason.
+- **`AtpClient.LocalExec.query_file/2`** hands a path to the prover as it
+  is: nothing is read or copied, and the prover resolves the file's
+  `include` directives itself.
+- **`AtpClient.Isabelle.Verdict`**, the classifier over Isabelle's messages,
+  previously part of `ResultNormalization`.
+
+### Changed
+
+- **Every `query/2` returns `{:ok, %AtpClient.Result{}}`** in place of
+  `{:ok, szs_status}`. Match `{:ok, %{status: :theorem}}` where
+  `{:ok, :theorem}` was matched before. The `{:error, reason}` channel is
+  unchanged in meaning: no status could be obtained.
+- **Backends accept `AtpClient.Problem.t()`** in place of `String.t()`;
+  `SystemOnTptp.query_system/3`, `query_selected_systems/3`,
+  `query_all_systems/2`, `StarExec.prove/3`, `StarExec.upload_benchmark/4`,
+  `Isabelle.prove_tptp/3` and `LocalExec.query/2` take one.
+- **A status word outside the SZS ontology is `{:error,
+  {:unknown_szs_status, word}}`.** Previously it was converted to an atom
+  with `String.to_atom/1`, creating atoms from prover output. The ontology's
+  112 values cover every status a system can legitimately print.
+- **The last status line in an output is the system's answer**, as
+  `Tptp.Szs.status/1` reads it; previously the first match won. A system
+  refining its answer prints the refinement afterwards.
+- **`AtpClient.LocalExec`'s wall-clock kill** appends
+  `Tptp.Szs.status_line(:timeout, nil, "wall-clock kill by
+  AtpClient.LocalExec")` to whatever the prover printed, so the result's
+  `output` keeps the partial output and its `comment` says what happened.
+  Previously the output was replaced by a line of the backend's own.
+- **`AtpClient.Isabelle`** returns a `Result` from every proving call.
+  `prove_theory/4` carries the `use_theories` payload in `details.payload`;
+  `prove_lemmas/4`, `query_lemmas/3`, `prove_tptp/3` and `query/2` carry
+  `[%{name: name, status: status}]` in `details.lemmas` and fold them into
+  `status` weakest-link, as `query/2` did before. `query/2` now takes a
+  problem and does what `query_tptp/2` did.
+- `SystemOnTptp.query_selected_systems/3` and `query_all_systems/2` return
+  `{system_id, {:ok, %Result{}} | {:error, failure}}` pairs.
+- `LocalExec` is documented as invoking the prover via `Port.open/2`, which
+  is what it has done since 0.3; the `System.cmd/3` wording was stale.
+
+### Removed
+
+- `AtpClient.ResultNormalization`. `interpret_result/1` is
+  `AtpClient.Verdict.interpret/3`; `interpret_isabelle_result/1`,
+  `per_lemma_results/3` and `extract_isabelle_text/1` are
+  `AtpClient.Isabelle.Verdict.classify/1`, `per_lemma/3` and `text/1`.
+- `AtpClient.Lint`, `AtpClient.Lint.Local`, `AtpClient.Lint.Tptp4x`,
+  `AtpClient.Lint.Diagnostic`, `AtpClient.Lint.Symbol` and
+  `AtpClient.Lint.Report`. The local pass is `Tptp.analyze/2`, which returns
+  diagnostics, the symbol table and the dialect from one traversal; the
+  remote pass is `AtpClient.Analyzer.Tptp4x`. The rule that skipped the
+  remote pass when the local pass found an error is editor policy and lives
+  with the editor: `Tptp.Diagnostic.any_errors?(analysis.diagnostics)`.
+- The `:raw` option on every backend. The output is on every result as
+  `output`.
+- `AtpClient.Isabelle.query_tptp/2` (now `query/2`) and the deprecated
+  three-arity `AtpClient.Isabelle.query/3` with its double-wrapped result.
+
 ## [0.6.2] - 2026-07-20
 
 Point release that drops the compile-time `TPTP.thy` embed in favour of

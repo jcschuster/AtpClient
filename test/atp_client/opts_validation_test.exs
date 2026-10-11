@@ -1,8 +1,10 @@
 defmodule AtpClient.OptsValidationTest do
   use ExUnit.Case, async: true
 
+  alias AtpClient.Analyzer.Tptp4x
+
   # NimbleOptions is wired into every public entry point across the four
-  # backends and the lint pipeline. These tests are the guardrail: they
+  # backends and the TPTP4X analyzer. These tests are the guardrail: they
   # confirm that unknown option keys and obviously-wrong value types raise
   # `NimbleOptions.ValidationError` (a subclass of ArgumentError) at the
   # entry point, before the function does any real work.
@@ -34,12 +36,13 @@ defmodule AtpClient.OptsValidationTest do
                )
     end
 
-    test "query_system/3 rejects a non-boolean :raw" do
-      assert_raise NimbleOptions.ValidationError, ~r/expected boolean/, fn ->
+    test "query_system/3 rejects the withdrawn :raw key" do
+      # The output is on every result as `output`; `:raw` was removed in 0.7.0.
+      assert_raise NimbleOptions.ValidationError, ~r/unknown option/, fn ->
         AtpClient.SystemOnTptp.query_system(
           "fof(g,conjecture,$true).",
           "E---3.5.1",
-          raw: "yes"
+          raw: true
         )
       end
     end
@@ -107,16 +110,12 @@ defmodule AtpClient.OptsValidationTest do
     end
   end
 
-  describe "AtpClient.Lint" do
-    test "analyze/2 rejects an unknown key" do
-      assert_raise NimbleOptions.ValidationError, ~r/unknown option/, fn ->
-        AtpClient.Lint.analyze("fof(a,axiom,p).", backend: [:local])
-      end
-    end
+  describe "AtpClient.Analyzer.Tptp4x" do
+    test "check/2 rejects an unknown key" do
+      analysis = Tptp.analyze("fof(a,axiom,p).")
 
-    test "analyze/2 restricts :backends to the two documented atoms" do
-      assert_raise NimbleOptions.ValidationError, ~r/(invalid list element|expected one of)/, fn ->
-        AtpClient.Lint.analyze("fof(a,axiom,p).", backends: [:local, :nonsense])
+      assert_raise NimbleOptions.ValidationError, ~r/unknown option/, fn ->
+        Tptp4x.check(analysis, system: "TPTP4X---0.0")
       end
     end
   end

@@ -2,6 +2,7 @@ defmodule AtpClient.LocalExecTest do
   use ExUnit.Case, async: false
 
   alias AtpClient.LocalExec
+  alias AtpClient.Result
 
   @moduletag :tmp_dir
 
@@ -93,37 +94,79 @@ defmodule AtpClient.LocalExecTest do
   describe "query/2 — happy path" do
     @describetag :posix_shell
 
-    test "Theorem output is classified as {:ok, :theorem}", %{tmp_dir: tmp} do
+    test "Theorem output is read into a result", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_thm", "# SZS status Theorem for x")
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :theorem}
+
+      assert {:ok, %Result{} = result} = LocalExec.query("fof(a, conjecture, p).", binary: exe)
+      assert result.status == :theorem
+      assert result.evidence == :szs
+      assert result.problem == "x"
+      assert result.backend == LocalExec
+      assert result.system == exe
+      assert result.output == "# SZS status Theorem for x\n"
+    end
+
+    test "a Tptp.File is sent as its source", %{tmp_dir: tmp} do
+      # The fake prover echoes its input back, so the status line comes from
+      # the problem text itself — which proves the bytes arrived unchanged.
+      path = Path.join(tmp, "echo_prover")
+      File.write!(path, "#!/bin/sh\ncat \"$1\"\n")
+      File.chmod!(path, 0o755)
+
+      {:ok, file, []} = Tptp.from_string("% SZS status Theorem for echoed\nfof(a, axiom, p).\n")
+
+      assert {:ok, %Result{status: :theorem, problem: "echoed"}} =
+               LocalExec.query(file, binary: path, args: ["{{problem}}"])
+    end
+
+    test "query_file/2 hands the path to the prover without a temp file", %{tmp_dir: tmp} do
+      path = Path.join(tmp, "path_prover")
+      File.write!(path, "#!/bin/sh\necho \"$1\"\ncat \"$1\"\n")
+      File.chmod!(path, 0o755)
+
+      problem = Path.join(tmp, "problem.p")
+      File.write!(problem, "% SZS status Theorem for on_disk\nfof(a, axiom, p).\n")
+
+      assert {:ok, %Result{status: :theorem, problem: "on_disk", output: output}} =
+               LocalExec.query_file(problem, binary: path)
+
+      assert String.starts_with?(output, problem <> "\n")
     end
 
     test "Unsatisfiable output is kept distinct from Theorem", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_uns", "# SZS status Unsatisfiable for x")
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :unsatisfiable}
+
+      assert {:ok, %Result{status: :unsatisfiable}} =
+               LocalExec.query("fof(a, conjecture, p).", binary: exe)
     end
 
     test "CounterSatisfiable output is classified as {:ok, :counter_satisfiable}",
          %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_csat", "# SZS status CounterSatisfiable for x")
 
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) ==
-               {:ok, :counter_satisfiable}
+      assert {:ok, %Result{status: :counter_satisfiable}} =
+               LocalExec.query("fof(a, conjecture, p).", binary: exe)
     end
 
     test "Satisfiable output is kept distinct from CounterSatisfiable", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_sat", "# SZS status Satisfiable for x")
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :satisfiable}
+
+      assert {:ok, %Result{status: :satisfiable}} =
+               LocalExec.query("fof(a, conjecture, p).", binary: exe)
     end
 
     test "prover-reported Timeout maps to {:ok, :timeout}", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_timeout", "# SZS status Timeout for x")
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :timeout}
+
+      assert {:ok, %Result{status: :timeout}} =
+               LocalExec.query("fof(a, conjecture, p).", binary: exe)
     end
 
     test "non-zero exit does not override SZS classification", %{tmp_dir: tmp} do
       exe = fake_prover(tmp, "prover_thm_exit1", "# SZS status Theorem for x", exit_code: 1)
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe) == {:ok, :theorem}
+
+      assert {:ok, %Result{status: :theorem}} =
+               LocalExec.query("fof(a, conjecture, p).", binary: exe)
     end
 
     test "unrecognized stdout yields {:error, {:unrecognized_output, ...}}",
@@ -174,10 +217,14 @@ defmodule AtpClient.LocalExecTest do
       # emits for a clean prover-reported Timeout — see the module doc.
       exe = fake_prover(tmp, "prover_hang", "# SZS status Theorem for x", sleep_s: 2)
 
-      assert LocalExec.query("fof(a, conjecture, p).",
-               binary: exe,
-               wall_timeout_ms: 100
-             ) == {:ok, :timeout}
+      assert {:ok, %Result{status: :timeout, evidence: :szs, comment: comment, output: output}} =
+               LocalExec.query("fof(a, conjecture, p).", binary: exe, wall_timeout_ms: 100)
+
+      # The line the backend appends is the last status line, so it wins over
+      # the Theorem the prover printed before hanging; both are in the output.
+      assert comment == "wall-clock kill by AtpClient.LocalExec"
+      assert output =~ "# SZS status Theorem for x"
+      assert String.ends_with?(output, Tptp.Szs.status_line(:timeout, nil, comment) <> "\n")
     end
 
     test "wall-clock kill actually terminates the OS child", %{tmp_dir: tmp} do
@@ -196,10 +243,11 @@ defmodule AtpClient.LocalExecTest do
 
       File.chmod!(path, 0o755)
 
-      assert LocalExec.query("fof(a, conjecture, p).",
-               binary: path,
-               wall_timeout_ms: 200
-             ) == {:ok, :timeout}
+      assert {:ok, %Result{status: :timeout}} =
+               LocalExec.query("fof(a, conjecture, p).",
+                 binary: path,
+                 wall_timeout_ms: 200
+               )
 
       pid =
         pid_file
@@ -218,8 +266,8 @@ defmodule AtpClient.LocalExecTest do
       # and not a timeout.
       exe = fake_prover(tmp, "prover_fast", "# SZS status Theorem for x")
 
-      assert LocalExec.query("fof(a, conjecture, p).", binary: exe, cpu_timeout_s: 0) ==
-               {:ok, :theorem}
+      assert {:ok, %Result{status: :theorem}} =
+               LocalExec.query("fof(a, conjecture, p).", binary: exe, cpu_timeout_s: 0)
     end
   end
 
@@ -285,10 +333,11 @@ defmodule AtpClient.LocalExecTest do
       # Capture by routing through a side-channel file. The script writes argv
       # to its own stdout, classifier sees both lines; we only need to confirm
       # the SZS line still hits.
-      assert LocalExec.query("fof(a, conjecture, p).",
-               binary: path,
-               args: ["--auto", "--cpu-limit=5"]
-             ) == {:ok, :theorem}
+      assert {:ok, %Result{status: :theorem}} =
+               LocalExec.query("fof(a, conjecture, p).",
+                 binary: path,
+                 args: ["--auto", "--cpu-limit=5"]
+               )
     end
 
     test "{{problem}} placeholder is substituted with the temp file path",
@@ -308,10 +357,11 @@ defmodule AtpClient.LocalExecTest do
 
       File.chmod!(path, 0o755)
 
-      assert LocalExec.query("fof(a, conjecture, p).",
-               binary: path,
-               args: ["{{problem}}", "--auto"]
-             ) == {:ok, :theorem}
+      assert {:ok, %Result{status: :theorem}} =
+               LocalExec.query("fof(a, conjecture, p).",
+                 binary: path,
+                 args: ["{{problem}}", "--auto"]
+               )
     end
   end
 
@@ -326,10 +376,11 @@ defmodule AtpClient.LocalExecTest do
     """
 
     test "eprover proves a trivial conjecture" do
-      assert LocalExec.query(@trivial_problem,
-               binary: "eprover",
-               args: ["--auto", "--cpu-limit=5", "--tstp-format"]
-             ) == {:ok, :theorem}
+      assert {:ok, %Result{status: :theorem}} =
+               LocalExec.query(@trivial_problem,
+                 binary: "eprover",
+                 args: ["--auto", "--cpu-limit=5", "--tstp-format"]
+               )
     end
   end
 end

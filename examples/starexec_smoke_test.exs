@@ -37,7 +37,7 @@
 
 Mix.Task.run("app.start")
 
-alias AtpClient.{StarExec, ResultNormalization}
+alias AtpClient.{StarExec, Verdict}
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -188,8 +188,8 @@ stdout_thm = SmokeTest.extract_single_stdout!(output_zip_thm, job_info_thm)
 File.write!("test/fixtures/starexec_stdout_thm.txt", stdout_thm)
 IO.puts("Saved stdout fixture → test/fixtures/starexec_stdout_thm.txt")
 
-result_thm = ResultNormalization.interpret_result(stdout_thm)
-SmokeTest.assert_eq!("Theorem result", result_thm, {:ok, :theorem})
+{:ok, result_thm} = Verdict.interpret(stdout_thm, StarExec)
+SmokeTest.assert_eq!("Theorem result", result_thm.status, :theorem)
 
 # ---------------------------------------------------------------------------
 # Case 2: CounterSatisfiable
@@ -205,8 +205,8 @@ stdout_csat = SmokeTest.extract_single_stdout!(output_zip_csat, job_info_csat)
 File.write!("test/fixtures/starexec_stdout_csat.txt", stdout_csat)
 IO.puts("Saved stdout fixture → test/fixtures/starexec_stdout_csat.txt")
 
-result_csat = ResultNormalization.interpret_result(stdout_csat)
-SmokeTest.assert_eq!("CounterSat result", result_csat, {:ok, :counter_satisfiable})
+{:ok, result_csat} = Verdict.interpret(stdout_csat, StarExec)
+SmokeTest.assert_eq!("CounterSat result", result_csat.status, :counter_satisfiable)
 
 # ---------------------------------------------------------------------------
 # Logout and summary
