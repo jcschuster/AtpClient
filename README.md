@@ -116,16 +116,24 @@ fof(goal, conjecture, q).
 AtpClient.SystemOnTptp.list_provers()
 # => ["Alt-Ergo---0.95.2", "Beagle---0.9.52", ...]
 
-{:ok, result} = AtpClient.SystemOnTptp.query_system(problem, "cvc5---1.3.4", time_limit_sec: 10)
+# A bare name runs the version SystemOnTPTP currently advertises; an
+# identifier from list_provers/0 names one exactly.
+{:ok, result} = AtpClient.SystemOnTptp.query_system(problem, "cvc5", time_limit_sec: 10)
 result.status    # => :theorem
+result.system    # => "cvc5---1.3.4"
 result.evidence  # => :szs
 result.output    # => the prover's stdout as SystemOnTPTP relayed it
 
 {:ok, outcomes} =
-  AtpClient.SystemOnTptp.query_selected_systems(problem, ["cvc5---1.3.4", "Vampire---5.0.1"], time_limit_sec: 5)
+  AtpClient.SystemOnTptp.query_selected_systems(problem, ["cvc5", "Vampire", "Nope"], time_limit_sec: 5)
 
-for {system, {:ok, result}} <- outcomes, do: {system, result.status}
-# => [{"cvc5---1.3.4", :theorem}, {"Vampire---5.0.1", :theorem}]
+for {system, outcome} <- outcomes do
+  case outcome do
+    {:ok, result} -> {system, result.status}
+    {:error, reason} -> {system, reason}
+  end
+end
+# => [{"cvc5---1.3.4", :theorem}, {"Vampire---5.0.1", :theorem}, {"Nope", {:unknown_system, "Nope"}}]
 
 AtpClient.SystemOnTptp.query_all_systems(problem, time_limit_sec: 5)
 # => {:ok, [{"Alt-Ergo---0.95.2", {:ok, %AtpClient.Result{status: :theorem}}}, ...]}
@@ -136,7 +144,7 @@ problem whose `include` directives were resolved locally is sent expanded:
 
 ```elixir
 {:ok, file, []} = Tptp.from_file("Problems/PUZ/PUZ001+1.p")
-AtpClient.SystemOnTptp.query_system(file, "E---3.2.5")
+AtpClient.SystemOnTptp.query_system(file, "E")
 
 {:ok, unit, []} = Tptp.Unit.from_file("my_problem.p", resolver: Tptp.Resolver.Fs)
 AtpClient.LocalExec.query(unit, binary: "eprover")
@@ -298,7 +306,8 @@ AtpClient.StarExec.verify(
 
 # And run a problem through any backend uniformly:
 AtpClient.LocalExec.query(problem, binary: "eprover")
-AtpClient.SystemOnTptp.query(problem, default_system: "cvc5---1.3.2")
+AtpClient.SystemOnTptp.query(problem)                          # runs E
+AtpClient.SystemOnTptp.query(problem, default_system: "cvc5")
 
 # `AtpClient.query/3` adds the one thing a backend never does on its own —
 # reading and linting the problem first:

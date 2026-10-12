@@ -48,6 +48,7 @@ defmodule AtpClient.Config do
   @defaults [
     sotptp: [
       url: "https://tptp.org/cgi-bin/SystemOnTPTPFormReply",
+      default_system: "E",
       auto_refresh: true,
       refresh_timeout_ms: 15_000,
       default_time_limit_sec: 5,

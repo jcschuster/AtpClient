@@ -47,36 +47,33 @@ fof(goal, conjecture, q).
 SystemOnTptp.list_provers() |> Enum.take(10)
 ```
 
-Run a single system. The prover's stdout travels with the result as
-`output`.
+Run a single system, by name: `"Zipperpin"` resolves to the version
+SystemOnTPTP currently advertises, which the result's `system` names. The
+prover's stdout travels with the result as `output`.
 
 ```elixir
-zipperposition = SystemOnTptp.list_provers() |> Enum.find(&String.starts_with?(&1, "Zipperpin"))
-
-with {:ok, result} <- SystemOnTptp.query_system(problem, zipperposition, time_limit_sec: 5),
-do: result.status
+with {:ok, result} <- SystemOnTptp.query_system(problem, "Zipperpin", time_limit_sec: 5),
+do: {result.system, result.status}
 ```
 
 ```elixir
-with {:ok, result} <- SystemOnTptp.query_system(problem, zipperposition, time_limit_sec: 5),
+with {:ok, result} <- SystemOnTptp.query_system(problem, "Zipperpin", time_limit_sec: 5),
 do: IO.puts(result.output)
 ```
 
-Fan out to several systems in one HTTP round-trip. Provers that error out
-(e.g. first-order-only solvers handed a higher-order problem) are dropped
-from the result list.
+Fan out to several systems in one HTTP round-trip. Every system given
+comes back, in the order given: a result, or the reason there is none — a
+first-order-only solver handed a higher-order problem, a name the
+deployment does not advertise.
 
 ```elixir
-system_ids = SystemOnTptp.list_provers()
-  |> Enum.filter(& String.starts_with?(&1, "cvc5---") or String.starts_with?(&1, "Z3---"))
-
-with {:ok, results} <-
+with {:ok, outcomes} <-
   SystemOnTptp.query_selected_systems(
     problem,
-    system_ids,
+    ["cvc5", "Z3", "Nope"],
     time_limit_sec: 15
   ),
-do: results
+do: outcomes
 ```
 
 `query_all_systems/2` uses `list_provers/0` and is convenient for

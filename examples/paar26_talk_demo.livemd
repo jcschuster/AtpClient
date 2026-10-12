@@ -13,16 +13,12 @@ alias AtpClient.{SystemOnTptp, Isabelle, LocalExec}
 ```
 
 ```elixir
-pick_prover = fn prefix ->
-  SystemOnTptp.list_provers()
-  |> Enum.find(&String.starts_with?(&1, prefix))
-end
-
+# A bare name runs whichever version SystemOnTPTP currently advertises.
 provers = %{
-  leo3: pick_prover.("Leo-III---"),
-  cvc5: pick_prover.("cvc5---"),
-  vampire: pick_prover.("Vampire---"),
-  zipperposition: pick_prover.("Zipperpin---")
+  leo3: "Leo-III",
+  cvc5: "cvc5",
+  vampire: "Vampire",
+  zipperposition: "Zipperpin"
 }
 ```
 

@@ -34,6 +34,7 @@ defmodule AtpClient.ConfigTest do
                "https://tptp.org/cgi-bin/SystemOnTPTPFormReply"
 
       assert Config.fetch!(:sotptp, :default_time_limit_sec) == 5
+      assert Config.fetch!(:sotptp, :default_system) == "E"
     end
 
     test "partial user config does not clobber unset defaults (regression for 16B)" do

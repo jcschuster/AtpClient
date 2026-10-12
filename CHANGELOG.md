@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1]
+
+### Added
+
+- **System names on SystemOnTPTP.** `query_system/3`,
+  `query_selected_systems/3` and `:default_system` take a bare name
+  (`"Vampire"`) as well as an identifier (`"Vampire---5.0.1"`); a name
+  resolves to the latest version the deployment advertises, through
+  `AtpClient.SystemOnTptp.Provers.resolve/2`, so callers are not tied to a
+  version string that changes with the next deployment. The result's
+  `system` names the version that ran. `Provers.systems/0` lists every
+  advertised system, tools included; `Provers.name/1` is the name of an
+  identifier.
+
+### Changed
+
+- `SystemOnTptp.query_selected_systems/3` and `query_all_systems/2` return
+  one `{system, outcome}` per system given, in the order given, where
+  `outcome` may now also be `{:error, {:unknown_system, name}}` or
+  `{:error, :no_output}`.
+- **`SystemOnTptp.query/2` works unconfigured:** `:default_system` has the
+  library default `"E"`.
+- `{:req, "~> 0.7"}`; the Finch pool is passed as `finch: [name: …]`, which
+  removes the deprecation warning Req 0.7 logged for the bare pool name.
+
+### Fixed
+
+- `SystemOnTptp.query_selected_systems/3` lost systems. The form fields were
+  collected in a map, so the systems went out sorted by name rather than in
+  the order given, and SystemOnTPTP stops at the first system it does not
+  know — `["E---3.5.1", "Vampire---5.0.1", "Nope---1"]` returned E alone.
+  An unknown system is now reported as `{:error, {:unknown_system, name}}`
+  and not submitted, the form keeps the caller's order, and a system the
+  deployment returned no section for is `{:error, :no_output}` rather than
+  missing from the list.
+
 ## [0.7.0] - 2026-10-11
 
 The library now sits on [`tptp`](https://hex.pm/packages/tptp), which owns
