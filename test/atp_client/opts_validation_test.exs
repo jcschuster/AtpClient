@@ -84,6 +84,23 @@ defmodule AtpClient.OptsValidationTest do
         AtpClient.Isabelle.query("thf(g,conjecture,$true).", port: "nine")
       end
     end
+
+    test "open_session/1 accepts :dirs as a list of strings" do
+      assert {:error, _} =
+               AtpClient.Isabelle.open_session(
+                 host: "127.0.0.1",
+                 port: 1,
+                 password: "x",
+                 dirs: ["/srv/isabelle/sessions"],
+                 session_start_timeout_ms: 1_000
+               )
+    end
+
+    test "open_session/1 rejects a bare string for :dirs" do
+      assert_raise NimbleOptions.ValidationError, ~r/expected list/, fn ->
+        AtpClient.Isabelle.open_session(dirs: "/srv/isabelle/sessions")
+      end
+    end
   end
 
   describe "AtpClient.LocalExec" do

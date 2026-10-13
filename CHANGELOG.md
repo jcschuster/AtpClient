@@ -6,7 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.7.1]
+## [0.7.2] - 2026-10-13
+
+### Added
+
+- **`:dirs` on Isabelle.** `AtpClient.Isabelle.open_session/1` (and every
+  entry point that opens a session) takes `:dirs`, a list of directories
+  forwarded as `dirs` to Isabelle's `session_start`, so `:session` can name a
+  session defined outside the distribution. The paths are the server's view
+  and are passed through verbatim; `config :atp_client, :isabelle, dirs: […]`
+  sets a default, and `config_schema/0` lists it as a `:string_list` field.
+
+## [0.7.1] - 2026-10-12
 
 ### Added
 

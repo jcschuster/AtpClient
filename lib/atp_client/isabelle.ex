@@ -162,19 +162,18 @@ defmodule AtpClient.Isabelle do
   alias IsabelleClient.Theory
   alias IsabelleClient.TPTP
 
-  # One shared schema, applied at every public entry point in this module.
-  # The composition here is deep (`query/2` -> `open_session/1` +
-  # `prove_tptp/3` -> `prove_lemmas/4` -> `run_theory/4`) and each layer
-  # forwards `opts` wholesale, so a per-function schema would need to strip
-  # keys at each hop. A shared schema catches typos with far less ceremony;
-  # the tradeoff is that `close_session/1` won't complain if you pass it
-  # `:proof_method` — a harmless overshoot given the alternative.
   @opts_schema NimbleOptions.new!(
                  # Schema-declared connection / defaults (see `config_schema/0`).
                  host: [type: :string],
                  port: [type: :pos_integer],
                  password: [type: :string],
                  session: [type: :string],
+                 dirs: [
+                   type: {:list, :string},
+                   doc:
+                     "Session directories forwarded as `dirs` to Isabelle's " <>
+                       "`session_start`, as the server sees them."
+                 ],
                  local_dir: [type: :string],
                  isabelle_dir: [type: :string],
 
@@ -259,6 +258,18 @@ defmodule AtpClient.Isabelle do
         group: :defaults,
         default: "HOL",
         label: "Default session"
+      },
+      %Field{
+        key: :dirs,
+        type: :string_list,
+        required?: false,
+        group: :defaults,
+        default: [],
+        label: "Session directories",
+        doc:
+          "Directories with ROOT files, forwarded as `dirs` to `session_start` " <>
+            "so the session may be defined outside the distribution. " <>
+            "Paths as seen by the Isabelle server."
       }
     ]
   end
@@ -308,6 +319,10 @@ defmodule AtpClient.Isabelle do
     * `:host`, `:port`, `:password` — override config;
     * `:session` — name of the Isabelle session to start (default from config,
       typically `"HOL"`);
+    * `:dirs` — list of directories containing `ROOT` files, forwarded as
+      `dirs` to `session_start` so that `:session` may name a session defined
+      outside the Isabelle distribution. Paths are as seen by the Isabelle
+      server and are passed through verbatim (default from config, else none);
     * `:session_start_timeout_ms` — how long to wait for the initial
       `session_start` to complete (default `120_000`).
   """
@@ -320,6 +335,7 @@ defmodule AtpClient.Isabelle do
     port = Config.fetch!(:isabelle, :port, config)
     password = Config.fetch!(:isabelle, :password, config)
     session_name = Config.fetch(:isabelle, :session, "HOL", config)
+    dirs = Config.fetch(:isabelle, :dirs, [], config)
     timeout_ms = Config.fetch(:isabelle, :session_start_timeout_ms, 120_000, config)
 
     shared_opts = [
@@ -327,6 +343,7 @@ defmodule AtpClient.Isabelle do
       host: host,
       port: port,
       session: session_name,
+      session_args: session_args(dirs),
       connect_timeout: 30_000,
       timeout: timeout_ms
     ]
@@ -339,6 +356,12 @@ defmodule AtpClient.Isabelle do
         {:error, reason}
     end
   end
+
+  # `IsabelleClient.Shared` builds the `session_start` arguments from
+  # `:session_args` and puts `:session` into them; an empty `dirs` is left out
+  # so the request is unchanged when none are configured.
+  defp session_args([]), do: []
+  defp session_args(dirs), do: [dirs: dirs]
 
   @doc """
   Stops the active Isabelle session and shuts down the underlying
