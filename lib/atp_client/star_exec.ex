@@ -5,7 +5,7 @@ defmodule AtpClient.StarExec do
   StarExec is primarily a web application backed by Tomcat, and its
   programmatic surface is the same set of URLs that the web UI talks to.
   This module authenticates against that surface and exposes the subset of
-  operations needed to submit benchmarks to pre-configured solvers, poll for
+  operations needed to upload solvers and benchmarks, run jobs, poll for
   completion, and fetch solver output.
 
   ## Assumptions
@@ -53,6 +53,10 @@ defmodule AtpClient.StarExec do
   @type job_id :: non_neg_integer() | String.t()
   @type benchmark_id :: pos_integer()
   @type space_id :: pos_integer()
+  @type solver_id :: pos_integer()
+  @type configuration_id :: pos_integer()
+  @typedoc "A solver archive: a `.zip`/`.tar`/`.tgz` path, or `{file_name, bytes}`."
+  @type solver_archive :: Path.t() | {String.t(), iodata()}
 
   # Every StarExec-specific option any public entry point in this module
   # reads out of `opts`. Composition here is deep — `prove/3` fans out
@@ -86,6 +90,8 @@ defmodule AtpClient.StarExec do
     delete_job_path: [type: :string],
     upload_benchmarks_path: [type: :string],
     list_space_benchmarks_path: [type: :string],
+    upload_solvers_path: [type: :string],
+    solver_details_path: [type: :string],
     request_timeout_ms: [type: :non_neg_integer],
     poll_interval_ms: [type: :non_neg_integer],
     benchmark_type: [type: :pos_integer],
@@ -103,7 +109,19 @@ defmodule AtpClient.StarExec do
       type: {:fun, 1},
       doc: "Custom completion predicate for `wait_for_job/3` (receives the decoded job map)."
     ],
-    name: [type: :string, doc: "Uploaded benchmark base name (`upload_benchmark/4`)."],
+    name: [
+      type: :string,
+      doc: "Benchmark base name (`upload_benchmark/4`) or solver name (`upload_solver/4`)."
+    ],
+    description: [type: :string, doc: "Solver description (`upload_solver/4`)."],
+    downloadable: [
+      type: :boolean,
+      doc: "Whether the solver archive may be downloaded (`upload_solver/4`)."
+    ],
+    exec_type: [
+      type: {:in, [:solver, :transformer, :result_checker, :other]},
+      doc: "StarExec executable type (`upload_solver/4`)."
+    ],
 
     # Read via `Config.fetch/4` in `login/1`; forwarded to `Req.new/1`.
     connect_options: [type: :keyword_list],
@@ -628,6 +646,161 @@ defmodule AtpClient.StarExec do
         nil -> :not_found
       end
     end
+  end
+
+  @doc """
+  Uploads a solver archive into `space_id` and returns the new solver's id.
+
+  StarExec takes a solver as a `.zip`, `.tar` or `.tgz` archive. Each
+  executable `bin/starexec_run_<name>` at the archive's top level becomes a
+  configuration named `<name>`: StarExec runs it with the benchmark path as
+  the first argument, from the solver's directory, and records its stdout.
+  Jobs refer to configurations, not solvers, so pair this with
+  `solver_configurations/3` to obtain the `:solver_cfg_id` that
+  `create_job/3` and `prove/3` take.
+
+  `archive` is the path of such an archive, or `{file_name, bytes}` for one
+  held in memory; StarExec decides the format by the extension of the file
+  name it is sent.
+
+  ## Options
+
+    * `:name` — solver name as shown in StarExec (default: the archive's file
+      name without extension);
+    * `:description` — free text (default `""`);
+    * `:downloadable` — whether other users may download the archive
+      (default `false`);
+    * `:exec_type` — `:solver` (default), `:transformer`, `:result_checker`
+      or `:other`;
+    * `:upload_solvers_path` — endpoint override (default
+      `/starexec/secure/upload/solvers`).
+
+  ## Example
+
+      {:ok, solver_id} =
+        AtpClient.StarExec.upload_solver(session, 42, "eprover.tgz", name: "E 3.5.1")
+
+      {:ok, [%{id: cfg_id, name: "default"}]} =
+        AtpClient.StarExec.solver_configurations(session, solver_id)
+  """
+  @spec upload_solver(Session.t(), space_id(), solver_archive(), keyword()) ::
+          {:ok, solver_id()} | {:error, term()}
+  def upload_solver(%Session{} = session, space_id, archive, opts \\ [])
+      when is_integer(space_id) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
+    path =
+      Config.fetch(:starexec, :upload_solvers_path, "/starexec/secure/upload/solvers", opts)
+
+    {file_name, bytes} = read_archive(archive)
+    name = Keyword.get(opts, :name) || Path.rootname(file_name)
+
+    fields = [
+      space: to_string(space_id),
+      upMethod: "local",
+      sn: name,
+      descMethod: "text",
+      desc: Keyword.get(opts, :description, ""),
+      dlable: to_string(Keyword.get(opts, :downloadable, false)),
+      execType: exec_type_code(Keyword.get(opts, :exec_type, :solver)),
+      runTestJob: "false",
+      f: {bytes, filename: file_name, content_type: archive_content_type(file_name)}
+    ]
+
+    upload_opts =
+      opts
+      |> Keyword.put(:form_multipart, fields)
+      # StarExec replies with a 302 to secure/details/solver.jsp?id=N; the
+      # id is only in that Location header.
+      |> Keyword.put(:redirect, false)
+
+    case request(session, :post, path, upload_opts) do
+      {:ok, %{status: status, headers: headers}} when status in [302, 303] ->
+        case solver_id_from_location(headers) do
+          nil -> {:error, {:upload_failed, :no_solver_id}}
+          id -> {:ok, id}
+        end
+
+      {:ok, %{status: status}} ->
+        {:error, {:upload_failed, status}}
+
+      other ->
+        other
+    end
+  end
+
+  @doc """
+  Lists the configurations of a solver as `[%{id: …, name: …}]`.
+
+  StarExec has no JSON endpoint for a solver's configurations (its solver
+  JSON omits them), so this reads the solver details page and takes each
+  configuration's id and name from its link.
+
+  `:solver_details_path` overrides the page path (default
+  `/starexec/secure/details/solver.jsp`).
+  """
+  @spec solver_configurations(Session.t(), solver_id(), keyword()) ::
+          {:ok, [%{id: configuration_id(), name: String.t()}]} | {:error, term()}
+  def solver_configurations(%Session{} = session, solver_id, opts \\ [])
+      when is_integer(solver_id) do
+    NimbleOptions.validate!(opts, @opts_schema)
+
+    base =
+      Config.fetch(:starexec, :solver_details_path, "/starexec/secure/details/solver.jsp", opts)
+
+    case request(session, :get, "#{base}?id=#{solver_id}", opts) do
+      {:ok, %{status: 200, body: body}} when is_binary(body) ->
+        {:ok, parse_configuration_links(body)}
+
+      {:ok, %{status: status}} ->
+        {:error, {:status, status}}
+
+      other ->
+        other
+    end
+  end
+
+  # --- solver upload helpers --------------------------------------------
+
+  defp read_archive({file_name, bytes}) when is_binary(file_name),
+    do: {file_name, IO.iodata_to_binary(bytes)}
+
+  defp read_archive(path) when is_binary(path), do: {Path.basename(path), File.read!(path)}
+
+  defp archive_content_type(file_name) do
+    case String.downcase(Path.extname(file_name)) do
+      ".zip" -> "application/zip"
+      ".tar" -> "application/x-tar"
+      ".tgz" -> "application/gzip"
+      _ -> "application/octet-stream"
+    end
+  end
+
+  # org.starexec.data.to.Solver.ExecutableType
+  defp exec_type_code(:solver), do: "1"
+  defp exec_type_code(:transformer), do: "2"
+  defp exec_type_code(:result_checker), do: "3"
+  defp exec_type_code(:other), do: "4"
+
+  defp solver_id_from_location(headers) do
+    headers
+    |> Enum.find_value(fn {key, value} ->
+      if String.downcase(key) == "location", do: value
+    end)
+    |> List.wrap()
+    |> Enum.find_value(fn location ->
+      case Regex.run(~r/solver\.jsp\?id=(\d+)/, location) do
+        [_, id] -> String.to_integer(id)
+        _ -> nil
+      end
+    end)
+  end
+
+  # <a href="…/secure/details/configuration.jsp?id=N">\n  name\n <img …/></a>
+  defp parse_configuration_links(html) do
+    ~r/configuration\.jsp\?id=(\d+)"[^>]*>\s*([^<]*?)\s*</
+    |> Regex.scan(html)
+    |> Enum.map(fn [_, id, name] -> %{id: String.to_integer(id), name: name} end)
   end
 
   @doc """

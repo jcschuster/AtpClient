@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Solver upload on StarExec.** `AtpClient.StarExec.upload_solver/4` posts
+  a `.zip`/`.tar`/`.tgz` solver archive (a path, or `{file_name, bytes}`)
+  to `/starexec/secure/upload/solvers` and returns the new solver's id, read
+  from the redirect StarExec answers with; `:name`, `:description`,
+  `:downloadable` and `:exec_type` set the form's fields.
+  `solver_configurations/3` lists a solver's configurations as
+  `[%{id, name}]` from the solver details page — StarExec's solver JSON
+  omits them — so the `:solver_cfg_id` a job needs can be found without the
+  web UI. Both endpoints are configurable (`:upload_solvers_path`,
+  `:solver_details_path`).
+- **Live StarExec tests.** `test/atp_client/star_exec_live_test.exs`
+  (tag `:starexec_live`, excluded by default) uploads a one-script solver
+  and runs a job against it on the instance named by `STAREXEC_URL`,
+  `STAREXEC_USER` and `STAREXEC_PASS`.
+- **Container.** `.claude/Containerfile` (from `claude-env init atpclient`)
+  provides every backend locally: E 3.5.1 as `eprover` and `eprover-ho`,
+  Vampire 5.1.0, Isabelle2025-2, AtpMcp, and a StarExec sidecar;
+  `.claude/atp_mcp.exs` configures AtpMcp for it.
+
 ## [0.7.2] - 2026-10-13
 
 ### Added

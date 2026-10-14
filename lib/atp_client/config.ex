@@ -66,6 +66,8 @@ defmodule AtpClient.Config do
       delete_job_path: "/starexec/services/delete/job",
       upload_benchmarks_path: "/starexec/secure/upload/benchmarks",
       list_space_benchmarks_path: "/starexec/services/job/{space_id}/allbench/pagination/",
+      upload_solvers_path: "/starexec/secure/upload/solvers",
+      solver_details_path: "/starexec/secure/details/solver.jsp",
       benchmark_type: 1,
       queue_id: 1,
       cpu_timeout_s: 60

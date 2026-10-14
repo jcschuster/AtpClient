@@ -1,4 +1,4 @@
-exclude = [:local_prover, :isabelle_server, :sotptp_live]
+exclude = [:local_prover, :isabelle_server, :sotptp_live, :starexec_live]
 
 # Several tests build `#!/bin/sh` scripts as fake provers and rely on
 # POSIX `kill -KILL` to inspect process death — neither is available on

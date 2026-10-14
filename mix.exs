@@ -28,11 +28,11 @@ defmodule AtpClient.MixProject do
 
   defp deps do
     [
-      {:tptp, "~> 0.1.3"},
+      {:tptp, "~> 0.2"},
       {:jason, "~> 1.4"},
       {:req, "~> 0.7"},
       {:nimble_options, "~> 1.1"},
-      {:isabelle_elixir, "~> 0.4.1"},
+      {:isabelle_elixir, "~> 0.4"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
