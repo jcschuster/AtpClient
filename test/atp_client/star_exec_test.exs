@@ -65,6 +65,7 @@ defmodule AtpClient.StarExecTest do
   end
 
   defp reason_phrase(200), do: "OK"
+  defp reason_phrase(202), do: "Accepted"
   defp reason_phrase(302), do: "Found"
   defp reason_phrase(400), do: "Bad Request"
   defp reason_phrase(_), do: "Status"
@@ -252,6 +253,74 @@ defmodule AtpClient.StarExecTest do
                )
 
       assert_receive {:request, "GET", "/custom/solver.jsp?id=1", _}, 5_000
+    end
+  end
+
+  describe "CSRF token" do
+    @secure_page """
+    <html><head>
+    <meta name="csrf-token" content="tok-123" />
+    <meta name="csrf-header" content="X-CSRF-Token" />
+    </head></html>
+    """
+
+    test "login/1 reads it from a secure page and request/4 sends it on POSTs only" do
+      test = self()
+
+      {base_url, _listen, _acceptor} =
+        start_server(fn {method, path, headers, _body} ->
+          send(test, {:headers, method, path, List.keyfind(headers, "x-csrf-token", 0)})
+
+          case {method, path} do
+            {"POST", "/starexec/j_security_check"} ->
+              {302, [{"Set-Cookie", "JSESSIONID=auth; Path=/"}], ""}
+
+            {"GET", "/starexec/secure/index.jsp"} ->
+              {200, [{"Set-Cookie", "JSESSIONID=pre; Path=/"}, {"Content-Type", "text/html"}],
+               @secure_page}
+
+            _ ->
+              "{}"
+          end
+        end)
+
+      assert {:ok, %Session{csrf: {"X-CSRF-Token", "tok-123"}} = session} =
+               StarExec.login(base_url: base_url, username: "u", password: "p")
+
+      assert :ok = StarExec.delete_job(session, 7)
+      assert_receive {:headers, "POST", "/starexec/services/delete/job", {_, "tok-123"}}, 5_000
+
+      assert {:ok, _} = StarExec.request(session, :get, "/starexec/services/x")
+      assert_receive {:headers, "GET", "/starexec/services/x", nil}, 5_000
+    end
+
+    test "a StarExec that issues none gets none" do
+      {base_url, _listen, _acceptor} =
+        start_server(fn
+          {"POST", "/starexec/j_security_check", _, _} ->
+            {302, [{"Set-Cookie", "JSESSIONID=auth; Path=/"}], ""}
+
+          _ ->
+            {200, [{"Set-Cookie", "JSESSIONID=pre; Path=/"}, {"Content-Type", "text/html"}],
+             "<html/>"}
+        end)
+
+      assert {:ok, %Session{csrf: nil}} =
+               StarExec.login(base_url: base_url, username: "u", password: "p")
+    end
+  end
+
+  describe "upload_benchmark/4" do
+    test "a 202 with the upload's progress is accepted, as newer StarExec builds reply" do
+      {base_url, _listen, _acceptor} =
+        start_server(fn _ ->
+          {202, [{"Content-Type", "application/json"}], ~s({"status":"PENDING","jobId":2})}
+        end)
+
+      assert {:ok, "smoke.p"} =
+               StarExec.upload_benchmark(session_for(base_url), 1, "fof(a,axiom,p).",
+                 name: "smoke"
+               )
     end
   end
 

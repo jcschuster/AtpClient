@@ -9,8 +9,8 @@ defmodule AtpClient.SystemOnTptpLiveTest do
   # These pin the wire contract for the per-system flag overrides
   # (`:command`, `:format`, `:transform`) added alongside the NimbleOptions
   # validation work. The behaviour recorded here was measured directly
-  # against tptp.org on 2026-07-20; if tptp.org's semantics change, this
-  # is where you'll find out.
+  # against tptp.org on 2026-07-20 and again on 2026-10-14; if tptp.org's
+  # semantics change, this is where you'll find out.
 
   @moduletag :sotptp_live
 
@@ -36,20 +36,22 @@ defmodule AtpClient.SystemOnTptpLiveTest do
   end
 
   describe ":format override" do
-    test "an unknown format module makes SotP return a Formatter error" do
-      # Confirmed by a hand-crafted curl during design: SotP replies with
-      # an `ERROR: Formatter did not create ...` body when the value is
-      # not a known format module. That surfaces to us as an
-      # unrecognised-output failure carrying the body, not as an SZS status.
-      {:error, {:unrecognized_output, raw}} =
-        AtpClient.SystemOnTptp.query_system(
-          @socrates,
-          @system,
-          time_limit_sec: 5,
-          format: "tptp:definitely_not_a_real_format_module"
-        )
+    test "an unknown format module hands the system a truncated problem" do
+      # Until 2026-07 SotP replied `ERROR: Formatter did not create ...` here.
+      # Measured 2026-10-14: for a multi-line problem it now writes a truncated
+      # file and runs E on it anyway; E's parse error carries no SZS line and
+      # SotP's verdict is `Unknown`. (A one-line problem still gets the
+      # Formatter error.) The request does not fail, so `:format` is not a
+      # validated option.
+      assert {:ok, %AtpClient.Result{status: :unknown} = result} =
+               AtpClient.SystemOnTptp.query_system(
+                 @socrates,
+                 @system,
+                 time_limit_sec: 5,
+                 format: "tptp:definitely_not_a_real_format_module"
+               )
 
-      assert raw =~ "Formatter did not create"
+      assert result.output =~ "expected, but No token (probably EOF) read"
     end
 
     test "the default format module `tptp:raw` still discharges the conjecture" do
@@ -66,7 +68,9 @@ defmodule AtpClient.SystemOnTptpLiveTest do
   describe ":transform override" do
     test "an unknown transform module makes SotP return a Formatter error" do
       # Bogus transforms cascade into the same "Formatter did not create"
-      # error path — see the design-time probe.
+      # error path — see the design-time probe. The body also says
+      # `ERROR: Unknown procedure`, which Alt-Ergo's `: Unknown` would read as
+      # a verdict were the patterns not scoped to their system.
       {:error, {:unrecognized_output, raw}} =
         AtpClient.SystemOnTptp.query_system(
           @socrates,
@@ -91,6 +95,43 @@ defmodule AtpClient.SystemOnTptpLiveTest do
                  time_limit_sec: 10,
                  command: "/nonexistent/binary %s %d"
                )
+    end
+  end
+
+  describe "0.8: reply shapes, tools, the report" do
+    test "both reply shapes give the same verdict, the TSTP one with its derivation" do
+      assert {:ok, tstp} = AtpClient.SystemOnTptp.query_system(@socrates, "E", time_limit_sec: 10)
+      assert %Tptp.Tstp.Solution{} = tstp.details.tstp
+      assert {:ok, %Tptp.Derivation{}, _} = AtpClient.Result.derivation(tstp)
+
+      assert {:ok, raw} =
+               AtpClient.SystemOnTptp.query_system(@socrates, "E",
+                 time_limit_sec: 10,
+                 x2tptp: false
+               )
+
+      assert raw.status == tstp.status
+      refute Map.has_key?(raw.details, :tstp)
+    end
+
+    test "ECNF through process_problem/3, GDV through AtpClient.verify/2" do
+      assert {:ok, cnf} =
+               AtpClient.SystemOnTptp.process_problem(@socrates, "ECNF", time_limit_sec: 10)
+
+      assert cnf.status == :success
+      assert {:ok, %Tptp.File{statements: [_ | _]}, _} = AtpClient.Result.formulae(cnf)
+
+      {:ok, proved} = AtpClient.SystemOnTptp.query_system(@socrates, "E", time_limit_sec: 10)
+
+      assert {:ok, %AtpClient.Result{status: :verified_good}} =
+               AtpClient.verify(proved, time_limit_sec: 30)
+    end
+
+    test "the SystemInfo report parses" do
+      assert {:ok, [_ | _] = systems, _warnings} =
+               AtpClient.SystemOnTptp.SystemInfo.fetch(refresh_timeout_ms: 120_000)
+
+      assert Enum.any?(systems, &(&1.name == "E" and :system_on_tptp in &1.interfaces))
     end
   end
 end

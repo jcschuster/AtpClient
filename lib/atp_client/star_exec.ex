@@ -45,9 +45,10 @@ defmodule AtpClient.StarExec do
 
   alias AtpClient.Config
   alias AtpClient.Config.Field
-  alias AtpClient.Problem
+  alias AtpClient.Input
   alias AtpClient.Result
   alias AtpClient.StarExec.Session
+  alias AtpClient.SystemOnTptp.Systems
   alias AtpClient.Verdict
 
   @type job_id :: non_neg_integer() | String.t()
@@ -79,6 +80,12 @@ defmodule AtpClient.StarExec do
     solver_cfg_id: [type: :pos_integer],
     queue_id: [type: :pos_integer],
     cpu_timeout_s: [type: :non_neg_integer],
+    system: [
+      type: :string,
+      doc:
+        "The SystemOnTPTP system name or identifier the solver is (`prove/3`), " <>
+          "for reading its output; see `AtpClient.Verdict`."
+    ],
 
     # Advanced knobs (read via `Config.fetch/4`, not surfaced in the schema).
     login_path: [type: :string],
@@ -240,7 +247,7 @@ defmodule AtpClient.StarExec do
   end
 
   @impl AtpClient.Backend
-  @spec query(Problem.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
+  @spec query(Input.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
   def query(problem, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
 
@@ -304,12 +311,13 @@ defmodule AtpClient.StarExec do
 
       case Req.post(base_req, post_opts) do
         {:ok, %{status: status, headers: headers}} when status in [200, 302, 303] ->
-          build_session(
-            base_url,
+          base_url
+          |> build_session(
             opts,
             connect_options,
             Map.merge(initial_jar, extract_cookies(headers))
           )
+          |> with_csrf(init_path)
 
         {:ok, %{status: status}} ->
           {:error, {:login_failed, status}}
@@ -331,6 +339,31 @@ defmodule AtpClient.StarExec do
       |> Keyword.put(:connect_options, connect_options)
 
     {:ok, %Session{base_url: base_url, cookies: jar, opts: resolved_opts}}
+  end
+
+  defp with_csrf({:ok, session}, init_path),
+    do: {:ok, %{session | csrf: csrf(session, init_path)}}
+
+  defp with_csrf(error, _init_path), do: error
+
+  # StarExec rejects a POST without the session's CSRF token with a 403. The
+  # token is in the meta tags of every secure page; its web UI sends it as the
+  # `X-CSRF-Token` header (AJAX) or a `csrfToken` query parameter (multipart
+  # forms), and the header is accepted for both.
+  defp csrf(session, init_path) do
+    with {:ok, %{status: 200, body: body}} when is_binary(body) <-
+           request(session, :get, init_path),
+         [_, token] <- Regex.run(~r/<meta name="csrf-token" content="([^"]+)"/, body) do
+      header =
+        case Regex.run(~r/<meta name="csrf-header" content="([^"]+)"/, body) do
+          [_, header] -> header
+          nil -> "X-CSRF-Token"
+        end
+
+      {header, token}
+    else
+      _otherwise -> nil
+    end
   end
 
   @doc """
@@ -505,7 +538,7 @@ defmodule AtpClient.StarExec do
         "fof(c, conjecture, $true).", name: "smoke")
       # name is "smoke.p", ready to hand to wait_for_benchmark/4.
   """
-  @spec upload_benchmark(Session.t(), space_id(), Problem.t(), keyword()) ::
+  @spec upload_benchmark(Session.t(), space_id(), Input.t(), keyword()) ::
           {:ok, String.t()} | {:error, term()}
   def upload_benchmark(%Session{} = session, space_id, problem, opts \\ [])
       when is_integer(space_id) do
@@ -523,7 +556,7 @@ defmodule AtpClient.StarExec do
     name = Keyword.get(opts, :name) || random_benchmark_name()
     file_name = name <> ".p"
 
-    text = problem |> Problem.to_iodata() |> IO.iodata_to_binary()
+    text = problem |> Input.to_iodata() |> IO.iodata_to_binary()
 
     {:ok, {_zip_name, zip_bytes}} =
       :zip.create(~c"bench.zip", [{String.to_charlist(file_name), text}], [:memory])
@@ -542,12 +575,14 @@ defmodule AtpClient.StarExec do
     upload_opts =
       opts
       |> Keyword.put(:form_multipart, fields)
-      # StarExec replies with a 302 to secure/details/uploadStatus.jsp?id=N.
-      # Following would mask the Location and defeat the redirect check.
+      # StarExec replies with a 302 to secure/details/uploadStatus.jsp?id=N,
+      # or, in newer builds, a 202 with the upload's progress as JSON; the
+      # extraction runs on in the background either way. Following the
+      # redirect would mask it and defeat the check.
       |> Keyword.put(:redirect, false)
 
     case request(session, :post, path, upload_opts) do
-      {:ok, %{status: status}} when status in [302, 303] ->
+      {:ok, %{status: status}} when status in [202, 302, 303] ->
         {:ok, file_name}
 
       {:ok, %{status: status}} ->
@@ -827,6 +862,10 @@ defmodule AtpClient.StarExec do
     * `:benchmark_type` (default `1`).
     * `:timeout_ms` — wall-clock budget for the whole pipeline; passed to
       both `wait_for_benchmark/4` and `wait_for_job/3`.
+    * `:system` — the SystemOnTPTP system the solver is (`"Vampire"`): its
+      record's `Solved` patterns read the output, and only its own
+      prover-specific messages (`AtpClient.Verdict.patterns/1`). Without it
+      every group of messages is read.
 
   The solver's stdout is kept on the result as `output`, with StarExec's
   per-line elapsed-time prefix as it came.
@@ -834,7 +873,7 @@ defmodule AtpClient.StarExec do
   All other StarExec options (`:base_url`, `:username`, `:password`, …) are
   consumed by `request/4` as usual.
   """
-  @spec prove(Session.t(), Problem.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
+  @spec prove(Session.t(), Input.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
   def prove(%Session{} = session, problem, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
     space_id = Config.fetch!(:starexec, :space_id, opts)
@@ -864,11 +903,25 @@ defmodule AtpClient.StarExec do
          {:ok, _job_info} <- wait_for_job(session, job_id, opts),
          {:ok, zip_bytes} <- get_job_output(session, job_id, opts),
          {:ok, stdout} <- single_stdout_from_zip(zip_bytes) do
-      Verdict.interpret(stdout, __MODULE__, system: to_string(solver_cfg_id))
+      Verdict.interpret(
+        stdout,
+        __MODULE__,
+        [system: to_string(solver_cfg_id), prefix: [Tptp.Szs.prefix(:starexec)]] ++
+          system_name(opts)
+      )
     end
   end
 
   # --- prove/3 helpers --------------------------------------------------
+
+  # A configuration id says nothing about the solver behind it: without
+  # `:system` every prover-specific message is read.
+  defp system_name(opts) do
+    case Keyword.get(opts, :system) do
+      nil -> [system_name: nil]
+      system -> Systems.verdict_options(system)
+    end
+  end
 
   defp prove_job_fields(space_id, queue_id, solver_cfg_id, bench_id, bench_name, cpu_s, wall_s) do
     %{
@@ -1126,11 +1179,19 @@ defmodule AtpClient.StarExec do
         receive_timeout: timeout_ms
       )
       |> put_cookie_header(session.cookies)
+      |> put_csrf_header(method, session.csrf)
 
     Req.request(req_opts)
   end
 
   # --- internal helpers -------------------------------------------------
+
+  defp put_csrf_header(req_opts, :get, _csrf), do: req_opts
+  defp put_csrf_header(req_opts, _method, nil), do: req_opts
+
+  defp put_csrf_header(req_opts, _method, {header, token}) do
+    Keyword.update(req_opts, :headers, [{header, token}], &[{header, token} | &1])
+  end
 
   defp put_cookie_header(req_opts, cookies) when cookies == %{} do
     req_opts

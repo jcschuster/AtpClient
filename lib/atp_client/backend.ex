@@ -89,12 +89,12 @@ defmodule AtpClient.Backend do
   Runs `problem` against the backend with the given `opts` and reads the
   system's output into one `AtpClient.Result`.
 
-  The problem is anything implementing `AtpClient.Problem` — a binary, a
+  The problem is anything implementing `AtpClient.Input` — a binary, a
   `Tptp.File`, a `Tptp.Unit` — and is transmitted as its bytes without being
   parsed. Each backend hides its own ceremony (session login/logout, prover
   selection, theory-file bookkeeping) behind this call so a UI can dispatch on
   backend module alone.
   """
-  @callback query(AtpClient.Problem.t(), keyword()) ::
+  @callback query(AtpClient.Input.t(), keyword()) ::
               {:ok, AtpClient.Result.t()} | {:error, term()}
 end

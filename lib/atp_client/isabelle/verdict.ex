@@ -82,8 +82,14 @@ defmodule AtpClient.Isabelle.Verdict do
   Every message text in the payload, across all nodes, joined by newlines.
   """
   @spec text(map()) :: binary()
-  def text(payload) when is_map(payload) do
-    payload |> messages() |> Enum.map_join("\n", &Map.get(&1, "message", ""))
+  def text(payload) when is_map(payload), do: payload |> texts() |> Enum.join("\n")
+
+  @doc """
+  Every message text in the payload, across all nodes, in order.
+  """
+  @spec texts(map()) :: [binary()]
+  def texts(payload) when is_map(payload) do
+    payload |> messages() |> Enum.map(&Map.get(&1, "message", ""))
   end
 
   @spec bucket([map()]) :: Ontology.t()

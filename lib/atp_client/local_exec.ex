@@ -9,7 +9,7 @@ defmodule AtpClient.LocalExec do
 
   ## Two ways in
 
-  `query/2` takes an `AtpClient.Problem`, writes its bytes to a temporary file
+  `query/2` takes an `AtpClient.Input`, writes its bytes to a temporary file
   and passes that to the prover. `query_file/2` takes a path and passes it to the
   prover as it is: nothing is read or copied, and the prover resolves the file's
   `include` directives itself, against the file's directory and `$TPTP`.
@@ -76,8 +76,9 @@ defmodule AtpClient.LocalExec do
 
   alias AtpClient.Config
   alias AtpClient.Config.Field
-  alias AtpClient.Problem
+  alias AtpClient.Input
   alias AtpClient.Result
+  alias AtpClient.SystemOnTptp.Systems
   alias AtpClient.Verdict
 
   # `:args` is validated as a list of strings only — the *contents* are
@@ -89,7 +90,8 @@ defmodule AtpClient.LocalExec do
                        binary: [type: :string],
                        args: [type: {:list, :string}],
                        cpu_timeout_s: [type: :non_neg_integer],
-                       wall_timeout_ms: [type: :non_neg_integer]
+                       wall_timeout_ms: [type: :non_neg_integer],
+                       system: [type: :string]
                      )
 
   @impl AtpClient.Backend
@@ -179,15 +181,21 @@ defmodule AtpClient.LocalExec do
       inject a `--cpu-limit` flag for you — encode that in `:args` so each
       prover gets the flag spelling it understands;
     * `:wall_timeout_ms` — BEAM-side wall-clock kill (default
-      `(cpu_timeout_s + 10) * 1000`).
+      `(cpu_timeout_s + 10) * 1000`);
+    * `:system` — a SystemOnTPTP system name or identifier (`"AGMV"`) whose
+      record's `Solved` patterns read the output, for a binary that prints a
+      verdict outside the SZS ontology the way that system does; see
+      `AtpClient.Verdict`. Looked up in `AtpClient.SystemOnTptp.Systems`. It
+      also picks the prover-specific messages read (`AtpClient.Verdict.patterns/1`),
+      which otherwise follow the binary's name — set it for a wrapper script.
   """
   @impl AtpClient.Backend
-  @spec query(Problem.t(), keyword()) :: result()
+  @spec query(Input.t(), keyword()) :: result()
   def query(problem, opts \\ []) do
     NimbleOptions.validate!(opts, @query_opts_schema)
 
     with {:ok, binary, exe} <- executable(opts),
-         {:ok, problem_path} <- write_temp(Problem.to_iodata(problem)) do
+         {:ok, problem_path} <- write_temp(Input.to_iodata(problem)) do
       try do
         run_file(problem_path, binary, exe, opts)
       after
@@ -233,7 +241,12 @@ defmodule AtpClient.LocalExec do
       end
 
     {:ok, output} = run(exe, build_args(args, path), wall_ms)
-    Verdict.interpret(output, __MODULE__, system: binary)
+
+    Verdict.interpret(
+      output,
+      __MODULE__,
+      [system: binary] ++ Systems.verdict_options(opts[:system])
+    )
   end
 
   defp resolve(binary) when is_binary(binary) do

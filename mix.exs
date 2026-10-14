@@ -1,7 +1,7 @@
 defmodule AtpClient.MixProject do
   use Mix.Project
 
-  @version "0.7.2"
+  @version "0.8.0"
   @source_url "https://github.com/jcschuster/AtpClient"
 
   def project do
@@ -15,7 +15,9 @@ defmodule AtpClient.MixProject do
       package: package(),
       name: "AtpClient",
       source_url: @source_url,
-      docs: docs()
+      docs: docs(),
+      # The mix tasks call Mix, which is not in the default PLT.
+      dialyzer: [plt_add_apps: [:mix]]
     ]
   end
 
@@ -48,7 +50,8 @@ defmodule AtpClient.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib mix.exs README* LICENSE* CHANGELOG* CITATION.cff examples/*.livemd)
+      files:
+        ~w(lib priv/system_on_tptp mix.exs README* LICENSE* CHANGELOG* CITATION.cff examples/*.livemd)
     ]
   end
 
@@ -58,10 +61,12 @@ defmodule AtpClient.MixProject do
       extras: [
         "README.md",
         "CHANGELOG.md",
-        "examples/demo.livemd"
+        "examples/demo.livemd",
+        "priv/system_on_tptp/SYSTEMS.md": [filename: "systems", title: "SystemOnTPTP systems"]
       ],
       groups_for_extras: [
-        Examples: ["examples/demo.livemd"]
+        Examples: ["examples/demo.livemd"],
+        Systems: ["priv/system_on_tptp/SYSTEMS.md"]
       ],
       # The CHANGELOG documents APIs that were renamed or removed in past
       # releases; ExDoc would otherwise warn on each historical reference.
@@ -70,18 +75,36 @@ defmodule AtpClient.MixProject do
         "Backend integrations": [
           AtpClient.Backend,
           AtpClient.SystemOnTptp,
-          AtpClient.SystemOnTptp.Provers,
+          AtpClient.SystemOnTptp.Reply,
           AtpClient.StarExec,
           AtpClient.StarExec.Session,
           AtpClient.Isabelle,
           AtpClient.Isabelle.Session,
           AtpClient.LocalExec
         ],
-        "Problems and results": [
+        "Inputs and results": [
+          AtpClient.Input,
           AtpClient.Problem,
           AtpClient.Result,
           AtpClient.Verdict,
           AtpClient.Isabelle.Verdict
+        ],
+        Solutions: [
+          AtpClient.Interpretation,
+          AtpClient.Interpretation.Standard,
+          AtpClient.Interpretation.VampireFmb,
+          AtpClient.Interpretation.FiRoles,
+          AtpClient.Isabelle.Nitpick
+        ],
+        Systems: [
+          AtpClient.System,
+          AtpClient.SystemOnTptp.SystemInfo,
+          AtpClient.SystemOnTptp.Systems,
+          AtpClient.SystemOnTptp.Audit
+        ],
+        "Mix tasks": [
+          Mix.Tasks.AtpClient.Systems.Refresh,
+          Mix.Tasks.AtpClient.Systems.Audit
         ],
         Analyzers: [
           AtpClient.Analyzer.Tptp4x

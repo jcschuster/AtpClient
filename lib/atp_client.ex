@@ -14,12 +14,12 @@ defmodule AtpClient do
       Run `scripts/build_eprover.sh` to install E into `priv/bin/`.
 
   Each backend implements `AtpClient.Backend`: `query/2` takes an
-  `AtpClient.Problem` and returns `{:ok, %AtpClient.Result{}}` or
+  `AtpClient.Input` and returns `{:ok, %AtpClient.Result{}}` or
   `{:error, reason}`.
 
   ## Problems and results
 
-  A problem is a binary, a `Tptp.File` or a `Tptp.Unit`; see `AtpClient.Problem`
+  A problem is a binary, a `Tptp.File` or a `Tptp.Unit`; see `AtpClient.Input`
   for what each sends. A backend never parses what it sends. `preflight/1` is
   the explicit check for callers who want one — an editor, say — before a
   round-trip to a prover.
@@ -78,7 +78,7 @@ defmodule AtpClient do
       AtpClient.LocalExec.query(problem, binary: "vampire", args: ["--mode", "casc"])
   """
 
-  alias AtpClient.Problem
+  alias AtpClient.Input
   alias AtpClient.Result
 
   @backends [
@@ -106,7 +106,7 @@ defmodule AtpClient do
 
       AtpClient.query(AtpClient.SystemOnTptp, problem, preflight: true, time_limit_sec: 10)
   """
-  @spec query(module(), Problem.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
+  @spec query(module(), Input.t(), keyword()) :: {:ok, Result.t()} | {:error, term()}
   def query(backend, problem, opts \\ []) when is_atom(backend) and is_list(opts) do
     case Keyword.pop(opts, :preflight, false) do
       {true, opts} ->
@@ -134,7 +134,7 @@ defmodule AtpClient do
       iex> Tptp.Diagnostic.any_errors?(diagnostics)
       true
   """
-  @spec preflight(Problem.t()) :: :ok | {:error, {:invalid_problem, [Tptp.Diagnostic.t()]}}
+  @spec preflight(Input.t()) :: :ok | {:error, {:invalid_problem, [Tptp.Diagnostic.t()]}}
   def preflight(problem) do
     %Tptp.Analysis{diagnostics: diagnostics} = Tptp.analyze(subject(problem))
 
@@ -145,8 +145,64 @@ defmodule AtpClient do
     end
   end
 
-  @spec subject(Problem.t()) :: binary() | Tptp.File.t() | Tptp.Unit.t()
+  @doc """
+  Verifies a solution through a SystemOnTPTP verifier.
+
+  `subject` is a `Tptp.Derivation`, an `AtpClient.Interpretation`, or a
+  `%AtpClient.Result{}`, whose `AtpClient.Result.derivation/1` is taken, else
+  its `AtpClient.Result.interpretation/1`. It is sent to
+  `AtpClient.SystemOnTptp.process_solution/3`.
+
+  ## Options
+
+    * `:with` — the verifier, a SystemOnTPTP system name or identifier. Default
+      `"GDV"` for a derivation and `"AGMV"` for an interpretation.
+
+  Every other option goes to `process_solution/3`. `AtpClient.Result.success?/1`
+  is true of the result for `VerifiedGood` (AGMV's `Verified` is read as that,
+  through its own `Solved` pattern).
+
+  Returns `{:error, :nothing_to_verify}` for a result with neither a derivation
+  nor an interpretation, and the reading's error for one whose derivation or
+  interpretation does not read.
+
+      {:ok, result} = AtpClient.SystemOnTptp.query_system(problem, "E")
+      {:ok, verdict} = AtpClient.verify(result)
+      verdict.status  # => :verified_good
+  """
+  @spec verify(Tptp.Derivation.t() | AtpClient.Interpretation.t() | Result.t(), keyword()) ::
+          {:ok, Result.t()} | {:error, term()}
+  def verify(subject, opts \\ [])
+
+  def verify(%Result{} = result, opts) do
+    case Result.derivation(result) do
+      {:ok, derivation, _diagnostics} ->
+        verify(derivation, opts)
+
+      {:error, _} = error ->
+        error
+
+      :none ->
+        case Result.interpretation(result) do
+          {:ok, interpretation, _diagnostics} -> verify(interpretation, opts)
+          {:error, _} = error -> error
+          :none -> {:error, :nothing_to_verify}
+        end
+    end
+  end
+
+  def verify(%Tptp.Derivation{} = derivation, opts), do: verify_with(derivation, "GDV", opts)
+
+  def verify(%AtpClient.Interpretation{} = interpretation, opts),
+    do: verify_with(interpretation, "AGMV", opts)
+
+  defp verify_with(subject, default, opts) do
+    {verifier, opts} = Keyword.pop(opts, :with, default)
+    AtpClient.SystemOnTptp.process_solution(subject, verifier, opts)
+  end
+
+  @spec subject(Input.t()) :: binary() | Tptp.File.t() | Tptp.Unit.t()
   defp subject(%Tptp.File{} = file), do: file
   defp subject(%Tptp.Unit{} = unit), do: unit
-  defp subject(problem), do: problem |> Problem.to_iodata() |> IO.iodata_to_binary()
+  defp subject(problem), do: problem |> Input.to_iodata() |> IO.iodata_to_binary()
 end

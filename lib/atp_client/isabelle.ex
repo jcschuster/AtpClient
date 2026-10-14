@@ -88,6 +88,11 @@ defmodule AtpClient.Isabelle do
       lemma was discharged, otherwise the first other status in lemma order. A
       body with no lemmas is `:gave_up`.
 
+  When the verdict is Nitpick's — `:counter_satisfiable` or `:satisfiable` with
+  a `Nitpick found a …` message — `details.nitpick` holds that message
+  verbatim, and `AtpClient.Result.interpretation/1` reads it through
+  `AtpClient.Isabelle.Nitpick`.
+
   ## Example
 
   Pass a full theory or just the body — bare text is automatically wrapped in
@@ -112,7 +117,7 @@ defmodule AtpClient.Isabelle do
 
   ## Submitting TPTP/THF problems
 
-  `query/2` and `prove_tptp/3` take an `AtpClient.Problem` and route it through
+  `query/2` and `prove_tptp/3` take an `AtpClient.Input` and route it through
   `IsabelleClient.TPTP.isabellize_theory/1` before handing it to the per-lemma
   path. The bundled `TPTP.thy` support theory is copied into `:local_dir` on
   first use, and the generated theory imports it with `unbundle from_TPTP`
@@ -154,8 +159,9 @@ defmodule AtpClient.Isabelle do
   alias AtpClient.Config.Field
   alias AtpClient.Isabelle.Session
   alias AtpClient.Isabelle.SessionOwner
+  alias AtpClient.Isabelle.Nitpick
   alias AtpClient.Isabelle.Verdict
-  alias AtpClient.Problem
+  alias AtpClient.Input
   alias AtpClient.Result
   alias IsabelleClient.Shared
   alias IsabelleClient.Task
@@ -557,7 +563,7 @@ defmodule AtpClient.Isabelle do
   end
 
   @doc """
-  Like `prove_lemmas/4`, but takes an `AtpClient.Problem` in TPTP/THF instead
+  Like `prove_lemmas/4`, but takes an `AtpClient.Input` in TPTP/THF instead
   of an Isabelle theory.
 
   The problem is converted to an Isabelle theory body via
@@ -607,13 +613,13 @@ defmodule AtpClient.Isabelle do
       (the parser is tolerant by design, so this should be rare);
     * everything `prove_lemmas/4` can return.
   """
-  @spec prove_tptp(Session.t(), Problem.t(), keyword()) :: result()
+  @spec prove_tptp(Session.t(), Input.t(), keyword()) :: result()
   def prove_tptp(session, problem, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
     config = Keyword.merge(Session.config(session), opts)
     local_dir = Path.expand(Config.fetch!(:isabelle, :local_dir, config))
     proof_method = Keyword.get(opts, :proof_method, "by auto")
-    text = problem |> Problem.to_iodata() |> IO.iodata_to_binary()
+    text = problem |> Input.to_iodata() |> IO.iodata_to_binary()
 
     with :ok <- File.mkdir_p(local_dir),
          :ok <- ensure_tptp_theory(local_dir),
@@ -642,7 +648,7 @@ defmodule AtpClient.Isabelle do
   > an honest failed proof. If you need FOF/CNF today, route through the
   > `SystemOnTPTP`, `StarExec`, or `LocalExec` backends instead.
   """
-  @spec query(Problem.t(), keyword()) :: result()
+  @spec query(Input.t(), keyword()) :: result()
   def query(problem, opts \\ []) do
     NimbleOptions.validate!(opts, @opts_schema)
     with_session(opts, &prove_tptp(&1, problem, opts))
@@ -683,9 +689,19 @@ defmodule AtpClient.Isabelle do
       evidence: {:backend, __MODULE__},
       output: Verdict.text(payload),
       backend: __MODULE__,
-      details: details
+      details: nitpick(status, payload, details)
     }
   end
+
+  # The Nitpick message, verbatim, when the verdict is Nitpick's.
+  defp nitpick(status, payload, details) when status in [:counter_satisfiable, :satisfiable] do
+    case payload |> Verdict.texts() |> Nitpick.message() do
+      nil -> details
+      message -> Map.put(details, :nitpick, message)
+    end
+  end
+
+  defp nitpick(_status, _payload, details), do: details
 
   defp inject_proof_method(isabellized, proof_method) do
     using = using_clause(axiom_names(isabellized))

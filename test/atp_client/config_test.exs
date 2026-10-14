@@ -61,9 +61,7 @@ defmodule AtpClient.ConfigTest do
     test "per-call opts win over both defaults and Application env" do
       Application.put_env(:atp_client, :sotptp, default_time_limit_sec: 30)
 
-      assert Config.fetch!(:sotptp, :default_time_limit_sec,
-               default_time_limit_sec: 99
-             ) == 99
+      assert Config.fetch!(:sotptp, :default_time_limit_sec, default_time_limit_sec: 99) == 99
     end
 
     test "fetch!/3 still raises for required settings without defaults" do

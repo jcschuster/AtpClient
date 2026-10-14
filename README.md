@@ -16,8 +16,9 @@ The TPTP language itself — reading, linting, printing, the SZS ontology —
 is the [`tptp`](https://hex.pm/packages/tptp) library's; this one is the
 transport to the provers.
 
-Every backend takes an `AtpClient.Problem` — a binary, a `Tptp.File` or a
-`Tptp.Unit` — and returns `{:ok, %AtpClient.Result{}}` or `{:error, reason}`.
+Every backend takes an `AtpClient.Input` — a binary, a `Tptp.File`, a
+`Tptp.Unit`, or a solution to verify — and returns `{:ok, %AtpClient.Result{}}`
+or `{:error, reason}`.
 A result's `status` is the system's SZS verdict as a value of
 `Tptp.Szs.Ontology` (`:theorem`, `:unsatisfiable`, `:counter_satisfiable`,
 `:satisfiable`, `:gave_up`, `:timeout`, …), read from the system's output by
@@ -35,6 +36,23 @@ statements sliced from their files — so the direct path from TPTP text to
 prover costs nothing beyond the transport. `AtpClient.preflight/1` is the
 explicit check for callers who want one before a round-trip.
 
+What the output *says* is read on demand, never while the backend runs:
+`AtpClient.Result.derivation/1` gives the proof as a `Tptp.Derivation` (a
+graph over the TSTP `source` annotations), `interpretation/1` a model as an
+`AtpClient.Interpretation` — one structure whether Mace4, Paradox, Vampire or
+Nitpick wrote it — and `formulae/1` what a transformation tool returned.
+`AtpClient.verify/2` sends a derivation to GDV, or an interpretation to AGMV,
+through SystemOnTSTP.
+
+SystemOnTPTP offers more than provers. `AtpClient.SystemOnTptp.systems/1`
+lists every system its SystemInfo report describes, as `AtpClient.System`
+records with the interfaces, SPCs and SZS values the report gives, and
+`AtpClient.System.capabilities/1` derives what each is for (`:prove`,
+`:find_model`, `:verify`, `:transform`, …) from those fields; a snapshot
+ships in `priv/system_on_tptp/` and a nightly workflow keeps it current.
+`query_system/3` runs a prover, `process_problem/3` a problem tool,
+`process_solution/3` a solution tool.
+
 Each backend also implements the `AtpClient.Backend` behaviour
 (`config_key/0`, `label/0`, `config_schema/0`, `verify/1`, `query/2`), so a
 Smart Cell or other UI can enumerate backends via `AtpClient.backends/0`,
@@ -49,7 +67,7 @@ Add `:atp_client` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:atp_client, "~> 0.7"}
+    {:atp_client, "~> 0.8"}
   ]
 end
 ```
@@ -113,11 +131,11 @@ fof(ax2, axiom, (p => q)).
 fof(goal, conjecture, q).
 """
 
-AtpClient.SystemOnTptp.list_provers()
+AtpClient.SystemOnTptp.systems(capability: :prove) |> Enum.map(& &1.id)
 # => ["Alt-Ergo---0.95.2", "Beagle---0.9.52", ...]
 
 # A bare name runs the version SystemOnTPTP currently advertises; an
-# identifier from list_provers/0 names one exactly.
+# identifier from systems/1 names one exactly.
 {:ok, result} = AtpClient.SystemOnTptp.query_system(problem, "cvc5", time_limit_sec: 10)
 result.status    # => :theorem
 result.system    # => "cvc5---1.3.4"

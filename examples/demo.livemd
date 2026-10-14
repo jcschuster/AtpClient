@@ -13,7 +13,7 @@ automated theorem provers. This notebook walks through each backend with a
 runnable problem — no external servers to configure by hand for the
 same-host paths.
 
-Every backend takes an `AtpClient.Problem` — a binary, a `Tptp.File` or a
+Every backend takes an `AtpClient.Input` — a binary, a `Tptp.File` or a
 `Tptp.Unit` — and returns `{:ok, %AtpClient.Result{}}` (the system asserted
 a verdict) or `{:error, reason}` (none could be obtained). The result's
 `status` is the [SZS Ontology](https://szs.tptp.org) value as a
@@ -40,11 +40,12 @@ fof(goal, conjecture, q).
 """
 ```
 
-`list_provers/0` pulls the current system catalogue from the deployment
-(cached in-process after the first call).
+`systems/1` lists the systems the deployment offers, filtered by what they
+can do. The list starts from the snapshot shipped with the library and is
+refreshed from the deployment in the background.
 
 ```elixir
-SystemOnTptp.list_provers() |> Enum.take(10)
+SystemOnTptp.systems(capability: :prove) |> Enum.map(& &1.id) |> Enum.take(10)
 ```
 
 Run a single system, by name: `"Zipperpin"` resolves to the version
@@ -76,7 +77,7 @@ with {:ok, outcomes} <-
 do: outcomes
 ```
 
-`query_all_systems/2` uses `list_provers/0` and is convenient for
+`query_all_systems/2` runs every system with the `:prove` capability and is convenient for
 benchmarking, but it holds one HTTP connection open for the sum of the
 per-system time limits — set `:time_limit_sec` conservatively.
 

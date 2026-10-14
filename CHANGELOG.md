@@ -8,7 +8,111 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-14
+
+### Breaking
+
+- **`AtpClient.Problem` is `AtpClient.Input`** (R1): same two functions, same
+  implementations, plus `Tptp.Derivation` and `AtpClient.Interpretation`.
+  `AtpClient.Problem` remains for 0.8 as a deprecated protocol whose single
+  implementation delegates to `AtpClient.Input`, and is removed in 0.9. A
+  third-party `AtpClient.Problem` implementation is no longer read by any
+  backend: implement `AtpClient.Input` instead. Every `@spec` says `Input.t()`.
+- **`SystemOnTptp.Provers` is `SystemOnTptp.Systems`** (R9), holding
+  `AtpClient.System` records rather than identifiers. `get_systems_list/0`,
+  `refresh_systems_list/1` and the hand-written `@excluded_systems` list are
+  gone: `Systems.refresh/1` is the refresh, and a system's capabilities say
+  what it is for. `SystemOnTptp.list_provers/0` is deprecated in favour of
+  `SystemOnTptp.systems(capability: :prove)`.
+- **The agent always starts**, from the snapshot shipped in
+  `priv/system_on_tptp/systems.json`, so `resolve/2` checks names against it
+  even with `auto_refresh: false`; `auto_refresh` now only controls the
+  background refresh. The 15 s blocking wait on the first call is gone.
+- `t:AtpClient.Result.evidence/0` gains `{:tstp, key}` and `{:system_info, key}`.
+- In the raw reply shape, `query_selected_systems/3` names a section by the
+  `<sys>` of `% RESULT: <p> - <sys> says …`, not by a `% File :` line.
+- `SystemOnTptp.verify/1` checks reachability with a `ListSystems` request and
+  no longer replaces the loaded systems.
+- `AtpClient.Verdict` reads the SZS status line outside output blocks only: a
+  status line inside a block is the block's data (ECNF prints `SZS status
+  Unknown` inside its `ListOfCNF`). A `says` summary is read from the last
+  `% RESULT:` line before any other `says`.
+- **Prover-specific patterns are read for their own system only.**
+  `AtpClient.Verdict.patterns/0` returns the table grouped by system (`%{names,
+  binaries, patterns}`), and `patterns/1` gives the messages for one system —
+  by SystemOnTPTP identifier or name, or LocalExec binary. Alt-Ergo's
+  `": Unknown"` no longer reads SystemOnTPTP's `ERROR: Unknown procedure` as a
+  verdict for E. A system no group claims gets none; only output read with no
+  system at all (or StarExec without `:system`) gets every group's.
+  `interpret/3` takes `:system_name` for when `:system` does not name the
+  system; `LocalExec`'s `:system` sets it, and `StarExec.prove/3` takes a new
+  `:system` option.
+
 ### Added
+
+- **Readings on `AtpClient.Result`** (R2): `derivation/1` (a
+  `Tptp.Derivation`, from the TSTP solution region or the first proof block;
+  `{:error, {:invalid_derivation, diagnostics}}` only for error diagnostics),
+  `interpretation/1` (an `AtpClient.Interpretation`), `formulae/1` (the
+  `ListOf…` block a transformation tool returns, `ListOfCNF` and the other
+  names outside the ontology included). `proof/1` stays as the thin reading.
+  `blocks` are read by `Tptp.Szs.blocks/2` with StarExec's prefix removed for
+  StarExec results.
+- **`AtpClient.Interpretation`** (R3): one structure for a finite model,
+  Herbrand model or Nitpick counterexample, read by
+  `AtpClient.Interpretation.Standard` (Mace4), `VampireFmb`, `FiRoles`
+  (Paradox) or as a saturation, chosen by what the file contains.
+  `to_tptp/1` prints the standard form, which `Standard` reads back into equal
+  tables. Elements are named without their quotes, so every dialect names them
+  alike.
+- **`AtpClient.Isabelle.Nitpick`** (R4) reads Nitpick's default output; every
+  Isabelle result whose verdict is Nitpick's carries the message in
+  `details.nitpick`, and `Result.interpretation/1` reads it.
+- **Both SystemOnTPTP reply shapes** (R5). `AtpClient.SystemOnTptp.Reply.sections/1`
+  splits a reply into `[{system_id, text}]` for the TSTP shape (`X2TPTP=-S`,
+  still the default) and the raw shape; `read_section/2` reads one, with the
+  `Tptp.Tstp.Solution` in `details.tstp` and the header's `Result` as the
+  status when the archived output holds none. `:x2tptp` is a per-call and
+  configurable option.
+- **Problem and solution tools** (R6): `SystemOnTptp.process_problem/3`
+  (SystemB4TPTP) and `process_solution/3` (SystemOnTSTP), and
+  `AtpClient.verify/2`, which sends a derivation to GDV or an interpretation to
+  AGMV (`with:` picks another). Every entry point checks the system's
+  interfaces first: `{:error, {:not_offered, id, interface}}`.
+- **The system's own patterns** (R6): `AtpClient.Verdict.interpret/3` takes
+  `solved:` and `gave_up:` — a system's SystemInfo patterns — and reads a status
+  word outside the ontology (`Verified`, which AGMV's record maps
+  `VerifiedGood` to) or output with no SZS line (`successfully checked`,
+  Dedukti's) through them, as `{:system_info, key}`. Neither reply has been
+  observed live yet; the patterns are the records' own.
+  SystemOnTPTP passes them for every system it knows; `LocalExec` takes
+  `system: "AGMV"`.
+- **`AtpClient.System` and `SystemOnTptp.SystemInfo`** (R7): the SystemInfo
+  report parsed into records — interfaces, listings, SPCs, `Solved` and
+  `StartSoln` patterns — with every word outside the known sets kept as text
+  in `raw`. `GaveUp` is read as `Word = pattern` pairs like `Solved`, into
+  `raw.gave_up`.
+- **Capabilities** (R8): `AtpClient.System.capabilities/1` derives `:prove`,
+  `:find_model`, `:verify`, `:transform`, `:check`, `:import` from the
+  record's fields, falls back to `UserNote` keywords (`:inspect` and
+  `:verify_model` come from keywords only: a viewer, a summariser and a
+  converter on SystemOnTSTP have the same record), and takes
+  `priv/system_on_tptp/overrides.json` (keyed by system name, each entry with
+  its `reason` and `since`) over both. The file starts with 23 entries, one
+  per system the 2026-10-14 report cannot classify by its fields.
+  `SystemOnTptp.systems/1` filters by `capability:`, `interface:`, `spc:`,
+  `name:`.
+- **Snapshot and tasks** (R9): `mix atp_client.systems.refresh` writes
+  `systems.json` and `SYSTEMS.md`; `mix atp_client.systems.audit [--strict]`
+  prints what needs attention. `Systems.snapshot_age/0` says when what is
+  loaded was generated.
+- **Nightly workflow** (R10): `.github/workflows/systems.yml` refreshes the
+  snapshot, opens or updates the `systems/refresh` pull request titled with
+  the delta, and fails when the audit finds something.
+- **Fixtures**: SystemOnTPTP replies in both shapes, the SystemInfo report of
+  2026-10-14, models from Mace4, Paradox, Vampire, E and cvc5, GDV and ECNF
+  replies, and two Nitpick payloads, under `test/fixtures/` with their
+  provenance in `test/fixtures/README.md`.
 
 - **Solver upload on StarExec.** `AtpClient.StarExec.upload_solver/4` posts
   a `.zip`/`.tar`/`.tgz` solver archive (a path, or `{file_name, bytes}`)
@@ -28,6 +132,20 @@ and this project adheres to
   provides every backend locally: E 3.5.1 as `eprover` and `eprover-ho`,
   Vampire 5.1.0, Isabelle2025-2, AtpMcp, and a StarExec sidecar;
   `.claude/atp_mcp.exs` configures AtpMcp for it.
+
+### Fixed
+
+- **StarExec CSRF tokens.** `StarExec.login/1` now reads the session's token
+  from the `csrf-token` meta tag of a secure page into `Session.csrf`, and
+  `request/4` sends it as `X-CSRF-Token` on every request that is not a GET.
+  Current StarExec builds answer a POST without it with a 403, which broke
+  every upload, job creation and logout. `upload_benchmark/4` also accepts the
+  `202` with JSON progress that these builds answer instead of the 302.
+- The live tests for a bogus `:format` and `:transform` (`:sotptp_live`) record
+  tptp.org as of 2026-10-14: a bogus transform still gives `ERROR: Formatter
+  did not create …`, now read as `{:unrecognized_output, body}` again; a bogus
+  format, for a multi-line problem, runs the system on a truncated file and
+  reads as `:unknown`.
 
 ## [0.7.2] - 2026-10-13
 
