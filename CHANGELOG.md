@@ -133,6 +133,13 @@ and this project adheres to
   Vampire 5.1.0, Isabelle2025-2, AtpMcp, and a StarExec sidecar;
   `.claude/atp_mcp.exs` configures AtpMcp for it.
 
+### Changed
+
+- `{:tptp, "~> 0.2"}`. `Tptp.File`, `Tptp.Unit` and `Tptp.Szs.Ontology`
+  values are part of AtpClient's API, so a project still on tptp 0.1 has to
+  move with it.
+- `{:isabelle_elixir, "~> 0.4"}`, relaxed from `~> 0.4.1`.
+
 ### Fixed
 
 - **StarExec CSRF tokens.** `StarExec.login/1` now reads the session's token
