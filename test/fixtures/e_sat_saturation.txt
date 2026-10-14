@@ -1,0 +1,119 @@
+% START OF SYSTEM OUTPUT
+Running first-order model finding
+Running: /home/tptp/Systems/E-SAT---3.5.1/eprover --delete-bad-limit=2000000000 --definitional-cnf=24 -s --print-statistics -R --print-version --proof-object --satauto-schedule=8 --cpu-limit=10 /tmp/LF2ZfFdEkb/SOT_rh_DbG
+% Version: 3.5.1
+% Preprocessing class: FSSSSMSSSSSNFFN.
+% Scheduled 4 strats onto 8 cores with 10 seconds (80 total)
+% Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 50s (5) cores
+% Starting new_bool_3 with 10s (1) cores
+% Starting new_bool_1 with 10s (1) cores
+% Starting sh5l with 10s (1) cores
+% G-E--_302_C18_F1_URBAN_RG_S04BN with pid 258613 completed with status 1
+% Result found by G-E--_302_C18_F1_URBAN_RG_S04BN
+% Preprocessing class: FSSSSMSSSSSNFFN.
+% Scheduled 4 strats onto 8 cores with 10 seconds (80 total)
+% Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 50s (5) cores
+% (lift_lambdas = 1, lambda_to_forall = 1,unroll_only_formulas = 1, sine = Auto)
+% No SInE strategy applied
+% Search class: FHUSF-FFSF11-SFFFFFNN
+% Scheduled 7 strats onto 5 cores with 50 seconds (50 total)
+% Starting SubtermCWHack with 5s (1) cores
+% Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 6s (1) cores
+% Starting G-E--_208_C18_F1_SE_CS_SP_PS_S5PRR_S0Y with 5s (1) cores
+% Starting new_bool_3 with 5s (1) cores
+% Starting new_bool_1 with 5s (1) cores
+% SubtermCWHack with pid 258620 completed with status 1
+% Result found by SubtermCWHack
+% Preprocessing class: FSSSSMSSSSSNFFN.
+% Scheduled 4 strats onto 8 cores with 10 seconds (80 total)
+% Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 50s (5) cores
+% (lift_lambdas = 1, lambda_to_forall = 1,unroll_only_formulas = 1, sine = Auto)
+% No SInE strategy applied
+% Search class: FHUSF-FFSF11-SFFFFFNN
+% Scheduled 7 strats onto 5 cores with 50 seconds (50 total)
+% Starting SubtermCWHack with 5s (1) cores
+% Preprocessing time       : 0.001 s
+
+% No proof found!
+% SZS status Satisfiable
+% SZS output start Saturation
+cnf(c_0_10, plain, (q(X2,X1)|~q(X1,X2)), inference(split_conjunct,[status(thm)],[c_0_7]), ['final']).
+cnf(c_0_11, plain, (q(a,f(a))), inference(split_conjunct,[status(thm)],[a4]), ['final']).
+cnf(c_0_12, plain, (~p(f(a))), inference(split_conjunct,[status(thm)],[c_0_8]), ['final']).
+cnf(c_0_13, plain, (a!=b), inference(split_conjunct,[status(thm)],[c_0_9]), ['final']).
+cnf(c_0_14, plain, (q(f(a),a)), inference(spm,[status(thm)],[c_0_10, c_0_11]), ['final']).
+cnf(c_0_15, plain, (p(a)), inference(split_conjunct,[status(thm)],[a1]), ['final']).
+% SZS output end Saturation
+% Parsed axioms                        : 5
+% Removed by relevancy pruning/SinE    : 0
+% Initial clauses                      : 5
+% Removed in clause preprocessing      : 0
+% Initial clauses in saturation        : 5
+% Processed clauses                    : 6
+% ...of these trivial                  : 0
+% ...subsumed                          : 0
+% ...remaining for further processing  : 6
+% Other redundant clauses eliminated   : 0
+% Clauses deleted for lack of memory   : 0
+% Backward-subsumed                    : 0
+% Backward-rewritten                   : 0
+% Generated clauses                    : 2
+% ...of the previous two non-redundant : 1
+% ...aggressively subsumed             : 0
+% Contextual simplify-reflections      : 0
+% Paramodulations                      : 2
+% Factorizations                       : 0
+% NegExts                              : 0
+% Equation resolutions                 : 0
+% Disequality decompositions           : 0
+% Total rewrite steps                  : 1
+% ...of those cached                   : 0
+% Propositional unsat checks           : 0
+%    Propositional check models        : 0
+%    Propositional check unsatisfiable : 0
+%    Propositional clauses             : 0
+%    Propositional clauses after purity: 0
+%    Propositional unsat core size     : 0
+%    Propositional preprocessing time  : 0.000
+%    Propositional encoding time       : 0.000
+%    Propositional solver time         : 0.000
+%    Success case prop preproc time    : 0.000
+%    Success case prop encoding time   : 0.000
+%    Success case prop solver time     : 0.000
+% Current number of processed clauses  : 6
+%    Positive orientable unit clauses  : 3
+%    Positive unorientable unit clauses: 0
+%    Negative unit clauses             : 2
+%    Non-unit-clauses                  : 1
+% Current number of unprocessed clauses: 0
+% ...number of literals in the above   : 0
+% Current number of archived formulas  : 0
+% Current number of archived clauses   : 0
+% Clause-clause subsumption calls (NU) : 0
+% Rec. Clause-clause subsumption calls : 0
+% Non-unit clause-clause subsumptions  : 0
+% Unit Clause-clause subsumption calls : 0
+% Rewrite failures with RHS unbound    : 0
+% BW rewrite match attempts            : 0
+% BW rewrite match successes           : 0
+% Condensation attempts                : 0
+% Condensation successes               : 0
+% Termbank termtop insertions          : 156
+% Search garbage collected termcells   : 15
+
+% -------------------------------------------------
+% User time                : 0.005 s
+% System time              : 0.002 s
+% Total time               : 0.007 s
+% Maximum resident set size: 3576 pages
+
+% -------------------------------------------------
+% User time                : 0.008 s
+% System time              : 0.014 s
+% Total time               : 0.022 s
+% Maximum resident set size: 4608 pages
+% E exiting
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_rh_DbG - E-SAT---3.5.1 says Satisfiable - CPU = 0.00 WC = 0.05 
+% OUTPUT: SOT_rh_DbG - E-SAT---3.5.1 says Saturation - CPU = 0.00 WC = 0.05 

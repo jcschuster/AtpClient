@@ -1,0 +1,30 @@
+% START OF SYSTEM OUTPUT
+% Mace4 (64) version 2026-6A, July 2026, CASC-J13.
+% Process 258454 was started by an unknown user on quoll,
+% Wed Oct 14 08:39:16 2026
+% The command was "/home/tptp/Systems/Mace4---2026-6A/mace4 -casc 10 -f /tmp/LF2ZfFdEkb/SOT_rh_DbG".
+
+% SZS status Satisfiable for SOT_rh_DbG
+% SZS output start FiniteModel for SOT_rh_DbG
+fof(interp_domain, interpretation-domains,
+    ! [X] : ( X = "d0" | X = "d1" )).
+
+fof(interp_functions, interpretation-mappings, (
+    a = "d0" &
+    b = "d1" &
+    f("d0") = "d1" &
+    f("d1") = "d0" )).
+
+fof(interp_relations, interpretation-mappings, (
+    p("d0") &
+    ~p("d1") &
+    ~q("d0","d0") &
+    q("d0","d1") &
+    q("d1","d0") &
+    ~q("d1","d1") )).
+
+% SZS output end FiniteModel for SOT_rh_DbG
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_rh_DbG - Mace4---2026-6A says Satisfiable - CPU = 0.00 WC = 0.01 
+% OUTPUT: SOT_rh_DbG - Mace4---2026-6A says FiniteModel - CPU = 0.00 WC = 0.01 

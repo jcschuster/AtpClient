@@ -1,0 +1,46 @@
+% START OF SYSTEM OUTPUT
+Paradox, version 4.0, 2010-06-29.
++++ PROBLEM: /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
+Reading '/tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short' ... OK
++++ SOLVING: /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
++++ BEGIN MODEL
+SZS output start FiniteModel for /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
+% domain size is 2
+fof(domain, fi_domain,
+  (![X] : (X = "1" | X = "2"))
+).
+
+fof(a, fi_functors,
+  ( (a = "1")
+  )
+).
+
+fof(b, fi_functors,
+  ( (b = "2")
+  )
+).
+
+fof(f, fi_functors,
+  ( (f("1") = "2")
+  & (f("2") = "2")
+  )
+).
+
+fof(p, fi_predicates,
+  ( (p("1") <=> $true)
+  & (p("2") <=> $false)
+  )
+).
+
+fof(q, fi_predicates,
+  ( ![X1,X2] : (q(X1,X2) <=> $true)
+  )
+).
+SZS output end FiniteModel for /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
++++ END MODEL
++++ RESULT: Satisfiable
+SZS status Satisfiable for /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_rh_DbG - Paradox---4.0 says Satisfiable - CPU = 0.00 WC = 0.00  Size = 2
+% OUTPUT: SOT_rh_DbG - Paradox---4.0 says FiniteModel - CPU = 0.00 WC = 0.00 

@@ -1,0 +1,2784 @@
+ACE2TPTP---0.0       =>
+    System           == ACE2TPTP
+    Version          == 0.0
+    People           == NO INFORMATION
+    URL              == NO INFORMATION
+    UserNote         == NO INFORMATION
+    Command          == ACE2TPTP %s
+    Format           == ACE
+    Transform        == NO INFORMATION
+    SPCs             == NO INFORMATION
+    Solved           == NO INFORMATION
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY PreTPTP
+DFG2TPTP---0.0       =>
+    System           == DFG2TPTP
+    Version          == 0.0
+    People           == NO INFORMATION
+    URL              == NO INFORMATION
+    UserNote         == NO INFORMATION
+    Command          == dfg2tptp %s stdout
+    Format           == DFG
+    Transform        == NO INFORMATION
+    SPCs             == NO INFORMATION
+    Solved           == NO INFORMATION
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY PreTPTP
+LADR2TPTP---0.0      =>
+    System           == LADR2TPTP
+    Version          == 0.0
+    People           == NO INFORMATION
+    URL              == NO INFORMATION
+    UserNote         == NO INFORMATION
+    Command          == ladr2tptp %s
+    Format           == LADR
+    Transform        == NO INFORMATION
+    SPCs             == NO INFORMATION
+    Solved           == NO INFORMATION
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY PreTPTP
+Otter2TPTP---0.0     =>
+    System           == Otter2TPTP
+    Version          == 0.0
+    People           == NO INFORMATION
+    URL              == NO INFORMATION
+    UserNote         == NO INFORMATION
+    Command          == otter2tptp %s
+    Format           == Otter
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == NO INFORMATION
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY PreTPTP
+SMT2TPTP---0.9.16    =>
+    System           == SMT2TPTP
+    Version          == 0.9.16
+    People           == NO INFORMATION
+    URL              == NO INFORMATION
+    UserNote         == NO INFORMATION
+    Command          == run_SMTtoTPTP %s
+    Format           == SMT2:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfTFF = SZS output start ListOfTFF
+    EndSoln          == ListOfTFF = SZS output end ListOfTFF
+    Statistic        == NO INFORMATION
+    Status           == READY PreTPTP
+ASk---0.2.5          =>
+    System           == ASk
+    Version          == 0.2.5
+    People           == Alex Steen
+    URL              == 
+    UserNote         == Skolemizer
+    Command          == run_ASk %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success && NoSuccess = SZS status UsageError
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFormulae = SZS output start ListOfFormulae
+    EndSoln          == ListOfFormulae = SZS output end ListOfFormulae
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+ATFLET---1.9.5       =>
+    System           == ATFLET
+    Version          == 1.9.5
+    People           == Alex Steen, Tobias Gleissner, Christoph Benzmueller
+    URL              == https://github.com/leoprover/logic-embedding
+    UserNote         == Embeds NTF or DTF in TFF or THF
+    Command          == run_embed %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NTF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFormulae = SZS output start ListOfT
+    EndSoln          == ListOfFormulae = SZS output end ListOfT
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+BNFParser---0.0      =>
+    System           == BNFParser
+    Version          == 0.0
+    People           == Geoff Sutcliffe, Allen van Gelder
+    URL              == 
+    UserNote         == Checks syntax according to BNF
+    Command          == BNFParser %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success && SyntaxError = SZS status SyntaxError
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP 
+BNFParserTree---0.0  =>
+    System           == BNFParserTree
+    Version          == 0.0
+    People           == Geoff Sutcliffe, Allen van Gelder
+    URL              == 
+    UserNote         == Checks syntax according to BNF, producing parse tree
+    Command          == BNFParserTree %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success && SyntaxError = SZS status SyntaxError
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP 
+CheckTyping---0.0    =>
+    System           == CheckTyping
+    Version          == 0.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Checks all symbols are typed
+    Command          == CheckTyping -all %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0 TX0 TF0
+    Solved           == Success = 0 errors
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+ECNF---3.5.1         =>
+    System           == ECNF
+    Version          == 3.5.1
+    People           == Stephan Schulz
+    URL              == http://www.eprover.org/
+    UserNote         == Converts FOF to CNF
+    Command          == run_ECNF %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfCNF = SZS output start ListOfCNF
+    EndSoln          == ListOfCNF = SZS output end ListOfCNF
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+EGround---3.5.1      =>
+    System           == EGround
+    Version          == 3.5.1
+    People           == Stephan Schulz
+    URL              == http://www.eprover.org/
+    UserNote         == Grounds a set of EPR clauses
+    Command          == eground --tstp-in --tstp-out --silent --resources-info --split-tries=100 --memory-limit=200 --soft-cpu-limit=%d --add-one-instance --constraints %s
+    Format           == tptp:raw
+    Transform        == add_equality
+    SPCs             == CNF_EPR
+    Solved           == Success = Full and complete proof state written
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfClauses = StartOfFile
+    EndSoln          == ListOfClauses = Full and complete proof state written
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+GetSymbols---0.0     =>
+    System           == GetSymbols
+    Version          == 0.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Extracts the symbols in formulae
+    Command          == GetSymbols -all %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == NO INFORMATION
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Isabelle---2TH0      =>
+    System           == Isabelle
+    Version          == 2TH0
+    People           == Jasmin Blanchette, Larry Paulson, Tobias Nipkow, Makarius Wenzel
+    URL              == http://www.cl.cam.ac.uk/research/hvg/Isabelle/
+    UserNote         == Converts to TH0
+    Command          == run_isabelle_2X TH0 %s
+    Format           == tptp
+    Transform        == none
+    SPCs             == TH0 TF0 FOF CNF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfTH0 = SZS output start ListOfTH0
+    EndSoln          == ListOfTH0 = SZS output end ListOfTH0
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Horn2UEQ---0.4.1     =>
+    System           == Horn2UEQ
+    Version          == 0.4.1
+    People           == Nick Smallbone, Koen Claessen
+    URL              == https://github.com/nick8325/jukebox/
+    UserNote         == Converts Horn to UEQ
+    Command          == jukebox_horn2ueq %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFOF = SZS output start ListOfCNF
+    EndSoln          == ListOfFOF = SZS output end ListOfCNF
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Isabelle---2TF0      =>
+    System           == Isabelle
+    Version          == 2TF0
+    People           == Jasmin Blanchette, Larry Paulson, Tobias Nipkow, Makarius Wenzel
+    URL              == http://www.cl.cam.ac.uk/research/hvg/Isabelle/
+    UserNote         == Converts to TF0
+    Command          == run_isabelle_2X TF0 %s
+    Format           == tptp
+    Transform        == none
+    SPCs             == TH0 TF0 FOF CNF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfTF0 = SZS output start ListOfTF0
+    EndSoln          == ListOfTF0 = SZS output end ListOfTF0
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Isabelle---2FOF      =>
+    System           == Isabelle
+    Version          == 2FOF
+    People           == Jasmin Blanchette, Larry Paulson, Tobias Nipkow, Makarius Wenzel
+    URL              == http://www.cl.cam.ac.uk/research/hvg/Isabelle/
+    UserNote         == Converts to FOF
+    Command          == run_isabelle_2X FOF %s
+    Format           == tptp
+    Transform        == none
+    SPCs             == TH0 TF0 FOF CNF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFOF = SZS output start ListOfFOF
+    EndSoln          == ListOfFOF = SZS output end ListOfFOF
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Leo-III-STC---1.8.0  =>
+    System           == Leo-III-STC
+    Version          == 1.8.0
+    People           == Christoph Benzmueller, Alexander Steen
+    URL              == https://github.com/leoprover/Leo-III
+    UserNote         == Syntax and type checker
+    Command          == run_Leo-III %s %d STC
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NH1 NH0 NX1 NX0 TH1 TH0 TX1 TX0 TF1 TF0 FOF CNF
+    Solved           == Success = SZS status Success && SyntaxError = SZS status SyntaxError && TypeError = SZS status TypeError
+    GaveUp           == NO INFORMATION
+    StartSoln        == LogicalData = SZS output start LogicalData
+    EndSoln          == LogicalData = SZS output end LogicalData
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Monotonox---0.4.1    =>
+    System           == Monotonox
+    Version          == 0.4.1
+    People           == Nick Smallbone, Koen Claessen
+    URL              == https://github.com/nick8325/jukebox/
+    UserNote         == Tests for monotonicity
+    Command          == jukebox monotonox %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0_NAR FOF CNF
+    Solved           == Success = : monotone && NoSuccess = : not monotone
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFormulae = riting output
+    EndSoln          == ListOfFormulae = EndOfFile
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Monotonox-2FOF---0.4.1 =>
+    System           == Monotonox-2FOF
+    Version          == 0.4.1
+    People           == Nick Smallbone, Koen Claessen
+    URL              == https://github.com/nick8325/jukebox/
+    UserNote         == Converts to FOF
+    Command          == jukebox_fof %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0_NAR
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFOF = SZS output start ListOfFOF
+    EndSoln          == ListOfFOF = SZS output end ListOfFOF
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Monotonox-2CNF---0.4.1 =>
+    System           == Monotonox-2CNF
+    Version          == 0.4.1
+    People           == Nick Smallbone, Koen Claessen
+    URL              == https://github.com/nick8325/jukebox/
+    UserNote         == Converts to CNF
+    Command          == jukebox_cnf %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0 FOF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfCNF = SZS output start ListOfCNF
+    EndSoln          == ListOfCNF = SZS output end ListOfCNF
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+ProblemStats---1.0   =>
+    System           == ProblemStats
+    Version          == 1.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Print problem statistics
+    Command          == run_MakeListStats %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == Comment = SZS output start Comment
+    EndSoln          == Comment = SZS output end Comment
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Prophet---0.0        =>
+    System           == Prophet
+    Version          == 0.0
+    People           == Yury Puzis
+    URL              == https://tptp.org/ATPSystems/Prophet/
+    UserNote         == Axiom selection
+    Command          == prophet %s
+    Format           == tptp
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success && NotRated = FAILURE: Not rated
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFormulae = SZS output start ListOfFormulae
+    EndSoln          == ListOfFormulae = SZS output end ListOfFormulae
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Saffron---4.5        =>
+    System           == Saffron
+    Version          == 4.5
+    People           == Negin Arhami
+    URL              == 
+    UserNote         == Converts to DLF
+    Command          == run_saffron %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == CNF
+    Solved           == Success = SZS status Success && PartialSuccess = SZS status PartialSuccess
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfDLF = SZS output start ListOfDLF
+    EndSoln          == ListOfDLF = SZS output end ListOfDLF
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+ShZZaM---0.2         =>
+    System           == ShZZaM
+    Version          == 0.2
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Converts English to TFF
+    Command          == run_ShZZaM %s
+    Format           == english:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFormulae = SZS output start ListOfFormulae
+    EndSoln          == ListOfFormulae = SZS output end ListOfFormulae
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+SPCForProblem---1.0  =>
+    System           == SPCForProblem
+    Version          == 1.0
+    People           == Geoff Sutcliffe
+    URL              == https://tptp.org/Seminars/Evaluate/SPCs.html
+    UserNote         == Computes the SPC
+    Command          == run_SPCForProblem %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NTF THF TXF TFF FOF CNF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+TPII---0.0           =>
+    System           == TPII
+    Version          == 0.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Interpreter for TPI language
+    Command          == TPII %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+TPTP2X---0.0         =>
+    System           == TPTP2X
+    Version          == 0.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Utility for transforming and formatting
+    Command          == tptp2X -q2 -d- %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == NO INFORMATION
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+TPTP4X---0.0         =>
+    System           == TPTP4X
+    Version          == 0.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Utility for transforming and formatting
+    Command          == tptp4X %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == NO INFORMATION
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP SoTSTP SoTMTP
+TPTP2JSON---0.1      =>
+    System           == TPTP2JSON
+    Version          == 0.1
+    People           == Michael Rawson
+    URL              == https://github.com/MichaelRawson/tptp
+    UserNote         == Converts to JSON
+    Command          == run_tptp2json %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP SoTSTP SoTMTP
+VCNF---4.8           =>
+    System           == VCNF
+    Version          == 4.8
+    People           == Andrei Voronkov, Krystof Hoder
+    URL              == https://vprover.github.io/
+    UserNote         == Converts to CNF
+    Command          == run_vclausify_rel %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfClauses = SZS output start ListOfCNF
+    EndSoln          == ListOfClauses = SZS output end ListOfCNF
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+VSelect---4.4        =>
+    System           == VSelect
+    Version          == 4.4
+    People           == Krystof Hoder
+    URL              == https://vprover.github.io/
+    UserNote         == Axiom selection
+    Command          == run_sine_select %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFormulae = SZS output start ListOfFormulae
+    EndSoln          == ListOfFormulae = SZS output end ListOfFormulae
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Why3-FOF---0.85      =>
+    System           == Why3-FOF
+    Version          == 0.85
+    People           == Andrei Paskevich
+    URL              == 
+    UserNote         == Converts to FOF
+    Command          == bin/why3 prove -F tptp -C /home/tptp/Systems/Why3---0.85/why3.conf -D /home/tptp/Systems/Why3---0.85/Source/drivers/tptp.gen %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF1
+    Solved           == Success = StartOfFile
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFormulae = StartOfFile
+    EndSoln          == ListOfFormulae = EndOfFile
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+Why3-TF0---0.85      =>
+    System           == Why3-TF0
+    Version          == 0.85
+    People           == Andrei Paskevich
+    URL              == 
+    UserNote         == Converts to TF0
+    Command          == bin/why3 prove -F tptp -C /home/tptp/Systems/Why3---0.85/why3.conf -D /home/tptp/Systems/Why3---0.85/Source/drivers/tptp-tff0.drv %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF1
+    Solved           == Success = StartOfFile
+    GaveUp           == NO INFORMATION
+    StartSoln        == ListOfFormulae = StartOfFile
+    EndSoln          == ListOfFormulae = EndOfFile
+    Statistic        == NO INFORMATION
+    Status           == READY SB4TPTP
+AGInTRater---0.0     =>
+    System           == AGInTRater
+    Version          == 0.0
+    People           == Yury Puzis, Geoff Sutcliffe
+    URL              == https://tptp.org/Seminars/AGInT/RaterSummary.html
+    UserNote         == Rates proof formulae for interestingness
+    Command          == AGInTRater -c %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == 
+    Solved           == Rated = SUCCESS: Rated && NotRated = FAILURE: Not rated
+    GaveUp           == NO INFORMATION
+    StartSoln        == Derivation = AGInTRater output start
+    EndSoln          == Derivation = AGInTRater output end
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+AGMV---1.0           =>
+    System           == AGMV
+    Version          == 1.0
+    People           == Geoff Sutcliffe, Alex Steen
+    URL              == 
+    UserNote         == Model verifier
+    Command          == run_AGMV %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NX0 TX0 TF0 FOF
+    Solved           == VerifiedGood = SZS status Verified && VerifiedBad = SZS status VerifiedBad && Unknown = SZS status Unknown && GaveUp = SZS status GaveUp
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+Dedukti---2.7        =>
+    System           == Dedukti
+    Version          == 2.7
+    People           == Frederic Blanqui
+    URL              == https://github.com/Deducteam/lambdapi
+    UserNote         == Derivation verifier for Dedukti format
+    Command          == run_Dedukti %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0 TF0 FOF CNF
+    Solved           == VerifiedGood = successfully checked && VerifiedBad = ERROR CODE
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY
+GDV---2.0            =>
+    System           == GDV
+    Version          == 2.0
+    People           == Geoff Sutcliffe
+    URL              == https://tptp.org/Seminars/GDV/Summary.html
+    UserNote         == Derivation verifier
+    Command          == run_GDV %s 30
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NH0 NX0 TH0 TX0 TF0 FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP CASC
+GDV-LP---2.0         =>
+    System           == GDV-LP
+    Version          == 2.0
+    People           == Geoff Sutcliffe
+    URL              == https://tptp.org/Seminars/GDV/Summary.html
+    UserNote         == Derivation verifier for LambdaPi format
+    Command          == run_GDV %s 30 LP
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0 TF0 FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY CASC
+IDV---1.0            =>
+    System           == IDV
+    Version          == 1.0
+    People           == Daniel Li, Esteban Morales, Jack McKeown, Geoff Sutcliffe
+    URL              == 
+    UserNote         == Interactive derivation viewer
+    Command          == run_IDV %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+IIV---0.0            =>
+    System           == IIV
+    Version          == 0.0
+    People           == Daniel Li, Esteban Morales, Jack McKeown, Geoff Sutcliffe
+    URL              == https://tptp.org/Seminars/IIV/Summary.html
+    UserNote         == Interactive interpretation viewer
+    Command          == run_IIV %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+LambdaPi---3.0.0     =>
+    System           == LambdaPi
+    Version          == 3.0.0
+    People           == Frederic Blanqui
+    URL              == https://github.com/Deducteam/lambdapi
+    UserNote         == LambdaPi for GDV files
+    Command          == run_LambdaPi %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0 TF0 FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY
+ProofStats---1.0     =>
+    System           == ProofStats
+    Version          == 1.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Print proof statistics
+    Command          == run_MakeTreeStats %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == Comment = SZS output start Comment
+    EndSoln          == Comment = SZS output end Comment
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+PProofSummary---0.0  =>
+    System           == PProofSummary
+    Version          == 0.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Summarizes proof in Prolog format
+    Command          == ProofSummary -f prolog %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == Derivation = SZS output start
+    EndSoln          == Derivation = SZS output end
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+ProofSummary---0.0   =>
+    System           == ProofSummary
+    Version          == 0.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Summarizes proof
+    Command          == ProofSummary -f tptp %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == Derivation = SZS output start
+    EndSoln          == Derivation = SZS output end
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+SC-TPTP---0.0        =>
+    System           == SC-TPTP
+    Version          == 0.0
+    People           == Simon Guilloud
+    URL              == https://github.com/SC-TPTP/sc-tptp
+    UserNote         == Derivation verifier
+    Command          == run_sc-tptp %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Verified = SZS status Verified && NotVerified = SZS status NotVerified && FailedVerified = SZS status FailedVerified
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+SolutionStats---1.0  =>
+    System           == SolutionStats
+    Version          == 1.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Print solution statistics
+    Command          == run_MakeTreeStats %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == Comment = SZS output start Comment
+    EndSoln          == Comment = SZS output end Comment
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+Taelja---0.2.0.0     =>
+    System           == Taelja
+    Version          == 0.2.0.0
+    People           == Lydia Kondylidou
+    URL              == https://github.com/kondylidou/Taelja
+    UserNote         == Refutation to Proof converter
+    Command          == run_taelja %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+TSTP2NL---0.2        =>
+    System           == TSTP2NL
+    Version          == 0.2
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Refutation to language converter
+    Command          == run_TFF2Language %s --taelja
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+InterpretByATP---0.0 =>
+    System           == InterpretByATP
+    Version          == 0.0
+    People           == Geoff Sutcliffe
+    URL              == 
+    UserNote         == Evaluates formulae against a model, between SZS lines (ask Geoff)
+    Command          == run_InterpretByATP %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success && NoSuccess = SZS status NoSuccess
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTSTP
+Alt-Ergo---0.95.2    =>
+    System           == Alt-Ergo
+    Version          == 0.95.2
+    People           == Andrei Paskevich
+    URL              == 
+    UserNote         == Prover
+    Command          == run_alt_ergo %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF1 TF0 FOF CNF
+    Solved           == Theorem = Valid
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA
+Beagle---0.9.52      =>
+    System           == Beagle
+    Version          == 0.9.52
+    People           == Peter Baumgartner (Joshua Bax, Andreas Bauer, Tim Cosgrove)
+    URL              == http://users.cecs.anu.edu.au/~baumgart/systems/beagle/
+    UserNote         == Prover
+    Command          == run_beagle %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC TSTP SoTPTP
+Bliksem---1.12       =>
+    System           == Bliksem
+    Version          == 1.12
+    People           == Hans de Nivelle
+    URL              == 
+    UserNote         == Prover
+    Command          == run_bliksem %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation && Saturation = SZS output start Saturation
+    EndSoln          == Refutation = SZS output end Refutation && Saturation = SZS output end Saturation
+    Statistic        == Generated = clauses generated: *([0-9]*) && Kept = clauses kept: *([0-9]*)
+    Status           == READY STAREXEC SSCPA TSTP SoTPTP
+CHewTPTP---1.0       =>
+    System           == CHewTPTP
+    Version          == 1.0
+    People           == Eric McGregor, Christopher Lynch
+    URL              == 
+    UserNote         == Prover
+    Command          == bitetptp %s
+    Format           == tptp
+    Transform        == none
+    SPCs             == CNF
+    Solved           == Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY
+ConnectPP---0.7.2    =>
+    System           == ConnectPP
+    Version          == 0.7.2
+    People           == Sean Holden
+    URL              == https://www.cl.cam.ac.uk/~sbh11/connect++.html
+    UserNote         == Prover
+    Command          == connect++ --verbosity 0 --no-colour --tptp-proof --schedule default --timeout %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+ConnectPP-SAT---0.7.2 =>
+    System           == ConnectPP-SAT
+    Version          == 0.7.2
+    People           == Sean Holden
+    URL              == https://www.cl.cam.ac.uk/~sbh11/connect++.html
+    UserNote         == Prover
+    Command          == connect++ --verbosity 0 --no-colour --no-sat --complete 2 --timeout %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC CASC
+Crossbow---0.1       =>
+    System           == Crossbow
+    Version          == 0.1
+    People           == Radek Micek
+    URL              == https://github.com/radekm/crossbow
+    UserNote         == Prover
+    Command          == do_Crossbow---0.1 %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF_CSA FOF_SAT FOF_UNK
+    Solved           == CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == FiniteModel = SZS output start FiniteModel
+    EndSoln          == FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY
+CSE_E---1.7          =>
+    System           == CSE_E
+    Version          == 1.7
+    People           == Shuwei Chen
+    URL              == 
+    UserNote         == Prover
+    Command          == run_CSE %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY TSTP SoTPTP SCCPA STAREXEC
+CSI_E---1.1          =>
+    System           == CSI_E
+    Version          == 1.1
+    People           == Guoyan Zeng, Shuwei Chen
+    URL              == 
+    UserNote         == Prover
+    Command          == run_CSI_E %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY TSTP
+CSI_PP---1.0         =>
+    System           == CSI_PP
+    Version          == 1.0
+    People           == Guoyan Zeng, Shuwei Chen
+    URL              == 
+    UserNote         == Prover
+    Command          == run_CSI_PP %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof && CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == Proof = SZS output end Proof && CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+cvc5---1.3.4         =>
+    System           == cvc5
+    Version          == 1.3.4
+    People           == Clark Barrett, Cesare Tinelli
+    URL              == https://cvc5.github.io/
+    UserNote         == Prover and model finder
+    Command          == do_cvc5 %s %d THM
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0 TX0 TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof && Saturation = SZS output start Saturation && Model = SZS output start Model && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Proof = SZS output end Proof && Saturation = SZS output end Saturation && Model = SZS output end Model && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+cvc5-SAT---1.3.4     =>
+    System           == cvc5-SAT
+    Version          == 1.3.4
+    People           == Clark Barrett, Cesare Tinelli
+    URL              == https://cvc5.github.io/
+    UserNote         == Model finder
+    Command          == do_cvc5 %s %d SAT
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0_NAR TF0 FOF CNF
+    Solved           == CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Saturation = SZS output start Saturation && Model = SZS output start Model && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Saturation = SZS output end Saturation && Model = SZS output end Model && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+cvc5-SAT---1.3.3.LK  =>
+    System           == cvc5-SAT
+    Version          == 1.3.3.LK
+    People           == Lydia Kondylidou, Clark Barrett, Cesare Tinelli
+    URL              == https://cvc5.github.io/
+    UserNote         == Model finder
+    Command          == do_cvc5 %s %d SAT
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0_NAR TF0 FOF CNF
+    Solved           == CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Saturation = SZS output start Saturation && Model = SZS output start Model && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Saturation = SZS output end Saturation && Model = SZS output end Model && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY 
+cvc5-STC---1.3.4     =>
+    System           == cvc5-STC
+    Version          == 1.3.4
+    People           == Clark Barrett, Cesare Tinelli
+    URL              == https://cvc5.github.io/
+    UserNote         == Syntax and type checker
+    Command          == run_stc %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0_NAR TF0 FOF CNF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY 
+Darwin---1.4.5       =>
+    System           == Darwin
+    Version          == 1.4.5
+    People           == Alexander Fuchs, Peter Baumgartner, Cesare Tinelli
+    URL              == 
+    UserNote         == Prover and model finder
+    Command          == darwin -pl 0 -pmc true -to %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Model = SZS output start Model
+    EndSoln          == Model = SZS output end Model
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SSCPA SoTPTP TSTP
+DarwinFM---1.4.5     =>
+    System           == DarwinFM
+    Version          == 1.4.5
+    People           == Alexander Fuchs, Peter Baumgartner, Cesare Tinelli
+    URL              == 
+    UserNote         == Finite model finder
+    Command          == darwin -fd true -ppp true -pl 0 -to %d -pmtptp true %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF_CSA FOF_SAT CNF_SAT FOF_UNK CNF_UNK
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == FiniteModel = SZS output start FiniteModel
+    EndSoln          == FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SSCPA SoTPTP TSTP
+DLash---1.11         =>
+    System           == DLash
+    Version          == 1.11
+    People           == Cezary Kaliszyk
+    URL              == 
+    UserNote         == Prover 
+    Command          == run_dlash %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == DH1_NAR DH0_NAR TH1_NAR TH0_NAR
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+Drodi---4.1.1        =>
+    System           == Drodi
+    Version          == 4.1.1
+    People           == Oscar Contreras
+    URL              == 
+    UserNote         == Prover
+    Command          == run_drodi %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+Drodi-SAT---4.1.1    =>
+    System           == Drodi-SAT
+    Version          == 4.1.1
+    People           == Oscar Contreras
+    URL              == 
+    UserNote         == Prover
+    Command          == run_drodi %d %s SAT
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Saturation = SZS output start Saturation
+    EndSoln          == Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+DT2H2X---1.9.5       =>
+    System           == DT2H2X
+    Version          == 1.9.5
+    People           == Cezary Kaliszyk,
+    URL              == 
+    UserNote         == Prover
+    Command          == run_DT2H2X %s %d Vampire---
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == DH1_NAR DH0_NAR NH1_NAR NH0_NAR TH1_NAR TH0_NAR
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Proof && Saturation = SZS output start Saturation && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Refutation = SZS output end Proof && Saturation = SZS output end Saturation && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+Duper---1.0          =>
+    System           == Duper
+    Version          == 1.0
+    People           == Joshua Clune, Alexander Bentkamp, Yicheng Qian
+    URL              == https://github.com/leanprover-community/duper
+    UserNote         == Prover
+    Command          == duper %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH1_NAR TH0_NAR TF1_NAR TF0_NAR FOF
+    Solved           == Theorem = SZS status Theorem
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SSCPA TSTP SoTPTP
+E---3.5.1            =>
+    System           == E
+    Version          == 3.5.1
+    People           == Stephan Schulz
+    URL              == http://www.eprover.org/
+    UserNote         == Prover and model finder
+    Command          == run_E %s %d THM
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0_NAR TX0_NAR TF0_NAR FOF CNF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+E-SAT---3.5.1        =>
+    System           == E-SAT
+    Version          == 3.5.1
+    People           == Stephan Schulz
+    URL              == http://www.eprover.org/
+    UserNote         == Prover and model finder
+    Command          == run_E %s %d SAT
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0_NAR FOF CNF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+Enigma---0.5.1       =>
+    System           == Enigma
+    Version          == 0.5.1
+    People           == Jan Jakubuv
+    URL              == https://github.com/ai4reason/enigmatic
+    UserNote         == Prover
+    Command          == enigmatic-eprover.py %s %d 8
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+ePrincess---1.0      =>
+    System           == ePrincess
+    Version          == 1.0
+    People           == Peter Backeman
+    URL              == http://user.it.uu.se/~petba168/breu/
+    UserNote         == Prover
+    Command          == ePrincess-casc -inputFormat=tptp -timeout=%d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC TSTP
+Etableau---0.67      =>
+    System           == Etableau
+    Version          == 0.67
+    People           == John Hester
+    URL              == https://github.com/hesterj/Etableau
+    UserNote         == Prover
+    Command          == etableau --auto --tsmdo --quicksat=10000 --tableau=1 --tableau-saturation=1 -s -p --tableau-cores=8 --cpu-limit=%d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+E-Darwin---1.5       =>
+    System           == E-Darwin
+    Version          == 1.5
+    People           == Bjorn Pelzer
+    URL              == 
+    UserNote         == Prover and model finder
+    Command          == e-darwin -pev "TPTP" -pmd true -if tptp -pl 2 -pc false -ps false %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Model = START OF MODEL
+    EndSoln          == Model = END OF MODEL
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+EQP---0.9e           =>
+    System           == EQP
+    Version          == 0.9e
+    People           == William McCune
+    URL              == http://www.cs.unm.edu/~mccune/eqp/
+    UserNote         == Prover
+    Command          == tptp2X_and_run_eqp %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == CNF_UEQ
+    Solved           == Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation
+    EndSoln          == Refutation = SZS output end Refutation
+    Statistic        == Clauses = Clauses generated *([0-9]*) && Given = Clauses or pairs given *([0-9]*)
+    Status           == READY STAREXEC TSTP SSCPA SoTPTP
+Equinox---6.0.1a     =>
+    System           == Equinox
+    Version          == 6.0.1a
+    People           == Koen Claessen
+    URL              == 
+    UserNote         == Prover
+    Command          == equinox --modelfile /tmp/model --no-progress --time %d --tstp %s
+    Format           == tptp:short
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem for && CounterSatisfiable = SZS status CounterSatisfiable for && Unsatisfiable = SZS status Unsatisfiable for && Satisfiable = SZS status Satisfiable for
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SSCPA STAREXEC TSTP SoTPTP
+FEST---2.0.1         =>
+    System           == FEST
+    Version          == 2.0.1
+    People           == Neta Elad
+    URL              == https://zenodo.org/records/10125136
+    UserNote         == Model finder
+    Command          == run_fest %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TX0 TF0
+    Solved           == Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Model = SZS output start Model
+    EndSoln          == Model = SZS output end Model
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP TSTP
+FindProof---0.1      =>
+    System           == FindProof
+    Version          == 0.1
+    People           == Nik Murzin
+    URL              == https://www.wolframcloud.com/obj/nikm/DeployedResources/Paclet/WolframInstitute/THVMLink/Documentation/tutorial/AtpMethods.html
+    UserNote         == Prover and model finder
+    Command          == run_findproof %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof && CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation
+    EndSoln          == Proof = SZS output end Proof && CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+FMB4J---0.1          =>
+    System           == FMB4J
+    Version          == 0.1
+    People           == Michael Rawson, Joe Hall
+    URL              == https://tptp.org/CASC/J13/Entrants.html
+    UserNote         == Model finder
+    Command          == run_fmb4j %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == FiniteModel = SZS output start FiniteModel
+    EndSoln          == FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP TSTP STAREXEC CASC
+G4Plus---1.5.2       =>
+    System           == G4Plus
+    Version          == 1.5.2
+    People           == Joseph Vidal-Rosset
+    URL              == https://www.vidal-rosset.net/2025-11-17-swi-tinker-for-swi-prolog-provers.html
+    UserNote         == Prover
+    Command          == g4plus.sh %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY TSTP SoTPTP
+Geo-III---2018C      =>
+    System           == Geo-III
+    Version          == 2018C
+    People           == Hans de Nivelle
+    URL              == 
+    UserNote         == Prover and model finder
+    Command          == geo -tptp_input -nonempty -include /home/tptp/TPTP -inputfile %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation && Model = SZS output start Model
+    EndSoln          == Refutation = SZS output end Refutation && Model = SZS output end Model
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SSCPA TSTP SoTPTP
+Goeland---1.2.0      =>
+    System           == Goeland
+    Version          == 1.2.0
+    People           == Julie Cailler
+    URL              == https://github.com/GoelandProver/Goeland
+    UserNote         == Prover
+    Command          == goeland -dmt -osctptp -silent -no_id %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SSCPA TSTP SoTPTP
+GKC---0.8            =>
+    System           == GKC
+    Version          == 0.8
+    People           == Tanel Tammet
+    URL              == https://github.com/tammet/gkc
+    UserNote         == Prover
+    Command          == gkc %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+GrAnDe---1.1         =>
+    System           == GrAnDe
+    Version          == 1.1
+    People           == Stephan Schulz, Geoff Sutcliffe
+    URL              == https://tptp.org/ATPSystems/GrAnDe/
+    UserNote         == Prover and model finder
+    Command          == And %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF_EPR CNF_EPR CNF_PRP
+    Solved           == Unsatisfiable = SZS status Unsatisfiable && Theorem = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable && CounterSatisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == EStatus = Grounding status: # ([^ ]*)
+    Status           == READY STAREXEC TSTP SoTPTP
+HOLyHammer---0.21    =>
+    System           == HOLyHammer
+    Version          == 0.21
+    People           == Cezary Kaliszyk
+    URL              == 
+    UserNote         == Prover
+    Command          == run_hh %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH1_NAR TH0_NAR
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC TSTP SoTPTP
+hopCoP---0.1         =>
+    System           == hopCoP
+    Version          == 0.1
+    People           == Michael Rawson
+    URL              == https://github.com/MichaelRawson/hopcop
+    UserNote         == Prover
+    Command          == hopcop %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+Imogen---2.0         =>
+    System           == Imogen
+    Version          == 2.0
+    People           == Sean McLaughlin
+    URL              == http://www.seanmcl.com/research/imogen/
+    UserNote         == Prover and model finder
+    Command          == imogen fol prove -c -f FileName -s Tptp -pt %s
+    Format           == tptp
+    Transform        == stdfof+add_equality
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+Infinox---1.0        =>
+    System           == Infinox
+    Version          == 1.0
+    People           == Koen Claessen
+    URL              == 
+    UserNote         == Finite prover and model finder
+    Command          == run_infinox %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == FiniteTheorem = SZS status FiniteTheorem && FinitelyUnsatisfiable = SZS status FinitelyUnsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SSCPA STAREXEC TSTP SoTPTP
+iProver---3.9.4      =>
+    System           == iProver
+    Version          == 3.9.4
+    People           == Konstantin Korovin
+    URL              == http://www.cs.man.ac.uk/~korovink/iprover/
+    UserNote         == Prover and model finder
+    Command          == run_iprover %d %s THM
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0_NDT FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation && Model = SZS output start Model
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation && Model = SZS output end Model
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+iProver-SAT---3.9.4  =>
+    System           == iProver-SAT
+    Version          == 3.9.4
+    People           == Konstantin Korovin
+    URL              == http://www.cs.man.ac.uk/~korovink/iprover/
+    UserNote         == Model finder
+    Command          == run_iprover %d %s SAT
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation && Model = SZS output start Model
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation && Model = SZS output end Model
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+iProverMo---2.5-0.1  =>
+    System           == iProverMo
+    Version          == 2.5-0.1
+    People           == Guillaume Burel
+    URL              == http://www.ensiie.fr/~guillaume.burel/blackandwhite_iProverModulo.html.en
+    UserNote         == Prover
+    Command          == bin/run_iProverMo %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0_NAR FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SoTPTP SSCPA TSTP
+iProver-Eq---0.85    =>
+    System           == iProver-Eq
+    Version          == 0.85
+    People           == Christoph Sticksel, Konstantin Korovin
+    URL              == http://www.cs.man.ac.uk/~korovink/iprover/
+    UserNote         == Prover and model finder
+    Command          == run_iprover_eq %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == ILoops = inst_num_of_loops: *([0-9]*) && RLoops = res_num_of_loops: *([0-9]*) && SLoops = up_num_of_loops: *([0-9]*) && PropCalls = prop_solver_calls: *([0-9]*)
+    Status           == READY SoTPTP SSCPA
+JavaRes---1.3.0      =>
+    System           == JavaRes
+    Version          == 1.3.0
+    People           == Adam Pease
+    URL              == https://github.com/ontologyportal/JavaRes/
+    UserNote         == Prover
+    Command          == run_JavaRes %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation && Model = SZS output start Model
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation && Model = SZS output end Model
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC
+JGXYZ---A3-0.2       =>
+    System           == JGXYZ
+    Version          == A3-0.2
+    People           == Jeff Pelletier, Geoff Sutcliffe, Allen Hazen
+    URL              == 
+    UserNote         == Prover and model finder for A3 logic
+    Command          == jgxyz %s %d a3 truth_evaluation designated vampire 80 vampirefmo 20
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY 
+JGXYZ---FDECmi-0.2   =>
+    System           == JGXYZ
+    Version          == FDECmi-0.2
+    People           == Jeff Pelletier, Geoff Sutcliffe, Allen Hazen
+    URL              == 
+    UserNote         == Prover and model finder for FDE logic
+    Command          == jgxyz %s %d fdeCmi truth_evaluation designated vampire 80 vampirefmo 20
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY 
+JGXYZ---FDECon-0.2   =>
+    System           == JGXYZ
+    Version          == FDECon-0.2
+    People           == Jeff Pelletier, Geoff Sutcliffe, Allen Hazen
+    URL              == 
+    UserNote         == Prover and model finder for FDE logic
+    Command          == jgxyz %s %d fdeCon truth_evaluation designated vampire 80 vampirefmo 20
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY 
+JGXYZ---FDELuk-0.2   =>
+    System           == JGXYZ
+    Version          == FDELuk-0.2
+    People           == Jeff Pelletier, Geoff Sutcliffe, Allen Hazen
+    URL              == 
+    UserNote         == Prover and model finder for FDE logic
+    Command          == jgxyz %s %d fdeLuk truth_evaluation designated vampire 80 vampirefmo 20
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY 
+JGXYZ---FOF-0.2      =>
+    System           == JGXYZ
+    Version          == FOF-0.2
+    People           == Jeff Pelletier, Geoff Sutcliffe, Allen Hazen
+    URL              == 
+    UserNote         == Prover and model finder for classical FOF logic
+    Command          == jgxyz %s %d fof truth_evaluation designated vampire 80 vampirefmo 20
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY 
+JGXYZ---L3-0.2       =>
+    System           == JGXYZ
+    Version          == L3-0.2
+    People           == Jeff Pelletier, Geoff Sutcliffe, Allen Hazen
+    URL              == 
+    UserNote         == Prover and model finder for L3 logic
+    Command          == jgxyz %s %d l3 truth_evaluation designated vampire 80 vampirefmo 20
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY 
+JGXYZ---RM3-0.2      =>
+    System           == JGXYZ
+    Version          == RM3-0.2
+    People           == Jeff Pelletier, Geoff Sutcliffe, Allen Hazen
+    URL              == 
+    UserNote         == Prover and model finder for RM3 logic
+    Command          == jgxyz %s %d rm3 truth_evaluation designated vampire 80 vampirefmo 20
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY 
+KSP---0.1.7          =>
+    System           == KSP
+    Version          == 0.1.7
+    People           == Claudia Nalon
+    URL              == https://nalon.org/#software
+    UserNote         == Prover and model finder
+    Command          == run_ksp %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NX0_PRP TF0_PRP
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation
+    EndSoln          == Refutation = SZS output end Refutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+Lash---1.13          =>
+    System           == Lash
+    Version          == 1.13
+    People           == Cezary Kaliszyk, Chad Brown, Jan Jakubuv
+    URL              == 
+    UserNote         == Prover and model finder
+    Command          == run_lash %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0_NAR
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+lazyCoP---0.1        =>
+    System           == lazyCoP
+    Version          == 0.1
+    People           == Michael Rawson
+    URL              == https://github.com/MichaelRawson/lazycop
+    UserNote         == Prover
+    Command          == run_lazyCoP %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+leanCoP---2.2        =>
+    System           == leanCoP
+    Version          == 2.2
+    People           == Jens Otten
+    URL              == http://www.leancop.de/
+    UserNote         == Prover
+    Command          == leancop.sh %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+LEO-II---2.3.1       =>
+    System           == LEO-II
+    Version          == 2.3.1
+    People           == Christoph Benzmueller
+    URL              == http://www.leoprover.org
+    UserNote         == Prover and model finder
+    Command          == run_leoII %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0_NAR FOF CNF
+    Solved           == Theorem = SZS status Theorem for && CounterSatisfiable = SZS status CounterSatisfiable for && Unsatisfiable = SZS status Unsatisfiable for && Satisfiable = SZS status Satisfiable for
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+Leo-III---1.8.0      =>
+    System           == Leo-III
+    Version          == 1.8.0
+    People           == Christoph Benzmueller, Alexander Steen
+    URL              == https://github.com/leoprover/Leo-III
+    UserNote         == Prover
+    Command          == run_Leo-III %s %d THM
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NH1 NH0 NX1 NX0 TH1 TH0 TX1 TX0 TF1 TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation
+    EndSoln          == Refutation = SZS output end Refutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+Leo-III-LP---1.8.0   =>
+    System           == Leo-III-LP
+    Version          == 1.8.0
+    People           == Melanie Taprogge, Alexander Steen
+    URL              == https://github.com/leoprover/Leo-III
+    UserNote         == Prover
+    Command          == run_Leo-III %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NH1 NH0 NX1 NX0 TH1 TH0 TX1 TX0 TF1 TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && Success = SZS status Success && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation
+    EndSoln          == Refutation = SZS output end Refutation
+    Statistic        == NO INFORMATION
+    Status           == READY
+LisaST---0.9         =>
+    System           == LisaST
+    Version          == 0.9
+    People           == Simon Guilloud, Sankalp Gambhir
+    URL              == https://github.com/epfl-lara/lisa/tree/main
+    UserNote         == Prover
+    Command          == casc-portfolio.sh -t %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+LisaTT---0.9.1       =>
+    System           == LisaTT
+    Version          == 0.9.1
+    People           == Simon Guilloud, Sankalp Gambhir
+    URL              == https://github.com/epfl-lara/lisa/tree/main
+    UserNote         == Prover
+    Command          == run_LisaTT %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+Mace4---2026-6A      =>
+    System           == Mace4
+    Version          == 2026-6A
+    People           == William McCune, Robert Veroff, Jeff Machado, Larry Lesyna,
+    URL              == https://prover9.org/
+    UserNote         == Model finder
+    Command          == mace4 -casc %d -f %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == FiniteModel = SZS output start FiniteModel
+    EndSoln          == FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC TSTP SoTPTP SSCPA CASC
+MaedMax---1.4        =>
+    System           == MaedMax
+    Version          == 1.4
+    People           == Sarah Winkler
+    URL              == http://cl-informatik.uibk.ac.at/software/maedmax/
+    UserNote         == Prover
+    Command          == run_maedmax %d %s
+    Format           == tptp
+    Transform        == none
+    SPCs             == CNF_UEQ
+    Solved           == Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC TSTP SoTPTP SSCPA
+Matita---1.0         =>
+    System           == Matita
+    Version          == 1.0
+    People           == Andrea Asperti
+    URL              == http://matita.cs.unibo.it/
+    UserNote         == Prover and model finder
+    Command          == matitaprover --timeout %d --tptppath /home/tptp/TPTP %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == CNF_UEQ
+    Solved           == Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP STAREXEC TSTP SSCPA
+Metis---2.4          =>
+    System           == Metis
+    Version          == 2.4
+    People           == Joe Hurd
+    URL              == http://www.gilith.com/software/metis
+    UserNote         == Prover and model finder
+    Command          == metis --show proof --show saturation %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY SSCPA SoTPTP STAREXEC TSTP
+MiniSAT---2.2.0      =>
+    System           == MiniSAT
+    Version          == 2.2.0
+    People           == Niklas EEn, Niklas Sorensson
+    URL              == http://minisat.se
+    UserNote         == Prover and model finder
+    Command          == minisat %s -cpu-lim=%d -no-luby -rinc=1.5 -phase-saving=0 -rnd-freq=0.02
+    Format           == dimacs
+    Transform        == none
+    SPCs             == CNF_PRP CNF_EPR
+    Solved           == Unsatisfiable = ^UNSATISFIABLE && Satisfiable = ^SATISFIABLE
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY
+MleanCoP---1.3       =>
+    System           == MleanCoP
+    Version          == 1.3
+    People           == Jens Otten
+    URL              == http://leancop.de/mleancop
+    UserNote         == Prover and model finder
+    Command          == run_mleancop %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NX0 TF0
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC
+Moca---0.1           =>
+    System           == Moca
+    Version          == 0.1
+    People           == Nao Hirokawa
+    URL              == http://www.jaist.ac.jp/project/maxcomp/
+    UserNote         == Prover
+    Command          == moca.sh %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == CNF_HRN CNF_UEQ
+    Solved           == Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start
+    EndSoln          == Proof = SZS output end
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC TSTP SoTPTP SSCPA
+MoMo---0.1.2         =>
+    System           == MoMo
+    Version          == 0.1.2
+    People           == Happy Sariyanto
+    URL              == https://zenodo.org/records/17375151
+    UserNote         == Model finder
+    Command          == run_MoMo %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NX0_NAR
+    Solved           == CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Model = SZS output start
+    EndSoln          == Model = SZS output end
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SoTPTP SSCPA
+mrs---0.2.3          =>
+    System           == mrs
+    Version          == 0.2.3
+    People           == Olivier Roland
+    URL              == https://github.com/newca12/mrs
+    UserNote         == Prover and model finder
+    Command          == run_mrs %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SSCPA SoTPTP STAREXEC TSTP CASC
+Muscadet---4.5       =>
+    System           == Muscadet
+    Version          == 4.5
+    People           == Dominique Pastre
+    URL              == 
+    UserNote         == Prover
+    Command          == muscadet %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC TSTP SoTPTP SSCPA
+nanoCoP---2.0        =>
+    System           == nanoCoP
+    Version          == 2.0
+    People           == Jens Otten
+    URL              == http://www.leancop.de/
+    UserNote         == Prover and model finder
+    Command          == run_nanocop %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = is a Theorem && Unsatisfiable = is Unsatisfiable && CounterSatisfiable = is a Non-Theorem && Satisfiable = is Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = Start of proof
+    EndSoln          == Proof = End of proof
+    Statistic        == NO INFORMATION
+    Status           == READY SSCPA SoTPTP TSTP
+nanoCoP-I---2.0      =>
+    System           == nanoCoP-I
+    Version          == 2.0
+    People           == Jens Otten
+    URL              == 
+    UserNote         == Prover and model finder
+    Command          == run_nanocopi %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+nanoCoP-M---2.0      =>
+    System           == nanoCoP-M
+    Version          == 2.0
+    People           == Jens Otten
+    URL              == http://leancop.de/nanocop-m/
+    UserNote         == Prover and model finder
+    Command          == run_nanocopm %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NX0 TF0
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP STAREXEC
+Otter---3.3          =>
+    System           == Otter
+    Version          == 3.3
+    People           == William McCune
+    URL              == http://www.cs.unm.edu/~mccune/otter/
+    UserNote         == Prover
+    Command          == otter-tptp-script %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation
+    EndSoln          == Refutation = SZS output end Refutation
+    Statistic        == Given = clauses given *([0-9]*) && Generated = clauses generated *([0-9]*) && Kept = clauses kept *([0-9]*)
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+Paradox---4.0        =>
+    System           == Paradox
+    Version          == 4.0
+    People           == Koen Claessen
+    URL              == 
+    UserNote         == Finite model finder
+    Command          == paradox --no-progress --time %d --tstp --model %s
+    Format           == tptp:short
+    Transform        == none
+    SPCs             == FOF_CSA FOF_SAT CNF_SAT FOF_UNK CNF_UNK
+    Solved           == Theorem = SZS status Theorem for && CounterSatisfiable = SZS status CounterSatisfiable for && Unsatisfiable = SZS status Unsatisfiable for && Satisfiable = SZS status Satisfiable for
+    GaveUp           == NO INFORMATION
+    StartSoln        == FiniteModel = SZS output start FiniteModel for
+    EndSoln          == FiniteModel = SZS output end FiniteModel for
+    Statistic        == Size = domain size[^0-9]*([0-9]*)
+    Status           == READY SSCPA STAREXEC TSTP SoTPTP
+Princess---230619    =>
+    System           == Princess
+    Version          == 230619
+    People           == Philipp Ruemmer
+    URL              == http://www.philipp.ruemmer.org/princess.shtml
+    UserNote         == Prover and model finder
+    Command          == princess -inputFormat=tptp +threads -portfolio=casc +printProof -timeoutSec=%d %s
+    Format           == tptp
+    Transform        == none
+    SPCs             == TF0 FOF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SSCPA SoTPTP TSTP
+Prover9---1109a      =>
+    System           == Prover9
+    Version          == 1109a
+    People           == William McCune
+    URL              == http://www.cs.unm.edu/~mccune/prover9/
+    UserNote         == Prover
+    Command          == tptp4X_and_run_prover9 %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation
+    EndSoln          == Refutation = SZS output end Refutation
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC CASC
+Prover9---2026-6A    =>
+    System           == Prover9
+    Version          == 2026-6A
+    People           == William McCune, Robert Veroff, Larry Lesyna, Jeff Machado
+    URL              == https://prover9.org/
+    UserNote         == Prover
+    Command          == prover9 -casc %d -f %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+PyRes---1.5          =>
+    System           == PyRes
+    Version          == 1.5
+    People           == Stephan Schulz
+    URL              == 
+    UserNote         == Prover
+    Command          == pyres-fof.py -tifbsVp -nlargest -HPickGiven5 %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+RPx---1.0            =>
+    System           == RPx
+    Version          == 1.0
+    People           == Anders Schlichtkrull
+    URL              == https://bitbucket.org/isafol/isafol/src/master/Functional_Ordered_Resolution_Prover/
+    UserNote         == Prover
+    Command          == run_RPx %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && CounterSatisfiable = SZS status CounterSatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation
+    EndSoln          == Refutation = SZS output end Refutation
+    Statistic        == Given = Given=([0-9]*) && Generated = Generated=([0-9]*) && Kept = Kept=([0-9]*)
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+Satallax---3.5       =>
+    System           == Satallax
+    Version          == 3.5
+    People           == Michael Faerber, Chad Brown
+    URL              == http://cl-informatik.uibk.ac.at/users/mfaerber/satallax.html
+    UserNote         == Prover and model finder
+    Command          == run_satallax %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0_NAR
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Proof = SZS output end Proof && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+SATCoP---0.1         =>
+    System           == SATCoP
+    Version          == 0.1
+    People           == Michael Rawson
+    URL              == http://www.cs.uiowa.edu/~hzhang/sato/
+    UserNote         == Prover
+    Command          == satcop --statistics %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start ListOfCNF
+    EndSoln          == Proof = SZS output end ListOfCNF
+    Statistic        == Extensions = extensions: *([0-9]*) && Reductions = reductions: *([0-9]*) && Attempts = literal attempts: *([0-9]*)
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC
+SATResetCoP---1.0    =>
+    System           == SATResetCoP
+    Version          == 1.0
+    People           == Martin Fixman, Fredrik Rømming, Sean Holden
+    URL              == https://github.com/mfixman/satresetcop
+    UserNote         == Prover
+    Command          == run_SATResetCoP %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP TSTP STAREXEC CASC
+Scavenger---EP-0.2   =>
+    System           == Scavenger
+    Version          == EP-0.2
+    People           == Bruno Woltzenlogel Paleo, Daniyar Itegulov, Uladzislau Padtsiolkin
+    URL              == https://gitlab.com/aossie/Scavenger
+    UserNote         == Prover and model finder
+    Command          == run_scavenger %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Model = SZS output start Model
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Model = SZS output end Model
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SSCPA SoTPTP
+SEM---1.7            =>
+    System           == SEM
+    Version          == 1.7
+    People           == Hantao Zhang
+    URL              == http://www.cs.uiowa.edu/~hzhang/sem.html
+    UserNote         == Model finder
+    Command          == SEMIterate %s
+    Format           == sem:all:1
+    Transform        == add_equality
+    SPCs             == CNF_SAT CNF_UNK
+    Solved           == Satisfiable = Model 1
+    GaveUp           == NO INFORMATION
+    StartSoln        == Model = ******** Model 1 ********
+    EndSoln          == Model = *************************
+    Statistic        == Memory = memory *([0-9]*) K && Rounds = Number of rounds: *([0-9]*) && Choices = Number of choices: *([0-9]*)
+    Status           == READY
+SInE---0.4           =>
+    System           == SInE
+    Version          == 0.4
+    People           == Krystof Hoder
+    URL              == http://www.cs.man.ac.uk/~hoderk/sine/
+    UserNote         == Prover
+    Command          == Source/sine.py -e eprover -t %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY
+SInE-LTB---0.4       =>
+    System           == SInE-LTB
+    Version          == 0.4
+    People           == Krystof Hoder
+    URL              == http://www.cs.man.ac.uk/~hoderk/sine/
+    UserNote         == Prover
+    Command          == Source/sine_batch.py -e eprover -t %d  %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Theorem = SZS status Theorem
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY
+SInE-XDB---0.4       =>
+    System           == SInE-XDB
+    Version          == 0.4
+    People           == Krystof Hoder, Jose Hernandez
+    URL              == http://www.cs.man.ac.uk/~hoderk/sine/
+    UserNote         == Prover
+    Command          == Source/sine.py -e spassxdb -t %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY
+SleighQueen---0.1    =>
+    System           == SleighQueen
+    Version          == 0.1
+    People           == Geoff Sutcliffe, Lydia Kondylidou
+    URL              == 
+    UserNote         == Meta-prover
+    Command          == run_sleighqueen --language English E--- %d %s
+    Format           == english:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof && FreeText = SZS output start FreeText
+    EndSoln          == Proof = SZS output end Proof && FreeText = SZS output end FreeText
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+SNARK---20120808r022 =>
+    System           == SNARK
+    Version          == 20120808r022
+    People           == Mark Stickel
+    URL              == http://www.ai.sri.com/~stickel/snark.html
+    UserNote         == Prover
+    Command          == run-snark %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation
+    EndSoln          == Refutation = SZS output end Refutation
+    Statistic        == Derived = ([0-9]*) formulas have been input or derived && Kept = ([0-9]*) \(\d*%\) were retained && Answers = SZS answers short *(.*)
+    Status           == READY SoTPTP ANSWERS STAREXEC TSTP
+SPASS---3.9          =>
+    System           == SPASS
+    Version          == 3.9
+    People           == Christoph Weidenbach
+    URL              == 
+    UserNote         == Prover and model finder
+    Command          == run_spass %d %s
+    Format           == tptp
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Unsatisfiable = SZS status Theorem && Satisfiable = SZS status CounterSatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation && Saturation = SZS output start Saturation
+    EndSoln          == Refutation = SZS output end Refutation && Saturation = SZS output end Saturation
+    Statistic        == Memory = SPASS allocated ([0-9]*) KBytes && Derived = SPASS derived ([0-9]*) clauses && Kept = and kept ([0-9]*) clauses && Used = Formulae used in the proof : (.*)
+    Status           == READY SoTPTP SSCPA STAREXEC TSTP
+SPASS-SCL---0.1.1    =>
+    System           == SPASS-SCL
+    Version          == 0.1.1
+    People           == Christoph Weidenbach, Simon Schwarz, Yasmine Briefs, Lorenz Leutgeb, Fabian Wobito
+    URL              == 
+    UserNote         == Prover
+    Command          == SPASS-SCL-FOL -t %d %s
+    Format           == tptp
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof && Saturation = SZS output start Saturation
+    EndSoln          == Proof = SZS output end Proof && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+SPASS+T---2.2.22     =>
+    System           == SPASS+T
+    Version          == 2.2.22
+    People           == Uwe Waldmann, Stephan Zimmer
+    URL              == 
+    UserNote         == Prover
+    Command          == spasst-tptp-script %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0
+    Solved           == Theorem = SZS status Theorem
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == Memory = SPASS allocated ([0-9]*) KBytes && Derived = SPASS derived ([0-9]*) clauses && Kept = and kept ([0-9]*) clauses
+    Status           == READY STAREXEC SSCPA SoTPTP TSTP
+SRASS---0.1          =>
+    System           == SRASS
+    Version          == 0.1
+    People           == Geoff Sutcliffe
+    URL              == https://tptp.org/ATPSystems/SRASS/
+    UserNote         == Prover
+    Command          == SRASS -q2 -a 0 10 10 10 -i3 -n60 %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status THM
+    GaveUp           == NO INFORMATION
+    StartSoln        == Solution = SZS output start
+    EndSoln          == Solution = SZS output end
+    Statistic        == Selected = Selected axioms are .* \(([0-9]*)\) && Unselected = Unselected axioms are .* \(([0-9]*)\)
+    Status           == READY SoTPTP
+SSCPA---0.0          =>
+    System           == SSCPA
+    Version          == 0.0
+    People           == Geoff Sutcliffe
+    URL              == https://tptp.org/cgi-bin/SystemOnTPTP
+    UserNote         == Prover and model finder
+    Command          == SSCPA -q1 -cE 4 %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == NO INFORMATION
+    Solved           == Theorem = says Theorem && CounterSatisfiable = says CounterSatisfiable && Unsatisfiable = says Unsatisfiable && Satisfiable = says Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == SolvingSystem = SolvingSystem = (.*)
+    Status           == READY
+SUPr---1.0           =>
+    System           == SUPr
+    Version          == 1.0
+    People           == Teddy Kim, Adam Pease
+    URL              == https://github.com/ontologyportal/sigma-rs
+    UserNote         == Prover
+    Command          == run_supr %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+ToFoF---0.1          =>
+    System           == ToFoF
+    Version          == 0.1
+    People           == Geoff Sutcliffe, Michael Schick
+    URL              == http://tptp.org/ATPSystems/ToFoF/
+    UserNote         == Prover and model finder
+    Command          == tofof %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0_NAR
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+ToFoF-SAT---0.1      =>
+    System           == ToFoF-SAT
+    Version          == 0.1
+    People           == Geoff Sutcliffe, Michael Schick
+    URL              == http://tptp.org/ATPSystems/ToFoF/
+    UserNote         == Model finder
+    Command          == tofof %d %s --model
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0_NAR
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable for && Satisfiable = SZS status Satisfiable for
+    GaveUp           == NO INFORMATION
+    StartSoln        == FiniteModel = SZS output start FiniteModel for
+    EndSoln          == FiniteModel = SZS output end FiniteModel for
+    Statistic        == Size = domain size[^0-9]*([0-9]*)
+    Status           == READY SoTPTP
+Toma---0.7           =>
+    System           == Toma
+    Version          == 0.7
+    People           == Teppei Saito
+    URL              == https://www.jaist.ac.jp/project/maxcomp/
+    UserNote         == Prover
+    Command          == run_toma %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == CNF_UEQ
+    Solved           == Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA SoTPTP STAREXEC
+TPTPLean---0.1       =>
+    System           == TPTPLean
+    Version          == 0.1
+    People           == Axel Polaczek
+    URL              == 
+    UserNote         == Prover
+    Command          == tptp_lean.sh %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF1 TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem
+    GaveUp           == NO INFORMATION
+    StartSoln        == NO INFORMATION
+    EndSoln          == NO INFORMATION
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP TSTP STAREXEC
+Twee---2.7           =>
+    System           == Twee
+    Version          == 2.7
+    People           == Nick Smallbone
+    URL              == http://nick8325.github.io/twee/
+    UserNote         == Prover
+    Command          == run_twee %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF0_NAR FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Proof = SZS output start Proof && Model = SZS output start Model
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Proof = SZS output end Proof && Model = SZS output end Model
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+Vampire---5.0.1      =>
+    System           == Vampire
+    Version          == 5.0.1
+    People           == Martin Suda, Michael Rawson, Andrei Voronkov
+    URL              == https://vprover.github.io/
+    UserNote         == Prover and model finder
+    Command          == run_vampire %s %d THM
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH1_NAR TH0_NAR TX1_NAR TX0 TF1_NAR TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Proof && Saturation = SZS output start Saturation && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Refutation = SZS output end Proof && Saturation = SZS output end Saturation && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+Vampire-SAT---5.0.1  =>
+    System           == Vampire-SAT
+    Version          == 5.0.1
+    People           == Martin Suda, Michael Rawson, Andrei Voronkov
+    URL              == https://vprover.github.io/
+    UserNote         == Model finder
+    Command          == run_vampire %s %d SAT
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TX0 TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Proof && Saturation = SZS output start Saturation && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Refutation = SZS output end Proof && Saturation = SZS output end Saturation && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA TSTP STAREXEC CASC
+Vampire-LIT---5.0.1  =>
+    System           == Vampire-LIT
+    Version          == 5.0.1
+    People           == Martin Suda, Michael Rawson, Andrei Voronkov
+    URL              == https://vprover.github.io/
+    UserNote         == Prover and model finder
+    Command          == vampire --mode vampire --forced_options av=off:nm=0:bce=off:updr=off:fde=none:rp=off --proof tptp -m 16384 -t %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH1_NAR TH0_NAR TX1_NAR TX0 TF1_NAR TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Proof && Saturation = SZS output start Saturation && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Refutation = SZS output end Proof && Saturation = SZS output end Saturation && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+Vampire-SATLIT---5.0.1 =>
+    System           == Vampire-SATLIT
+    Version          == 5.0.1
+    People           == Martin Suda, Michael Rawson, Andrei Voronkov
+    URL              == https://vprover.github.io/
+    UserNote         == Prover and model finder
+    Command          == vampire --mode vampire --intent sat --forced_options av=off:nm=0:bce=off:updr=off:fde=none:rp=off --proof tptp -m 16384 -t %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH1_NAR TH0_NAR TX1_NAR TX0 TF1_NAR TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && ContradictoryAxioms = SZS status ContradictoryAxioms && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Proof && Saturation = SZS output start Saturation && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Refutation = SZS output end Proof && Saturation = SZS output end Saturation && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+Vampire-FMo---5.0.1  =>
+    System           == Vampire-FMo
+    Version          == 5.0.1
+    People           == Martin Suda, Michael Rawson, Andrei Voronkov
+    URL              == https://vprover.github.io/
+    UserNote         == Finite model finder
+    Command          == vampire -sa fmb --forced_options bce=off:updr=off:fde=none:rp=off -m 16384 -t %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH1_NAR TH0_NAR TF1_NAR TX0 TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Proof && Saturation = SZS output start Saturation && FiniteModel = SZS output start FiniteModel
+    EndSoln          == Refutation = SZS output end Proof && Saturation = SZS output end Saturation && FiniteModel = SZS output end FiniteModel
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+Vampire-LP---5.0.1   =>
+    System           == Vampire-LP
+    Version          == 5.0.1
+    People           == Michael Rawson
+    URL              == 
+    UserNote         == Prover with LambdaPi output
+    Command          == run_vlp %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH1_NAR TH0_NAR TF1_NAR TX0 TF0 FOF CNF
+    Solved           == Success = SZS status Success
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP
+VIP---1.718          =>
+    System           == VIP
+    Version          == 1.718
+    People           == Ilies Nokrani, David Delahaye, Clémence Gerardin
+    URL              == https://github.com/delahayd/ip.git
+    UserNote         == Prover
+    Command          == run_vip %s --time-limit %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP TSTP STAREXEC CASC
+Waldmeister---710    =>
+    System           == Waldmeister
+    Version          == 710
+    People           == Thomas Hillenbrand, Bernd Loechner (WEC)
+    URL              == 
+    UserNote         == Prover
+    Command          == woody %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == CNF_UEQ
+    Solved           == Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == CNFRefutation = SZS output start CNFRefutation && Saturation = SZS output start Saturation
+    EndSoln          == CNFRefutation = SZS output end CNFRefutation && Saturation = SZS output end Saturation
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC SSCPA TSTP SoTPTP
+Z3---4.17.0.0        =>
+    System           == Z3
+    Version          == 4.17.0.0
+    People           == Leonardo de Moura, Nikolaj Bjorner
+    URL              == https://github.com/Z3Prover/z3
+    UserNote         == Prover and model finder
+    Command          == run_z3 -proof -model -t:%d -file:%s
+    Format           == tptp
+    Transform        == none
+    SPCs             == TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && CounterSatisfiable = SZS status CounterSatisfiable && Unsatisfiable = SZS status Unsatisfiable && Satisfiable = SZS status Satisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof && Model = SZS output start Model
+    EndSoln          == Proof = SZS output end Proof && Model = SZS output end Model
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA
+Zenon---0.7.1        =>
+    System           == Zenon
+    Version          == 0.7.1
+    People           == Damien Doligez
+    URL              == 
+    UserNote         == Prover
+    Command          == run_zenon %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NodesSearch = nodes searched: *([0-9]*) && MaxBranchF = max branch formulas: *([0-9]*) && ProofNodes = proof nodes created: *([0-9]*) && Formulas = formulas created: *([0-9]*)
+    Status           == READY SoTPTP STAREXEC TSTP SSCPA
+ZenonModulo---0.5.0  =>
+    System           == ZenonModulo
+    Version          == 0.5.0
+    People           == Guillaume Burel
+    URL              == https://github.com/Deducteam/zenon_modulo
+    UserNote         == Prover
+    Command          == run_zenon_modulo %d %s NONE
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF1 TX0 TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NodesSearch = nodes searched: *([0-9]*) && MaxBranchF = max branch formulas: *([0-9]*) && ProofNodes = proof nodes created: *([0-9]*) && Formulas = formulas created: *([0-9]*)
+    Status           == READY STAREXEC TSTP SoTPTP
+ZenonModulo-DK---0.5.0 =>
+    System           == ZenonModulo-DK
+    Version          == 0.5.0
+    People           == Guillaume Burel
+    URL              == https://deducteam.gitlabpages.inria.fr/zenonmodulo/
+    UserNote         == Prover
+    Command          == run_zenon_modulo %d %s DK
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF1 TX0 TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NodesSearch = nodes searched: *([0-9]*) && MaxBranchF = max branch formulas: *([0-9]*) && ProofNodes = proof nodes created: *([0-9]*) && Formulas = formulas created: *([0-9]*)
+    Status           == READY STAREXEC TSTP 
+ZenonModulo-LP---0.5.0 =>
+    System           == ZenonModulo-LP
+    Version          == 0.5.0
+    People           == Guillaume Burel
+    URL              == https://deducteam.gitlabpages.inria.fr/zenonmodulo/
+    UserNote         == Prover
+    Command          == run_zenon_modulo %d %s LP
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TF1 TX0 TF0 FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Proof = SZS output start Proof
+    EndSoln          == Proof = SZS output end Proof
+    Statistic        == NodesSearch = nodes searched: *([0-9]*) && MaxBranchF = max branch formulas: *([0-9]*) && ProofNodes = proof nodes created: *([0-9]*) && Formulas = formulas created: *([0-9]*)
+    Status           == READY STAREXEC TSTP 
+Zipperpin---2.1      =>
+    System           == Zipperpin
+    Version          == 2.1
+    People           == Petar Vukmirovic
+    URL              == https://github.com/c-cube/zipperposition
+    UserNote         == Prover
+    Command          == run_zipperposition %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH1_NAR TH0_NAR TX0_NAR TF1_NAR TF0_NAR FOF CNF
+    Solved           == Theorem = SZS status Theorem && Unsatisfiable = SZS status Unsatisfiable
+    GaveUp           == NO INFORMATION
+    StartSoln        == Refutation = SZS output start Refutation
+    EndSoln          == Refutation = SZS output end Refutation
+    Statistic        == NO INFORMATION
+    Status           == READY SoTPTP SSCPA
+CheckProof---0.1     =>
+    System           == CheckProof
+    Version          == 0.1
+    People           == Nik Murzin
+    URL              == https://www.wolframcloud.com/obj/nikm/DeployedResources/Paclet/WolframInstitute/THVMLink/Documentation/tutorial/AtpMethods.html
+    UserNote         == Prover and model finder
+    Command          == run_checkproof %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC CASC
+mrs-proover---0.2.0  =>
+    System           == mrs-proover
+    Version          == 0.2.0
+    People           == Olivier Roland
+    URL              == https://github.com/newca12/mrs
+    UserNote         == Derivation verifier
+    Command          == run_mrs-proover %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC CASC
+Norgler---1.1        =>
+    System           == Norgler
+    Version          == 1.1
+    People           == Alexander Steen, Melanie Taprogge, Happy Sariyanto
+    URL              == https://github.com/leoprover/noergler/
+    UserNote         == Derivation verifier
+    Command          == run_norgler %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == TH0 TX0 TF0 FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC CASC
+ProofCheck---1.0     =>
+    System           == ProofCheck
+    Version          == 1.0
+    People           == Jeff Machado, Larry Lesyna
+    URL              == https://github.com/AlgorithmicTruth/proofcheck-releases
+    UserNote         == Derivation verifier
+    Command          == run_proofcheck %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC CASC
+ProofGuard---1.0     =>
+    System           == ProofGuard
+    Version          == 1.0
+    People           == Matthew Farah
+    URL              == https://github.com/ValueAchooMatthew/ATP-Research-Project
+    UserNote         == Derivation verifier
+    Command          == proover-check --time-limit %d %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC CASC
+PyCheck---0.1        =>
+    System           == PyCheck
+    Version          == 0.1
+    People           == Stephan Schulz
+    URL              == https://github.com/eprover/PyCheck
+    UserNote         == Derivation verifier
+    Command          == run_pycheck %s
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC CASC
+VaLeaDate---0.1      =>
+    System           == VaLeaDate
+    Version          == 0.1
+    People           == Jonas Bodingbauer
+    URL              == https://github.com/i-am-a-teapot/VaLeaDate
+    UserNote         == Derivation verifier
+    Command          == run_valeadate %s %d
+    Format           == tptp:raw
+    Transform        == none
+    SPCs             == FOF CNF
+    Solved           == VerifiedGood = SZS status VerifiedGood && VerifiedBad = SZS status VerifiedBad
+    GaveUp           == NO INFORMATION
+    StartSoln        == Verification = SZS output start Verification
+    EndSoln          == Verification = SZS output end Verification
+    Statistic        == NO INFORMATION
+    Status           == READY STAREXEC CASC

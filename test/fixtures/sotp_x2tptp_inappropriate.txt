@@ -1,0 +1,49 @@
+%------------------------------------------------------------------------------
+% File     : Twee---2.7
+% Problem  : SOT_hmzP39 : v?.?.?
+% Transfm  : none
+% Format   : tptp:raw
+% Command  : run_twee %s
+
+% Computer : quoll
+% Model    : x86_64 x86_64
+% CPU      : Intel(R) Xeon(R) CPU E5-4610 0 @ 2.40GHz
+% Memory   : 128861MB
+% OS       : Linux 6.8.0-139-generic
+% CPULimit : 5s
+% WCLimit  : 0s
+% DateTime : Wed Oct 14 08:43:03 UTC 2026
+
+% Result   : Theorem 0.00s 0.07s
+% Output   : Proof 0.00s
+% Verified : 
+% SZS Type : -
+
+% Comments : 
+%------------------------------------------------------------------------------
+%----WARNING: Could not form TPTP format derivation
+%------------------------------------------------------------------------------
+%----ORIGINAL SYSTEM OUTPUT
+% Command-line arguments: --no-flatten-goal
+% 
+% % SZS status Theorem
+% 
+% % SZS output start Proof
+% Axiom 1 (a2): p(a) = true.
+% Axiom 2 (ifeq_axiom): ifeq(X, X, Y, Z) = Y.
+% Axiom 3 (a1): ifeq(p(X), true, q(X), true) = true.
+% 
+% Goal 1 (c): q(a) = true.
+% Proof:
+%   q(a)
+% = { by axiom 2 (ifeq_axiom) R->L }
+%   ifeq(true, true, q(a), true)
+% = { by axiom 1 (a2) R->L }
+%   ifeq(p(a), true, q(a), true)
+% = { by axiom 3 (a1) }
+%   true
+% % SZS output end Proof
+% 
+% RESULT: Theorem (the conjecture is true).
+% 
+%------------------------------------------------------------------------------

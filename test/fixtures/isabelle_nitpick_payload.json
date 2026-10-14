@@ -1,0 +1,46 @@
+{
+  "errors": [],
+  "nodes": [
+    {
+      "exports": [],
+      "messages": [
+        {
+          "kind": "writeln",
+          "message": "Nitpicking formula...",
+          "pos": {
+            "end_offset": 129,
+            "file": "/tmp/atp_nitpick_capture/Nitpick_Cex.thy",
+            "line": 3,
+            "offset": 122
+          }
+        },
+        {
+          "kind": "writeln",
+          "message": "Nitpick found a counterexample for card 'a = 4 and card 'b = 4:\n  Free variables:\n    A = {b\\<^sub>1, b\\<^sub>3}\n    B = {b\\<^sub>1, b\\<^sub>3, b\\<^sub>4}\n    P = (\\<lambda>x. _)(a\\<^sub>1 := False, a\\<^sub>2 := True, a\\<^sub>3 := True, a\\<^sub>4 := True)\n    f = (\\<lambda>x. _)(a\\<^sub>1 := a\\<^sub>2, a\\<^sub>2 := a\\<^sub>2, a\\<^sub>3 := a\\<^sub>4, a\\<^sub>4 := a\\<^sub>2)\n    g = (\\<lambda>x. _)(a\\<^sub>1 := a\\<^sub>3, a\\<^sub>2 := a\\<^sub>3, a\\<^sub>3 := a\\<^sub>3, a\\<^sub>4 := a\\<^sub>3)\n    x = a\\<^sub>4\n    y = a\\<^sub>4",
+          "pos": {
+            "end_offset": 129,
+            "file": "/tmp/atp_nitpick_capture/Nitpick_Cex.thy",
+            "line": 3,
+            "offset": 122
+          }
+        }
+      ],
+      "node_name": "/tmp/atp_nitpick_capture/Nitpick_Cex.thy",
+      "status": {
+        "canceled": false,
+        "consolidated": true,
+        "failed": 0,
+        "finished": 10,
+        "ok": true,
+        "percentage": 100,
+        "running": 0,
+        "total": 10,
+        "unprocessed": 0,
+        "warned": 0
+      },
+      "theory_name": "Draft.Nitpick_Cex"
+    }
+  ],
+  "ok": true,
+  "task": "4e76f5e1-3a76-44f8-8d94-64cf1a0c6bf9"
+}

@@ -1,0 +1,20 @@
+% START OF SYSTEM OUTPUT
+% SZS status Success
+% SZS output start ListOfCNF for /tmp/FzU0650s7w/SOT_rmKL8c
+% (lift_lambdas = 1, lambda_to_forall = 1,unroll_only_formulas = 1, sine = (null))
+% CNFization successful!
+% SZS status Unknown
+% Processed positive unit clauses:
+% Processed negative unit clauses:
+% Processed non-unit clauses:
+% Unprocessed positive unit clauses:
+cnf(i_0_2, plain, (p(a))).
+% Unprocessed negative unit clauses:
+cnf(i_0_3, negated_conjecture, (~q(a))).
+% Unprocessed non-unit clauses:
+cnf(i_0_1, plain, (q(X1)|~p(X1))).
+% SZS output end ListOfCNF for /tmp/FzU0650s7w/SOT_rmKL8c
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_rmKL8c - ECNF---3.5.1 says Success - CPU = 0.00 WC = 0.00 
+% OUTPUT: SOT_rmKL8c - ECNF---3.5.1 says ListOfCNF - CPU = 0.00 WC = 0.01 

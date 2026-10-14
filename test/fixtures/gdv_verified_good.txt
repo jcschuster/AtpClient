@@ -1,0 +1,55 @@
+% START OF SYSTEM OUTPUT
+% No problem file supplied
+Run in plain GDV mode
+Running: /home/tptp/ServiceTools/GDV -T  -t 30   /tmp/_4mA3h5MEk/SOT_u8dQ5r
+ NOTICE: Checking the syntax of the derivation file /tmp/_4mA3h5MEk/SOT_u8dQ5r
+ RESULT: SOT_u8dQ5r - BNFParser---0.0 says Success - CPU = 0.01
+SUCCESS: Syntax of the derivation file /tmp/_4mA3h5MEk/SOT_u8dQ5r is good
+ NOTICE: Reading the derivation file /tmp/_4mA3h5MEk/SOT_u8dQ5r
+SUCCESS: Parsed the derivation file /tmp/_4mA3h5MEk/SOT_u8dQ5r
+ NOTICE: Took problem file name /tmp/HKdDPqQXpc/SOT_YCnkLK from annotated formula c
+ NOTICE: Starting verification processes
+SUCCESS: Leaf axiom(_like) formulae are satisfiable
+SUCCESS: Generated trusted ASked formulae
+WARNING: No problem file, leaf verification will be incomplete
+SUCCESS: Derivation has unique formula names
+SUCCESS: All derived formulae have parents and inference information
+WARNING: No problem file, new symbol verification is incomplete
+SUCCESS: All new_symbols are really new
+ NOTICE: Took the first false root 'c_0_10' as the single derivation root
+SUCCESS: Derivation is acyclic
+SUCCESS: Derivation looks like a refutation
+SUCCESS: Assumptions are propagated
+SUCCESS: Assumptions are discharged
+ NOTICE: Took the conjecture c as the proved formula
+WARNING: No problem provided, cannot do full leaf verification
+SUCCESS: Leaves are verified
+ NOTICE: Making CTH test of 'c_0_3' from 'c' into a CEQ test
+ RESULT: c_0_3_thm - E---3.5.1 says Theorem - CPU = 0.03
+SUCCESS: 'c_0_3' is a cth of 'c' (forwards ceq)
+ RESULT: c_0_3_ceq_thm - E---3.5.1 says Theorem - CPU = 0.01
+SUCCESS: 'c' is a thm of 'neg_c_0_3' (backwards ceq)
+SUCCESS: 'c_0_3' is a ceq of 'c'
+ RESULT: c_0_4_thm - E---3.5.1 says Theorem - CPU = 0.04
+SUCCESS: 'c_0_4' is a thm of 'c_0_3' 
+ RESULT: c_0_5_thm - E---3.5.1 says Theorem - CPU = 0.01
+SUCCESS: 'c_0_5' is a thm of 'c_0_4' 
+ RESULT: c_0_6_thm - E---3.5.1 says Theorem - CPU = 0.00
+SUCCESS: 'c_0_6' is a thm of 'a1' 
+ RESULT: c_0_7_thm - E---3.5.1 says Theorem - CPU = 0.00
+SUCCESS: 'c_0_7' is a thm of 'c_0_5' 
+ RESULT: c_0_8_thm - E---3.5.1 says Theorem - CPU = 0.01
+SUCCESS: 'c_0_8' is a thm of 'c_0_6' 
+ RESULT: c_0_9_thm - E---3.5.1 says Theorem - CPU = 0.04
+SUCCESS: 'c_0_9' is a thm of 'a2' 
+ RESULT: c_0_10_thm - E---3.5.1 says ContradictoryAxioms - CPU = 0.01
+SUCCESS: 'c_0_10' is a thm of 'c_0_7 c_0_8 c_0_9' 
+SUCCESS: Derived formulae are verified
+SUCCESS: Verified
+% SZS status VerifiedGood
+% CPUTIME: 2.99
+GDV ended, cleaning up
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_u8dQ5r - GDV---2.0 says VerifiedGood - CPU = 2.63 WC = 2.64 
+% OUTPUT: SOT_u8dQ5r - GDV---2.0 says Assurance - CPU = 2.63 WC = 2.64 

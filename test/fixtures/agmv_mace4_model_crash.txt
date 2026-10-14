@@ -1,0 +1,11 @@
+% START OF SYSTEM OUTPUT
+% This is a Tarskian model, using classical verification
+% Testing model status
+% Model is Satisfiable
+% Problem combined with Model all as axioms is Satisfiable
+Illegal division by zero at /home/tptp/ServiceTools/AGMVDir/GCMV line 126.
+% AGMV ended, cleaning up
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_5Pj2if - AGMV---1.0 says Unknown - CPU = 1.02 WC = 0.84 
+% OUTPUT: SOT_5Pj2if - AGMV---1.0 says None - CPU = 0 WC = 0 

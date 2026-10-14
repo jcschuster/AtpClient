@@ -1,0 +1,46 @@
+{
+  "errors": [],
+  "nodes": [
+    {
+      "exports": [],
+      "messages": [
+        {
+          "kind": "writeln",
+          "message": "Nitpicking formula...",
+          "pos": {
+            "end_offset": 93,
+            "file": "/tmp/atp_nitpick_capture/Nitpick_Skolem.thy",
+            "line": 3,
+            "offset": 86
+          }
+        },
+        {
+          "kind": "writeln",
+          "message": "Nitpick found a counterexample for card 'a = 1:\n  Free variables:\n    P = (\\<lambda>x. _)(a\\<^sub>1 := False)\n    f = undefined\n  Skolem constant:\n    x = a\\<^sub>1",
+          "pos": {
+            "end_offset": 93,
+            "file": "/tmp/atp_nitpick_capture/Nitpick_Skolem.thy",
+            "line": 3,
+            "offset": 86
+          }
+        }
+      ],
+      "node_name": "/tmp/atp_nitpick_capture/Nitpick_Skolem.thy",
+      "status": {
+        "canceled": false,
+        "consolidated": true,
+        "failed": 0,
+        "finished": 10,
+        "ok": true,
+        "percentage": 100,
+        "running": 0,
+        "total": 10,
+        "unprocessed": 0,
+        "warned": 0
+      },
+      "theory_name": "Draft.Nitpick_Skolem"
+    }
+  ],
+  "ok": true,
+  "task": "adf7f741-ac28-4aac-8b38-3e394f2617dd"
+}

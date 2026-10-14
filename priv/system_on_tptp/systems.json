@@ -1,0 +1,7044 @@
+{
+  "count": 174,
+  "generated_at": "2026-10-14T09:09:05Z",
+  "source": "https://tptp.org/cgi-bin/SystemOnTPTPFormReply",
+  "systems": [
+    {
+      "command": "ACE2TPTP %s",
+      "dataforms": {},
+      "format": "ACE",
+      "id": "ACE2TPTP---0.0",
+      "interfaces": [
+        "pre_tptp"
+      ],
+      "listings": [],
+      "name": "ACE2TPTP",
+      "note": null,
+      "people": [],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {},
+      "spcs": null,
+      "statistic": null,
+      "transform": null,
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "AGInTRater -c %s",
+      "dataforms": {
+        "Derivation": "AGInTRater output start"
+      },
+      "format": "tptp:raw",
+      "id": "AGInTRater---0.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "AGInTRater",
+      "note": "Rates proof formulae for interestingness",
+      "people": [
+        "Yury Puzis",
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Derivation": "AGInTRater output end"
+        },
+        "gave_up": {},
+        "solved": {
+          "NotRated": "FAILURE: Not rated",
+          "Rated": "SUCCESS: Rated"
+        },
+        "status": []
+      },
+      "solved": {},
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": "https://tptp.org/Seminars/AGInT/RaterSummary.html",
+      "version": "0.0"
+    },
+    {
+      "command": "run_AGMV %d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "AGMV---1.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "AGMV",
+      "note": "Model verifier",
+      "people": [
+        "Geoff Sutcliffe",
+        "Alex Steen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "GaveUp": "SZS status GaveUp",
+        "Unknown": "SZS status Unknown",
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status Verified"
+      },
+      "spcs": [
+        "NX0",
+        "TX0",
+        "TF0",
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.0"
+    },
+    {
+      "command": "run_alt_ergo %d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "Alt-Ergo---0.95.2",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa"
+      ],
+      "name": "Alt-Ergo",
+      "note": "Prover",
+      "people": [
+        "Andrei Paskevich"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "Valid"
+      },
+      "spcs": [
+        "TF1",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.95.2"
+    },
+    {
+      "command": "run_ASk %s",
+      "dataforms": {
+        "ListOfFormulae": "SZS output start ListOfFormulae"
+      },
+      "format": "tptp:raw",
+      "id": "ASk---0.2.5",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "ASk",
+      "note": "Skolemizer",
+      "people": [
+        "Alex Steen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "ListOfFormulae": "SZS output end ListOfFormulae"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "NoSuccess": "SZS status UsageError",
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.2.5"
+    },
+    {
+      "command": "run_embed %s",
+      "dataforms": {
+        "ListOfFormulae": "SZS output start ListOfT"
+      },
+      "format": "tptp:raw",
+      "id": "ATFLET---1.9.5",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "ATFLET",
+      "note": "Embeds NTF or DTF in TFF or THF",
+      "people": [
+        "Alex Steen",
+        "Tobias Gleissner",
+        "Christoph Benzmueller"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "ListOfFormulae": "SZS output end ListOfT"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "NTF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/leoprover/logic-embedding",
+      "version": "1.9.5"
+    },
+    {
+      "command": "run_beagle %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "Beagle---0.9.52",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp"
+      ],
+      "name": "Beagle",
+      "note": "Prover",
+      "people": [
+        "Peter Baumgartner (Joshua Bax",
+        "Andreas Bauer",
+        "Tim Cosgrove)"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://users.cecs.anu.edu.au/~baumgart/systems/beagle/",
+      "version": "0.9.52"
+    },
+    {
+      "command": "run_bliksem %s",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Bliksem---1.12",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "Bliksem",
+      "note": "Prover",
+      "people": [
+        "Hans de Nivelle"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "Generated = clauses generated: *([0-9]*) && Kept = clauses kept: *([0-9]*)",
+      "transform": "none",
+      "url": null,
+      "version": "1.12"
+    },
+    {
+      "command": "BNFParser %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "BNFParser---0.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "BNFParser",
+      "note": "Checks syntax according to BNF",
+      "people": [
+        "Geoff Sutcliffe",
+        "Allen van Gelder"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success",
+        "SyntaxError": "SZS status SyntaxError"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "BNFParserTree %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "BNFParserTree---0.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "BNFParserTree",
+      "note": "Checks syntax according to BNF, producing parse tree",
+      "people": [
+        "Geoff Sutcliffe",
+        "Allen van Gelder"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success",
+        "SyntaxError": "SZS status SyntaxError"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "run_checkproof %s %d",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "CheckProof---0.1",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "casc"
+      ],
+      "name": "CheckProof",
+      "note": "Prover and model finder",
+      "people": [
+        "Nik Murzin"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://www.wolframcloud.com/obj/nikm/DeployedResources/Paclet/WolframInstitute/THVMLink/Documentation/tutorial/AtpMethods.html",
+      "version": "0.1"
+    },
+    {
+      "command": "CheckTyping -all %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "CheckTyping---0.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "CheckTyping",
+      "note": "Checks all symbols are typed",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "0 errors"
+      },
+      "spcs": [
+        "TH0",
+        "TX0",
+        "TF0"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "bitetptp %s",
+      "dataforms": {},
+      "format": "tptp",
+      "id": "CHewTPTP---1.0",
+      "interfaces": [],
+      "listings": [],
+      "name": "CHewTPTP",
+      "note": "Prover",
+      "people": [
+        "Eric McGregor",
+        "Christopher Lynch"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.0"
+    },
+    {
+      "command": "connect++ --verbosity 0 --no-colour --tptp-proof --schedule default --timeout %d %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "ConnectPP---0.7.2",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "ConnectPP",
+      "note": "Prover",
+      "people": [
+        "Sean Holden"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://www.cl.cam.ac.uk/~sbh11/connect++.html",
+      "version": "0.7.2"
+    },
+    {
+      "command": "connect++ --verbosity 0 --no-colour --no-sat --complete 2 --timeout %d %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "ConnectPP-SAT---0.7.2",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "casc"
+      ],
+      "name": "ConnectPP-SAT",
+      "note": "Prover",
+      "people": [
+        "Sean Holden"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://www.cl.cam.ac.uk/~sbh11/connect++.html",
+      "version": "0.7.2"
+    },
+    {
+      "command": "do_Crossbow---0.1 %s",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel"
+      },
+      "format": "tptp:raw",
+      "id": "Crossbow---0.1",
+      "interfaces": [],
+      "listings": [],
+      "name": "Crossbow",
+      "note": "Prover",
+      "people": [
+        "Radek Micek"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable"
+      },
+      "spcs": [
+        "FOF_CSA",
+        "FOF_SAT",
+        "FOF_UNK"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/radekm/crossbow",
+      "version": "0.1"
+    },
+    {
+      "command": "run_CSE %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "CSE_E---1.7",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "tstp",
+        "starexec"
+      ],
+      "name": "CSE_E",
+      "note": "Prover",
+      "people": [
+        "Shuwei Chen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": [
+          "SCCPA"
+        ]
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.7"
+    },
+    {
+      "command": "run_CSI_E %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "CSI_E---1.1",
+      "interfaces": [],
+      "listings": [
+        "tstp"
+      ],
+      "name": "CSI_E",
+      "note": "Prover",
+      "people": [
+        "Guoyan Zeng",
+        "Shuwei Chen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.1"
+    },
+    {
+      "command": "run_CSI_PP %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "CSI_PP---1.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "CSI_PP",
+      "note": "Prover",
+      "people": [
+        "Guoyan Zeng",
+        "Shuwei Chen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.0"
+    },
+    {
+      "command": "do_cvc5 %s %d THM",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Model": "SZS output start Model",
+        "Proof": "SZS output start Proof",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "cvc5---1.3.4",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "cvc5",
+      "note": "Prover and model finder",
+      "people": [
+        "Clark Barrett",
+        "Cesare Tinelli"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Model": "SZS output end Model",
+          "Proof": "SZS output end Proof",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH0",
+        "TX0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://cvc5.github.io/",
+      "version": "1.3.4"
+    },
+    {
+      "command": "do_cvc5 %s %d SAT",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Model": "SZS output start Model",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "cvc5-SAT---1.3.3.LK",
+      "interfaces": [],
+      "listings": [],
+      "name": "cvc5-SAT",
+      "note": "Model finder",
+      "people": [
+        "Lydia Kondylidou",
+        "Clark Barrett",
+        "Cesare Tinelli"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Model": "SZS output end Model",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable"
+      },
+      "spcs": [
+        "TH0_NAR",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://cvc5.github.io/",
+      "version": "1.3.3.LK"
+    },
+    {
+      "command": "do_cvc5 %s %d SAT",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Model": "SZS output start Model",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "cvc5-SAT---1.3.4",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "cvc5-SAT",
+      "note": "Model finder",
+      "people": [
+        "Clark Barrett",
+        "Cesare Tinelli"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Model": "SZS output end Model",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable"
+      },
+      "spcs": [
+        "TH0_NAR",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://cvc5.github.io/",
+      "version": "1.3.4"
+    },
+    {
+      "command": "run_stc %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "cvc5-STC---1.3.4",
+      "interfaces": [],
+      "listings": [],
+      "name": "cvc5-STC",
+      "note": "Syntax and type checker",
+      "people": [
+        "Clark Barrett",
+        "Cesare Tinelli"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "TH0_NAR",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://cvc5.github.io/",
+      "version": "1.3.4"
+    },
+    {
+      "command": "darwin -pl 0 -pmc true -to %d %s",
+      "dataforms": {
+        "Model": "SZS output start Model"
+      },
+      "format": "tptp:raw",
+      "id": "Darwin---1.4.5",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "Darwin",
+      "note": "Prover and model finder",
+      "people": [
+        "Alexander Fuchs",
+        "Peter Baumgartner",
+        "Cesare Tinelli"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Model": "SZS output end Model"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.4.5"
+    },
+    {
+      "command": "darwin -fd true -ppp true -pl 0 -to %d -pmtptp true %s",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel"
+      },
+      "format": "tptp:raw",
+      "id": "DarwinFM---1.4.5",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "DarwinFM",
+      "note": "Finite model finder",
+      "people": [
+        "Alexander Fuchs",
+        "Peter Baumgartner",
+        "Cesare Tinelli"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF_CSA",
+        "FOF_SAT",
+        "CNF_SAT",
+        "FOF_UNK",
+        "CNF_UNK"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.4.5"
+    },
+    {
+      "command": "run_Dedukti %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "Dedukti---2.7",
+      "interfaces": [],
+      "listings": [],
+      "name": "Dedukti",
+      "note": "Derivation verifier for Dedukti format",
+      "people": [
+        "Frederic Blanqui"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "ERROR CODE",
+        "VerifiedGood": "successfully checked"
+      },
+      "spcs": [
+        "TH0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/Deducteam/lambdapi",
+      "version": "2.7"
+    },
+    {
+      "command": "dfg2tptp %s stdout",
+      "dataforms": {},
+      "format": "DFG",
+      "id": "DFG2TPTP---0.0",
+      "interfaces": [
+        "pre_tptp"
+      ],
+      "listings": [],
+      "name": "DFG2TPTP",
+      "note": null,
+      "people": [],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {},
+      "spcs": null,
+      "statistic": null,
+      "transform": null,
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "run_dlash %d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "DLash---1.11",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "DLash",
+      "note": "Prover",
+      "people": [
+        "Cezary Kaliszyk"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "DH1_NAR",
+        "DH0_NAR",
+        "TH1_NAR",
+        "TH0_NAR"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.11"
+    },
+    {
+      "command": "run_drodi %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "Drodi---4.1.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "Drodi",
+      "note": "Prover",
+      "people": [
+        "Oscar Contreras"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "4.1.1"
+    },
+    {
+      "command": "run_drodi %d %s SAT",
+      "dataforms": {
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Drodi-SAT---4.1.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "Drodi-SAT",
+      "note": "Prover",
+      "people": [
+        "Oscar Contreras"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "4.1.1"
+    },
+    {
+      "command": "run_DT2H2X %s %d Vampire---",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Refutation": "SZS output start Proof",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "DT2H2X---1.9.5",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "DT2H2X",
+      "note": "Prover",
+      "people": [
+        "Cezary Kaliszyk"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Refutation": "SZS output end Proof",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "DH1_NAR",
+        "DH0_NAR",
+        "NH1_NAR",
+        "NH0_NAR",
+        "TH1_NAR",
+        "TH0_NAR"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.9.5"
+    },
+    {
+      "command": "duper %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "Duper---1.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "Duper",
+      "note": "Prover",
+      "people": [
+        "Joshua Clune",
+        "Alexander Bentkamp",
+        "Yicheng Qian"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem"
+      },
+      "spcs": [
+        "TH1_NAR",
+        "TH0_NAR",
+        "TF1_NAR",
+        "TF0_NAR",
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/leanprover-community/duper",
+      "version": "1.0"
+    },
+    {
+      "command": "run_E %s %d THM",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "E---3.5.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "E",
+      "note": "Prover and model finder",
+      "people": [
+        "Stephan Schulz"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH0_NAR",
+        "TX0_NAR",
+        "TF0_NAR",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.eprover.org/",
+      "version": "3.5.1"
+    },
+    {
+      "command": "e-darwin -pev \"TPTP\" -pmd true -if tptp -pl 2 -pc false -ps false %s",
+      "dataforms": {
+        "Model": "START OF MODEL"
+      },
+      "format": "tptp:raw",
+      "id": "E-Darwin---1.5",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "E-Darwin",
+      "note": "Prover and model finder",
+      "people": [
+        "Bjorn Pelzer"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Model": "END OF MODEL"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.5"
+    },
+    {
+      "command": "run_E %s %d SAT",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "E-SAT---3.5.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "E-SAT",
+      "note": "Prover and model finder",
+      "people": [
+        "Stephan Schulz"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0_NAR",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.eprover.org/",
+      "version": "3.5.1"
+    },
+    {
+      "command": "run_ECNF %d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "ECNF---3.5.1",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "ECNF",
+      "note": "Converts FOF to CNF",
+      "people": [
+        "Stephan Schulz"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfCNF": "SZS output start ListOfCNF"
+        },
+        "end_soln": {
+          "ListOfCNF": "SZS output end ListOfCNF"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.eprover.org/",
+      "version": "3.5.1"
+    },
+    {
+      "command": "eground --tstp-in --tstp-out --silent --resources-info --split-tries=100 --memory-limit=200 --soft-cpu-limit=%d --add-one-instance --constraints %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "EGround---3.5.1",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "EGround",
+      "note": "Grounds a set of EPR clauses",
+      "people": [
+        "Stephan Schulz"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfClauses": "StartOfFile"
+        },
+        "end_soln": {
+          "ListOfClauses": "Full and complete proof state written"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "Full and complete proof state written"
+      },
+      "spcs": [
+        "CNF_EPR"
+      ],
+      "statistic": null,
+      "transform": "add_equality",
+      "url": "http://www.eprover.org/",
+      "version": "3.5.1"
+    },
+    {
+      "command": "enigmatic-eprover.py %s %d 8",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Enigma---0.5.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "Enigma",
+      "note": "Prover",
+      "people": [
+        "Jan Jakubuv"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/ai4reason/enigmatic",
+      "version": "0.5.1"
+    },
+    {
+      "command": "ePrincess-casc -inputFormat=tptp -timeout=%d %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "ePrincess---1.0",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "tstp"
+      ],
+      "name": "ePrincess",
+      "note": "Prover",
+      "people": [
+        "Peter Backeman"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://user.it.uu.se/~petba168/breu/",
+      "version": "1.0"
+    },
+    {
+      "command": "tptp2X_and_run_eqp %s",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "EQP---0.9e",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp",
+        "sscpa"
+      ],
+      "name": "EQP",
+      "note": "Prover",
+      "people": [
+        "William McCune"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "CNF_UEQ"
+      ],
+      "statistic": "Clauses = Clauses generated *([0-9]*) && Given = Clauses or pairs given *([0-9]*)",
+      "transform": "none",
+      "url": "http://www.cs.unm.edu/~mccune/eqp/",
+      "version": "0.9e"
+    },
+    {
+      "command": "equinox --modelfile /tmp/model --no-progress --time %d --tstp %s",
+      "dataforms": {},
+      "format": "tptp:short",
+      "id": "Equinox---6.0.1a",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "starexec",
+        "tstp"
+      ],
+      "name": "Equinox",
+      "note": "Prover",
+      "people": [
+        "Koen Claessen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable for",
+        "Satisfiable": "SZS status Satisfiable for",
+        "Theorem": "SZS status Theorem for",
+        "Unsatisfiable": "SZS status Unsatisfiable for"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "6.0.1a"
+    },
+    {
+      "command": "etableau --auto --tsmdo --quicksat=10000 --tableau=1 --tableau-saturation=1 -s -p --tableau-cores=8 --cpu-limit=%d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "Etableau---0.67",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "Etableau",
+      "note": "Prover",
+      "people": [
+        "John Hester"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/hesterj/Etableau",
+      "version": "0.67"
+    },
+    {
+      "command": "run_fest %s %d",
+      "dataforms": {
+        "Model": "SZS output start Model"
+      },
+      "format": "tptp:raw",
+      "id": "FEST---2.0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "tstp"
+      ],
+      "name": "FEST",
+      "note": "Model finder",
+      "people": [
+        "Neta Elad"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Model": "SZS output end Model"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Satisfiable": "SZS status Satisfiable"
+      },
+      "spcs": [
+        "TX0",
+        "TF0"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://zenodo.org/records/10125136",
+      "version": "2.0.1"
+    },
+    {
+      "command": "run_findproof %s %d",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Proof": "SZS output start Proof",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "FindProof---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "FindProof",
+      "note": "Prover and model finder",
+      "people": [
+        "Nik Murzin"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Proof": "SZS output end Proof",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://www.wolframcloud.com/obj/nikm/DeployedResources/Paclet/WolframInstitute/THVMLink/Documentation/tutorial/AtpMethods.html",
+      "version": "0.1"
+    },
+    {
+      "command": "run_fmb4j %s %d",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel"
+      },
+      "format": "tptp:raw",
+      "id": "FMB4J---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "FMB4J",
+      "note": "Model finder",
+      "people": [
+        "Michael Rawson",
+        "Joe Hall"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://tptp.org/CASC/J13/Entrants.html",
+      "version": "0.1"
+    },
+    {
+      "command": "g4plus.sh %s %d",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "G4Plus---1.5.2",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "tstp"
+      ],
+      "name": "G4Plus",
+      "note": "Prover",
+      "people": [
+        "Joseph Vidal-Rosset"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://www.vidal-rosset.net/2025-11-17-swi-tinker-for-swi-prolog-provers.html",
+      "version": "1.5.2"
+    },
+    {
+      "command": "run_GDV %s 30",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "GDV---2.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [
+        "casc"
+      ],
+      "name": "GDV",
+      "note": "Derivation verifier",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "NH0",
+        "NX0",
+        "TH0",
+        "TX0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://tptp.org/Seminars/GDV/Summary.html",
+      "version": "2.0"
+    },
+    {
+      "command": "run_GDV %s 30 LP",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "GDV-LP---2.0",
+      "interfaces": [],
+      "listings": [
+        "casc"
+      ],
+      "name": "GDV-LP",
+      "note": "Derivation verifier for LambdaPi format",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "TH0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://tptp.org/Seminars/GDV/Summary.html",
+      "version": "2.0"
+    },
+    {
+      "command": "geo -tptp_input -nonempty -include /home/tptp/TPTP -inputfile %s",
+      "dataforms": {
+        "Model": "SZS output start Model",
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "Geo-III---2018C",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "Geo-III",
+      "note": "Prover and model finder",
+      "people": [
+        "Hans de Nivelle"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Model": "SZS output end Model",
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "2018C"
+    },
+    {
+      "command": "GetSymbols -all %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "GetSymbols---0.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "GetSymbols",
+      "note": "Extracts the symbols in formulae",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {},
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "gkc %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "GKC---0.8",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "GKC",
+      "note": "Prover",
+      "people": [
+        "Tanel Tammet"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/tammet/gkc",
+      "version": "0.8"
+    },
+    {
+      "command": "goeland -dmt -osctptp -silent -no_id %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "Goeland---1.2.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "Goeland",
+      "note": "Prover",
+      "people": [
+        "Julie Cailler"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/GoelandProver/Goeland",
+      "version": "1.2.0"
+    },
+    {
+      "command": "And %s %d",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "GrAnDe---1.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp"
+      ],
+      "name": "GrAnDe",
+      "note": "Prover and model finder",
+      "people": [
+        "Stephan Schulz",
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status Satisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Unsatisfiable",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF_EPR",
+        "CNF_EPR",
+        "CNF_PRP"
+      ],
+      "statistic": "EStatus = Grounding status: # ([^ ]*)",
+      "transform": "none",
+      "url": "https://tptp.org/ATPSystems/GrAnDe/",
+      "version": "1.1"
+    },
+    {
+      "command": "run_hh %d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "HOLyHammer---0.21",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp"
+      ],
+      "name": "HOLyHammer",
+      "note": "Prover",
+      "people": [
+        "Cezary Kaliszyk"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH1_NAR",
+        "TH0_NAR"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.21"
+    },
+    {
+      "command": "hopcop %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "hopCoP---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "hopCoP",
+      "note": "Prover",
+      "people": [
+        "Michael Rawson"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/MichaelRawson/hopcop",
+      "version": "0.1"
+    },
+    {
+      "command": "jukebox_horn2ueq %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "Horn2UEQ---0.4.1",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Horn2UEQ",
+      "note": "Converts Horn to UEQ",
+      "people": [
+        "Nick Smallbone",
+        "Koen Claessen"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfFOF": "SZS output start ListOfCNF"
+        },
+        "end_soln": {
+          "ListOfFOF": "SZS output end ListOfCNF"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/nick8325/jukebox/",
+      "version": "0.4.1"
+    },
+    {
+      "command": "run_IDV %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "IDV---1.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "IDV",
+      "note": "Interactive derivation viewer",
+      "people": [
+        "Daniel Li",
+        "Esteban Morales",
+        "Jack McKeown",
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.0"
+    },
+    {
+      "command": "run_IIV %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "IIV---0.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "IIV",
+      "note": "Interactive interpretation viewer",
+      "people": [
+        "Daniel Li",
+        "Esteban Morales",
+        "Jack McKeown",
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": "https://tptp.org/Seminars/IIV/Summary.html",
+      "version": "0.0"
+    },
+    {
+      "command": "imogen fol prove -c -f FileName -s Tptp -pt %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp",
+      "id": "Imogen---2.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "Imogen",
+      "note": "Prover and model finder",
+      "people": [
+        "Sean McLaughlin"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "stdfof+add_equality",
+      "url": "http://www.seanmcl.com/research/imogen/",
+      "version": "2.0"
+    },
+    {
+      "command": "run_infinox %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "Infinox---1.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "starexec",
+        "tstp"
+      ],
+      "name": "Infinox",
+      "note": "Finite prover and model finder",
+      "people": [
+        "Koen Claessen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "FiniteTheorem": "SZS status FiniteTheorem",
+        "FinitelyUnsatisfiable": "SZS status FinitelyUnsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.0"
+    },
+    {
+      "command": "run_InterpretByATP %d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "InterpretByATP---0.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "InterpretByATP",
+      "note": "Evaluates formulae against a model, between SZS lines (ask Geoff)",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "NoSuccess": "SZS status NoSuccess",
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "run_iprover %d %s THM",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Model": "SZS output start Model",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "iProver---3.9.4",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "iProver",
+      "note": "Prover and model finder",
+      "people": [
+        "Konstantin Korovin"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Model": "SZS output end Model",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0_NDT",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.cs.man.ac.uk/~korovink/iprover/",
+      "version": "3.9.4"
+    },
+    {
+      "command": "run_iprover_eq %d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "iProver-Eq---0.85",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa"
+      ],
+      "name": "iProver-Eq",
+      "note": "Prover and model finder",
+      "people": [
+        "Christoph Sticksel",
+        "Konstantin Korovin"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "ILoops = inst_num_of_loops: *([0-9]*) && RLoops = res_num_of_loops: *([0-9]*) && SLoops = up_num_of_loops: *([0-9]*) && PropCalls = prop_solver_calls: *([0-9]*)",
+      "transform": "none",
+      "url": "http://www.cs.man.ac.uk/~korovink/iprover/",
+      "version": "0.85"
+    },
+    {
+      "command": "run_iprover %d %s SAT",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Model": "SZS output start Model",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "iProver-SAT---3.9.4",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "iProver-SAT",
+      "note": "Model finder",
+      "people": [
+        "Konstantin Korovin"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Model": "SZS output end Model",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.cs.man.ac.uk/~korovink/iprover/",
+      "version": "3.9.4"
+    },
+    {
+      "command": "bin/run_iProverMo %s %d",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "iProverMo---2.5-0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "iProverMo",
+      "note": "Prover",
+      "people": [
+        "Guillaume Burel"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0_NAR",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.ensiie.fr/~guillaume.burel/blackandwhite_iProverModulo.html.en",
+      "version": "2.5-0.1"
+    },
+    {
+      "command": "run_isabelle_2X FOF %s",
+      "dataforms": {},
+      "format": "tptp",
+      "id": "Isabelle---2FOF",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Isabelle",
+      "note": "Converts to FOF",
+      "people": [
+        "Jasmin Blanchette",
+        "Larry Paulson",
+        "Tobias Nipkow",
+        "Makarius Wenzel"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfFOF": "SZS output start ListOfFOF"
+        },
+        "end_soln": {
+          "ListOfFOF": "SZS output end ListOfFOF"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "TH0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.cl.cam.ac.uk/research/hvg/Isabelle/",
+      "version": "2FOF"
+    },
+    {
+      "command": "run_isabelle_2X TF0 %s",
+      "dataforms": {},
+      "format": "tptp",
+      "id": "Isabelle---2TF0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Isabelle",
+      "note": "Converts to TF0",
+      "people": [
+        "Jasmin Blanchette",
+        "Larry Paulson",
+        "Tobias Nipkow",
+        "Makarius Wenzel"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfTF0": "SZS output start ListOfTF0"
+        },
+        "end_soln": {
+          "ListOfTF0": "SZS output end ListOfTF0"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "TH0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.cl.cam.ac.uk/research/hvg/Isabelle/",
+      "version": "2TF0"
+    },
+    {
+      "command": "run_isabelle_2X TH0 %s",
+      "dataforms": {},
+      "format": "tptp",
+      "id": "Isabelle---2TH0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Isabelle",
+      "note": "Converts to TH0",
+      "people": [
+        "Jasmin Blanchette",
+        "Larry Paulson",
+        "Tobias Nipkow",
+        "Makarius Wenzel"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfTH0": "SZS output start ListOfTH0"
+        },
+        "end_soln": {
+          "ListOfTH0": "SZS output end ListOfTH0"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "TH0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.cl.cam.ac.uk/research/hvg/Isabelle/",
+      "version": "2TH0"
+    },
+    {
+      "command": "run_JavaRes %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Model": "SZS output start Model",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "JavaRes---1.3.0",
+      "interfaces": [],
+      "listings": [
+        "starexec"
+      ],
+      "name": "JavaRes",
+      "note": "Prover",
+      "people": [
+        "Adam Pease"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Model": "SZS output end Model",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/ontologyportal/JavaRes/",
+      "version": "1.3.0"
+    },
+    {
+      "command": "jgxyz %s %d a3 truth_evaluation designated vampire 80 vampirefmo 20",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "JGXYZ---A3-0.2",
+      "interfaces": [],
+      "listings": [],
+      "name": "JGXYZ",
+      "note": "Prover and model finder for A3 logic",
+      "people": [
+        "Jeff Pelletier",
+        "Geoff Sutcliffe",
+        "Allen Hazen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "A3-0.2"
+    },
+    {
+      "command": "jgxyz %s %d fdeCmi truth_evaluation designated vampire 80 vampirefmo 20",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "JGXYZ---FDECmi-0.2",
+      "interfaces": [],
+      "listings": [],
+      "name": "JGXYZ",
+      "note": "Prover and model finder for FDE logic",
+      "people": [
+        "Jeff Pelletier",
+        "Geoff Sutcliffe",
+        "Allen Hazen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "FDECmi-0.2"
+    },
+    {
+      "command": "jgxyz %s %d fdeCon truth_evaluation designated vampire 80 vampirefmo 20",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "JGXYZ---FDECon-0.2",
+      "interfaces": [],
+      "listings": [],
+      "name": "JGXYZ",
+      "note": "Prover and model finder for FDE logic",
+      "people": [
+        "Jeff Pelletier",
+        "Geoff Sutcliffe",
+        "Allen Hazen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "FDECon-0.2"
+    },
+    {
+      "command": "jgxyz %s %d fdeLuk truth_evaluation designated vampire 80 vampirefmo 20",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "JGXYZ---FDELuk-0.2",
+      "interfaces": [],
+      "listings": [],
+      "name": "JGXYZ",
+      "note": "Prover and model finder for FDE logic",
+      "people": [
+        "Jeff Pelletier",
+        "Geoff Sutcliffe",
+        "Allen Hazen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "FDELuk-0.2"
+    },
+    {
+      "command": "jgxyz %s %d fof truth_evaluation designated vampire 80 vampirefmo 20",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "JGXYZ---FOF-0.2",
+      "interfaces": [],
+      "listings": [],
+      "name": "JGXYZ",
+      "note": "Prover and model finder for classical FOF logic",
+      "people": [
+        "Jeff Pelletier",
+        "Geoff Sutcliffe",
+        "Allen Hazen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "FOF-0.2"
+    },
+    {
+      "command": "jgxyz %s %d l3 truth_evaluation designated vampire 80 vampirefmo 20",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "JGXYZ---L3-0.2",
+      "interfaces": [],
+      "listings": [],
+      "name": "JGXYZ",
+      "note": "Prover and model finder for L3 logic",
+      "people": [
+        "Jeff Pelletier",
+        "Geoff Sutcliffe",
+        "Allen Hazen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "L3-0.2"
+    },
+    {
+      "command": "jgxyz %s %d rm3 truth_evaluation designated vampire 80 vampirefmo 20",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "JGXYZ---RM3-0.2",
+      "interfaces": [],
+      "listings": [],
+      "name": "JGXYZ",
+      "note": "Prover and model finder for RM3 logic",
+      "people": [
+        "Jeff Pelletier",
+        "Geoff Sutcliffe",
+        "Allen Hazen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "RM3-0.2"
+    },
+    {
+      "command": "run_ksp %s",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "KSP---0.1.7",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "KSP",
+      "note": "Prover and model finder",
+      "people": [
+        "Claudia Nalon"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "NX0_PRP",
+        "TF0_PRP"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://nalon.org/#software",
+      "version": "0.1.7"
+    },
+    {
+      "command": "ladr2tptp %s",
+      "dataforms": {},
+      "format": "LADR",
+      "id": "LADR2TPTP---0.0",
+      "interfaces": [
+        "pre_tptp"
+      ],
+      "listings": [],
+      "name": "LADR2TPTP",
+      "note": null,
+      "people": [],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {},
+      "spcs": null,
+      "statistic": null,
+      "transform": null,
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "run_LambdaPi %s",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "LambdaPi---3.0.0",
+      "interfaces": [],
+      "listings": [],
+      "name": "LambdaPi",
+      "note": "LambdaPi for GDV files",
+      "people": [
+        "Frederic Blanqui"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "TH0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/Deducteam/lambdapi",
+      "version": "3.0.0"
+    },
+    {
+      "command": "run_lash %d %s",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "Lash---1.13",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "Lash",
+      "note": "Prover and model finder",
+      "people": [
+        "Cezary Kaliszyk",
+        "Chad Brown",
+        "Jan Jakubuv"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH0_NAR"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.13"
+    },
+    {
+      "command": "run_lazyCoP %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "lazyCoP---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "lazyCoP",
+      "note": "Prover",
+      "people": [
+        "Michael Rawson"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/MichaelRawson/lazycop",
+      "version": "0.1"
+    },
+    {
+      "command": "leancop.sh %s %d",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "leanCoP---2.2",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "leanCoP",
+      "note": "Prover",
+      "people": [
+        "Jens Otten"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.leancop.de/",
+      "version": "2.2"
+    },
+    {
+      "command": "run_leoII %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "LEO-II---2.3.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "LEO-II",
+      "note": "Prover and model finder",
+      "people": [
+        "Christoph Benzmueller"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable for",
+        "Satisfiable": "SZS status Satisfiable for",
+        "Theorem": "SZS status Theorem for",
+        "Unsatisfiable": "SZS status Unsatisfiable for"
+      },
+      "spcs": [
+        "TH0_NAR",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.leoprover.org",
+      "version": "2.3.1"
+    },
+    {
+      "command": "run_Leo-III %s %d THM",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "Leo-III---1.8.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "Leo-III",
+      "note": "Prover",
+      "people": [
+        "Christoph Benzmueller",
+        "Alexander Steen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "NH1",
+        "NH0",
+        "NX1",
+        "NX0",
+        "TH1",
+        "TH0",
+        "TX1",
+        "TX0",
+        "TF1",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/leoprover/Leo-III",
+      "version": "1.8.0"
+    },
+    {
+      "command": "run_Leo-III %d %s",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "Leo-III-LP---1.8.0",
+      "interfaces": [],
+      "listings": [],
+      "name": "Leo-III-LP",
+      "note": "Prover",
+      "people": [
+        "Melanie Taprogge",
+        "Alexander Steen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Success": "SZS status Success",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "NH1",
+        "NH0",
+        "NX1",
+        "NX0",
+        "TH1",
+        "TH0",
+        "TX1",
+        "TX0",
+        "TF1",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/leoprover/Leo-III",
+      "version": "1.8.0"
+    },
+    {
+      "command": "run_Leo-III %s %d STC",
+      "dataforms": {
+        "LogicalData": "SZS output start LogicalData"
+      },
+      "format": "tptp:raw",
+      "id": "Leo-III-STC---1.8.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Leo-III-STC",
+      "note": "Syntax and type checker",
+      "people": [
+        "Christoph Benzmueller",
+        "Alexander Steen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "LogicalData": "SZS output end LogicalData"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success",
+        "SyntaxError": "SZS status SyntaxError",
+        "TypeError": "SZS status TypeError"
+      },
+      "spcs": [
+        "NH1",
+        "NH0",
+        "NX1",
+        "NX0",
+        "TH1",
+        "TH0",
+        "TX1",
+        "TX0",
+        "TF1",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/leoprover/Leo-III",
+      "version": "1.8.0"
+    },
+    {
+      "command": "casc-portfolio.sh -t %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "LisaST---0.9",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "LisaST",
+      "note": "Prover",
+      "people": [
+        "Simon Guilloud",
+        "Sankalp Gambhir"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/epfl-lara/lisa/tree/main",
+      "version": "0.9"
+    },
+    {
+      "command": "run_LisaTT %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "LisaTT---0.9.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "LisaTT",
+      "note": "Prover",
+      "people": [
+        "Simon Guilloud",
+        "Sankalp Gambhir"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/epfl-lara/lisa/tree/main",
+      "version": "0.9.1"
+    },
+    {
+      "command": "mace4 -casc %d -f %s",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel"
+      },
+      "format": "tptp:raw",
+      "id": "Mace4---2026-6A",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp",
+        "sscpa",
+        "casc"
+      ],
+      "name": "Mace4",
+      "note": "Model finder",
+      "people": [
+        "William McCune",
+        "Robert Veroff",
+        "Jeff Machado",
+        "Larry Lesyna"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://prover9.org/",
+      "version": "2026-6A"
+    },
+    {
+      "command": "run_maedmax %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp",
+      "id": "MaedMax---1.4",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp",
+        "sscpa"
+      ],
+      "name": "MaedMax",
+      "note": "Prover",
+      "people": [
+        "Sarah Winkler"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Satisfiable": "SZS status Satisfiable",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "CNF_UEQ"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://cl-informatik.uibk.ac.at/software/maedmax/",
+      "version": "1.4"
+    },
+    {
+      "command": "matitaprover --timeout %d --tptppath /home/tptp/TPTP %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "Matita---1.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp",
+        "sscpa"
+      ],
+      "name": "Matita",
+      "note": "Prover and model finder",
+      "people": [
+        "Andrea Asperti"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Satisfiable": "SZS status Satisfiable",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "CNF_UEQ"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://matita.cs.unibo.it/",
+      "version": "1.0"
+    },
+    {
+      "command": "metis --show proof --show saturation %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Metis---2.4",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "starexec",
+        "tstp"
+      ],
+      "name": "Metis",
+      "note": "Prover and model finder",
+      "people": [
+        "Joe Hurd"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.gilith.com/software/metis",
+      "version": "2.4"
+    },
+    {
+      "command": "minisat %s -cpu-lim=%d -no-luby -rinc=1.5 -phase-saving=0 -rnd-freq=0.02",
+      "dataforms": {},
+      "format": "dimacs",
+      "id": "MiniSAT---2.2.0",
+      "interfaces": [],
+      "listings": [],
+      "name": "MiniSAT",
+      "note": "Prover and model finder",
+      "people": [
+        "Niklas EEn",
+        "Niklas Sorensson"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Satisfiable": "^SATISFIABLE",
+        "Unsatisfiable": "^UNSATISFIABLE"
+      },
+      "spcs": [
+        "CNF_PRP",
+        "CNF_EPR"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://minisat.se",
+      "version": "2.2.0"
+    },
+    {
+      "command": "run_mleancop %s %d",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "MleanCoP---1.3",
+      "interfaces": [],
+      "listings": [
+        "starexec"
+      ],
+      "name": "MleanCoP",
+      "note": "Prover and model finder",
+      "people": [
+        "Jens Otten"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "NX0",
+        "TF0"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://leancop.de/mleancop",
+      "version": "1.3"
+    },
+    {
+      "command": "moca.sh %s",
+      "dataforms": {
+        "Proof": "SZS output start"
+      },
+      "format": "tptp:raw",
+      "id": "Moca---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp",
+        "sscpa"
+      ],
+      "name": "Moca",
+      "note": "Prover",
+      "people": [
+        "Nao Hirokawa"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "CNF_HRN",
+        "CNF_UEQ"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.jaist.ac.jp/project/maxcomp/",
+      "version": "0.1"
+    },
+    {
+      "command": "run_MoMo %s %d",
+      "dataforms": {
+        "Model": "SZS output start"
+      },
+      "format": "tptp:raw",
+      "id": "MoMo---0.1.2",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa"
+      ],
+      "name": "MoMo",
+      "note": "Model finder",
+      "people": [
+        "Happy Sariyanto"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Model": "SZS output end"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable"
+      },
+      "spcs": [
+        "NX0_NAR"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://zenodo.org/records/17375151",
+      "version": "0.1.2"
+    },
+    {
+      "command": "jukebox monotonox %s",
+      "dataforms": {
+        "ListOfFormulae": "riting output"
+      },
+      "format": "tptp:raw",
+      "id": "Monotonox---0.4.1",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Monotonox",
+      "note": "Tests for monotonicity",
+      "people": [
+        "Nick Smallbone",
+        "Koen Claessen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "ListOfFormulae": "EndOfFile"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "NoSuccess": ": not monotone",
+        "Success": ": monotone"
+      },
+      "spcs": [
+        "TF0_NAR",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/nick8325/jukebox/",
+      "version": "0.4.1"
+    },
+    {
+      "command": "jukebox_cnf %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "Monotonox-2CNF---0.4.1",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Monotonox-2CNF",
+      "note": "Converts to CNF",
+      "people": [
+        "Nick Smallbone",
+        "Koen Claessen"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfCNF": "SZS output start ListOfCNF"
+        },
+        "end_soln": {
+          "ListOfCNF": "SZS output end ListOfCNF"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "TF0",
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/nick8325/jukebox/",
+      "version": "0.4.1"
+    },
+    {
+      "command": "jukebox_fof %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "Monotonox-2FOF---0.4.1",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Monotonox-2FOF",
+      "note": "Converts to FOF",
+      "people": [
+        "Nick Smallbone",
+        "Koen Claessen"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfFOF": "SZS output start ListOfFOF"
+        },
+        "end_soln": {
+          "ListOfFOF": "SZS output end ListOfFOF"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "TF0_NAR"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/nick8325/jukebox/",
+      "version": "0.4.1"
+    },
+    {
+      "command": "run_mrs %s %d",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "mrs---0.2.3",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "starexec",
+        "tstp",
+        "casc"
+      ],
+      "name": "mrs",
+      "note": "Prover and model finder",
+      "people": [
+        "Olivier Roland"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/newca12/mrs",
+      "version": "0.2.3"
+    },
+    {
+      "command": "run_mrs-proover %s %d",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "mrs-proover---0.2.0",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "casc"
+      ],
+      "name": "mrs-proover",
+      "note": "Derivation verifier",
+      "people": [
+        "Olivier Roland"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/newca12/mrs",
+      "version": "0.2.0"
+    },
+    {
+      "command": "muscadet %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "Muscadet---4.5",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp",
+        "sscpa"
+      ],
+      "name": "Muscadet",
+      "note": "Prover",
+      "people": [
+        "Dominique Pastre"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "4.5"
+    },
+    {
+      "command": "run_nanocop %s %d",
+      "dataforms": {
+        "Proof": "Start of proof"
+      },
+      "format": "tptp:raw",
+      "id": "nanoCoP---2.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp"
+      ],
+      "name": "nanoCoP",
+      "note": "Prover and model finder",
+      "people": [
+        "Jens Otten"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "End of proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "is a Non-Theorem",
+        "Satisfiable": "is Satisfiable",
+        "Theorem": "is a Theorem",
+        "Unsatisfiable": "is Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.leancop.de/",
+      "version": "2.0"
+    },
+    {
+      "command": "run_nanocopi %s %d",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "nanoCoP-I---2.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "nanoCoP-I",
+      "note": "Prover and model finder",
+      "people": [
+        "Jens Otten"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "2.0"
+    },
+    {
+      "command": "run_nanocopm %s %d",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "nanoCoP-M---2.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec"
+      ],
+      "name": "nanoCoP-M",
+      "note": "Prover and model finder",
+      "people": [
+        "Jens Otten"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "NX0",
+        "TF0"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://leancop.de/nanocop-m/",
+      "version": "2.0"
+    },
+    {
+      "command": "run_norgler %s %d",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "Norgler---1.1",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "casc"
+      ],
+      "name": "Norgler",
+      "note": "Derivation verifier",
+      "people": [
+        "Alexander Steen",
+        "Melanie Taprogge",
+        "Happy Sariyanto"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "TH0",
+        "TX0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/leoprover/noergler/",
+      "version": "1.1"
+    },
+    {
+      "command": "otter-tptp-script %s",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "Otter---3.3",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "Otter",
+      "note": "Prover",
+      "people": [
+        "William McCune"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "Given = clauses given *([0-9]*) && Generated = clauses generated *([0-9]*) && Kept = clauses kept *([0-9]*)",
+      "transform": "none",
+      "url": "http://www.cs.unm.edu/~mccune/otter/",
+      "version": "3.3"
+    },
+    {
+      "command": "otter2tptp %s",
+      "dataforms": {},
+      "format": "Otter",
+      "id": "Otter2TPTP---0.0",
+      "interfaces": [
+        "pre_tptp"
+      ],
+      "listings": [],
+      "name": "Otter2TPTP",
+      "note": null,
+      "people": [],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {},
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "paradox --no-progress --time %d --tstp --model %s",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel for"
+      },
+      "format": "tptp:short",
+      "id": "Paradox---4.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "starexec",
+        "tstp"
+      ],
+      "name": "Paradox",
+      "note": "Finite model finder",
+      "people": [
+        "Koen Claessen"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel for"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable for",
+        "Satisfiable": "SZS status Satisfiable for",
+        "Theorem": "SZS status Theorem for",
+        "Unsatisfiable": "SZS status Unsatisfiable for"
+      },
+      "spcs": [
+        "FOF_CSA",
+        "FOF_SAT",
+        "CNF_SAT",
+        "FOF_UNK",
+        "CNF_UNK"
+      ],
+      "statistic": "Size = domain size[^0-9]*([0-9]*)",
+      "transform": "none",
+      "url": null,
+      "version": "4.0"
+    },
+    {
+      "command": "ProofSummary -f prolog %s",
+      "dataforms": {
+        "Derivation": "SZS output start"
+      },
+      "format": "tptp:raw",
+      "id": "PProofSummary---0.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "PProofSummary",
+      "note": "Summarizes proof in Prolog format",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Derivation": "SZS output end"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "princess -inputFormat=tptp +threads -portfolio=casc +printProof -timeoutSec=%d %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp",
+      "id": "Princess---230619",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "Princess",
+      "note": "Prover and model finder",
+      "people": [
+        "Philipp Ruemmer"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0",
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.philipp.ruemmer.org/princess.shtml",
+      "version": "230619"
+    },
+    {
+      "command": "run_MakeListStats %s",
+      "dataforms": {
+        "Comment": "SZS output start Comment"
+      },
+      "format": "tptp:raw",
+      "id": "ProblemStats---1.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "ProblemStats",
+      "note": "Print problem statistics",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Comment": "SZS output end Comment"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.0"
+    },
+    {
+      "command": "run_proofcheck %s",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "ProofCheck---1.0",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "casc"
+      ],
+      "name": "ProofCheck",
+      "note": "Derivation verifier",
+      "people": [
+        "Jeff Machado",
+        "Larry Lesyna"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/AlgorithmicTruth/proofcheck-releases",
+      "version": "1.0"
+    },
+    {
+      "command": "proover-check --time-limit %d %s",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "ProofGuard---1.0",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "casc"
+      ],
+      "name": "ProofGuard",
+      "note": "Derivation verifier",
+      "people": [
+        "Matthew Farah"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/ValueAchooMatthew/ATP-Research-Project",
+      "version": "1.0"
+    },
+    {
+      "command": "run_MakeTreeStats %s",
+      "dataforms": {
+        "Comment": "SZS output start Comment"
+      },
+      "format": "tptp:raw",
+      "id": "ProofStats---1.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "ProofStats",
+      "note": "Print proof statistics",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Comment": "SZS output end Comment"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.0"
+    },
+    {
+      "command": "ProofSummary -f tptp %s",
+      "dataforms": {
+        "Derivation": "SZS output start"
+      },
+      "format": "tptp:raw",
+      "id": "ProofSummary---0.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "ProofSummary",
+      "note": "Summarizes proof",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Derivation": "SZS output end"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "prophet %s",
+      "dataforms": {
+        "ListOfFormulae": "SZS output start ListOfFormulae"
+      },
+      "format": "tptp",
+      "id": "Prophet---0.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Prophet",
+      "note": "Axiom selection",
+      "people": [
+        "Yury Puzis"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "ListOfFormulae": "SZS output end ListOfFormulae"
+        },
+        "gave_up": {},
+        "solved": {
+          "NotRated": "FAILURE: Not rated"
+        },
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": "https://tptp.org/ATPSystems/Prophet/",
+      "version": "0.0"
+    },
+    {
+      "command": "tptp4X_and_run_prover9 %d %s",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "Prover9---1109a",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "casc"
+      ],
+      "name": "Prover9",
+      "note": "Prover",
+      "people": [
+        "William McCune"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.cs.unm.edu/~mccune/prover9/",
+      "version": "1109a"
+    },
+    {
+      "command": "prover9 -casc %d -f %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "Prover9---2026-6A",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "Prover9",
+      "note": "Prover",
+      "people": [
+        "William McCune",
+        "Robert Veroff",
+        "Larry Lesyna",
+        "Jeff Machado"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://prover9.org/",
+      "version": "2026-6A"
+    },
+    {
+      "command": "run_pycheck %s",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "PyCheck---0.1",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "casc"
+      ],
+      "name": "PyCheck",
+      "note": "Derivation verifier",
+      "people": [
+        "Stephan Schulz"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/eprover/PyCheck",
+      "version": "0.1"
+    },
+    {
+      "command": "pyres-fof.py -tifbsVp -nlargest -HPickGiven5 %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "PyRes---1.5",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "PyRes",
+      "note": "Prover",
+      "people": [
+        "Stephan Schulz"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.5"
+    },
+    {
+      "command": "run_RPx %s",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "RPx---1.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "RPx",
+      "note": "Prover",
+      "people": [
+        "Anders Schlichtkrull"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "Given = Given=([0-9]*) && Generated = Generated=([0-9]*) && Kept = Kept=([0-9]*)",
+      "transform": "none",
+      "url": "https://bitbucket.org/isafol/isafol/src/master/Functional_Ordered_Resolution_Prover/",
+      "version": "1.0"
+    },
+    {
+      "command": "run_saffron %s %d",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "Saffron---4.5",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Saffron",
+      "note": "Converts to DLF",
+      "people": [
+        "Negin Arhami"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfDLF": "SZS output start ListOfDLF"
+        },
+        "end_soln": {
+          "ListOfDLF": "SZS output end ListOfDLF"
+        },
+        "gave_up": {},
+        "solved": {
+          "PartialSuccess": "SZS status PartialSuccess"
+        },
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "4.5"
+    },
+    {
+      "command": "run_satallax %d %s",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "Satallax---3.5",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "Satallax",
+      "note": "Prover and model finder",
+      "people": [
+        "Michael Faerber",
+        "Chad Brown"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH0_NAR"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://cl-informatik.uibk.ac.at/users/mfaerber/satallax.html",
+      "version": "3.5"
+    },
+    {
+      "command": "satcop --statistics %s",
+      "dataforms": {
+        "Proof": "SZS output start ListOfCNF"
+      },
+      "format": "tptp:raw",
+      "id": "SATCoP---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec"
+      ],
+      "name": "SATCoP",
+      "note": "Prover",
+      "people": [
+        "Michael Rawson"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end ListOfCNF"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "Extensions = extensions: *([0-9]*) && Reductions = reductions: *([0-9]*) && Attempts = literal attempts: *([0-9]*)",
+      "transform": "none",
+      "url": "http://www.cs.uiowa.edu/~hzhang/sato/",
+      "version": "0.1"
+    },
+    {
+      "command": "run_SATResetCoP %s %d",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "SATResetCoP---1.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "SATResetCoP",
+      "note": "Prover",
+      "people": [
+        "Martin Fixman",
+        "Fredrik Rømming",
+        "Sean Holden"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/mfixman/satresetcop",
+      "version": "1.0"
+    },
+    {
+      "command": "run_sc-tptp %s",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "SC-TPTP---0.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "SC-TPTP",
+      "note": "Derivation verifier",
+      "people": [
+        "Simon Guilloud"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {
+          "Verified": "SZS status Verified"
+        },
+        "status": []
+      },
+      "solved": {
+        "FailedVerified": "SZS status FailedVerified",
+        "NotVerified": "SZS status NotVerified"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/SC-TPTP/sc-tptp",
+      "version": "0.0"
+    },
+    {
+      "command": "run_scavenger %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Model": "SZS output start Model"
+      },
+      "format": "tptp:raw",
+      "id": "Scavenger---EP-0.2",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa"
+      ],
+      "name": "Scavenger",
+      "note": "Prover and model finder",
+      "people": [
+        "Bruno Woltzenlogel Paleo",
+        "Daniyar Itegulov",
+        "Uladzislau Padtsiolkin"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Model": "SZS output end Model"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://gitlab.com/aossie/Scavenger",
+      "version": "EP-0.2"
+    },
+    {
+      "command": "SEMIterate %s",
+      "dataforms": {
+        "Model": "******** Model 1 ********"
+      },
+      "format": "sem:all:1",
+      "id": "SEM---1.7",
+      "interfaces": [],
+      "listings": [],
+      "name": "SEM",
+      "note": "Model finder",
+      "people": [
+        "Hantao Zhang"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Model": "*************************"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Satisfiable": "Model 1"
+      },
+      "spcs": [
+        "CNF_SAT",
+        "CNF_UNK"
+      ],
+      "statistic": "Memory = memory *([0-9]*) K && Rounds = Number of rounds: *([0-9]*) && Choices = Number of choices: *([0-9]*)",
+      "transform": "add_equality",
+      "url": "http://www.cs.uiowa.edu/~hzhang/sem.html",
+      "version": "1.7"
+    },
+    {
+      "command": "run_ShZZaM %s",
+      "dataforms": {
+        "ListOfFormulae": "SZS output start ListOfFormulae"
+      },
+      "format": "english:raw",
+      "id": "ShZZaM---0.2",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "ShZZaM",
+      "note": "Converts English to TFF",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "ListOfFormulae": "SZS output end ListOfFormulae"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.2"
+    },
+    {
+      "command": "Source/sine.py -e eprover -t %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "SInE---0.4",
+      "interfaces": [],
+      "listings": [],
+      "name": "SInE",
+      "note": "Prover",
+      "people": [
+        "Krystof Hoder"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.cs.man.ac.uk/~hoderk/sine/",
+      "version": "0.4"
+    },
+    {
+      "command": "Source/sine_batch.py -e eprover -t %d  %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "SInE-LTB---0.4",
+      "interfaces": [],
+      "listings": [],
+      "name": "SInE-LTB",
+      "note": "Prover",
+      "people": [
+        "Krystof Hoder"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.cs.man.ac.uk/~hoderk/sine/",
+      "version": "0.4"
+    },
+    {
+      "command": "Source/sine.py -e spassxdb -t %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "SInE-XDB---0.4",
+      "interfaces": [],
+      "listings": [],
+      "name": "SInE-XDB",
+      "note": "Prover",
+      "people": [
+        "Krystof Hoder",
+        "Jose Hernandez"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.cs.man.ac.uk/~hoderk/sine/",
+      "version": "0.4"
+    },
+    {
+      "command": "run_sleighqueen --language English E--- %d %s",
+      "dataforms": {
+        "FreeText": "SZS output start FreeText",
+        "Proof": "SZS output start Proof"
+      },
+      "format": "english:raw",
+      "id": "SleighQueen---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "SleighQueen",
+      "note": "Meta-prover",
+      "people": [
+        "Geoff Sutcliffe",
+        "Lydia Kondylidou"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FreeText": "SZS output end FreeText",
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.1"
+    },
+    {
+      "command": "run_SMTtoTPTP %s",
+      "dataforms": {},
+      "format": "SMT2:raw",
+      "id": "SMT2TPTP---0.9.16",
+      "interfaces": [
+        "pre_tptp"
+      ],
+      "listings": [],
+      "name": "SMT2TPTP",
+      "note": null,
+      "people": [],
+      "raw": {
+        "dataforms": {
+          "ListOfTFF": "SZS output start ListOfTFF"
+        },
+        "end_soln": {
+          "ListOfTFF": "SZS output end ListOfTFF"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.9.16"
+    },
+    {
+      "command": "run-snark %s %d",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "SNARK---20120808r022",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "answers",
+        "starexec",
+        "tstp"
+      ],
+      "name": "SNARK",
+      "note": "Prover",
+      "people": [
+        "Mark Stickel"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "Derived = ([0-9]*) formulas have been input or derived && Kept = ([0-9]*) \\(\\d*%\\) were retained && Answers = SZS answers short *(.*)",
+      "transform": "none",
+      "url": "http://www.ai.sri.com/~stickel/snark.html",
+      "version": "20120808r022"
+    },
+    {
+      "command": "run_MakeTreeStats %s",
+      "dataforms": {
+        "Comment": "SZS output start Comment"
+      },
+      "format": "tptp:raw",
+      "id": "SolutionStats---1.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "SolutionStats",
+      "note": "Print solution statistics",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Comment": "SZS output end Comment"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "1.0"
+    },
+    {
+      "command": "spasst-tptp-script %s %d",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "SPASS+T---2.2.22",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "SPASS+T",
+      "note": "Prover",
+      "people": [
+        "Uwe Waldmann",
+        "Stephan Zimmer"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem"
+      },
+      "spcs": [
+        "TF0"
+      ],
+      "statistic": "Memory = SPASS allocated ([0-9]*) KBytes && Derived = SPASS derived ([0-9]*) clauses && Kept = and kept ([0-9]*) clauses",
+      "transform": "none",
+      "url": null,
+      "version": "2.2.22"
+    },
+    {
+      "command": "run_spass %d %s",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp",
+      "id": "SPASS---3.9",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "starexec",
+        "tstp"
+      ],
+      "name": "SPASS",
+      "note": "Prover and model finder",
+      "people": [
+        "Christoph Weidenbach"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Satisfiable": "SZS status CounterSatisfiable",
+        "Unsatisfiable": "SZS status Theorem"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "Memory = SPASS allocated ([0-9]*) KBytes && Derived = SPASS derived ([0-9]*) clauses && Kept = and kept ([0-9]*) clauses && Used = Formulae used in the proof : (.*)",
+      "transform": "none",
+      "url": null,
+      "version": "3.9"
+    },
+    {
+      "command": "SPASS-SCL-FOL -t %d %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp",
+      "id": "SPASS-SCL---0.1.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "SPASS-SCL",
+      "note": "Prover",
+      "people": [
+        "Christoph Weidenbach",
+        "Simon Schwarz",
+        "Yasmine Briefs",
+        "Lorenz Leutgeb",
+        "Fabian Wobito"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.1.1"
+    },
+    {
+      "command": "run_SPCForProblem %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "SPCForProblem---1.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "SPCForProblem",
+      "note": "Computes the SPC",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "NTF",
+        "THF",
+        "TXF",
+        "TFF",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://tptp.org/Seminars/Evaluate/SPCs.html",
+      "version": "1.0"
+    },
+    {
+      "command": "SRASS -q2 -a 0 10 10 10 -i3 -n60 %s",
+      "dataforms": {
+        "Solution": "SZS output start"
+      },
+      "format": "tptp:raw",
+      "id": "SRASS---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "SRASS",
+      "note": "Prover",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Solution": "SZS output end"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status THM"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": "Selected = Selected axioms are .* \\(([0-9]*)\\) && Unselected = Unselected axioms are .* \\(([0-9]*)\\)",
+      "transform": "none",
+      "url": "https://tptp.org/ATPSystems/SRASS/",
+      "version": "0.1"
+    },
+    {
+      "command": "SSCPA -q1 -cE 4 %d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "SSCPA---0.0",
+      "interfaces": [],
+      "listings": [],
+      "name": "SSCPA",
+      "note": "Prover and model finder",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "says CounterSatisfiable",
+        "Satisfiable": "says Satisfiable",
+        "Theorem": "says Theorem",
+        "Unsatisfiable": "says Unsatisfiable"
+      },
+      "spcs": null,
+      "statistic": "SolvingSystem = SolvingSystem = (.*)",
+      "transform": "none",
+      "url": "https://tptp.org/cgi-bin/SystemOnTPTP",
+      "version": "0.0"
+    },
+    {
+      "command": "run_supr %s %d",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "SUPr---1.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "SUPr",
+      "note": "Prover",
+      "people": [
+        "Teddy Kim",
+        "Adam Pease"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/ontologyportal/sigma-rs",
+      "version": "1.0"
+    },
+    {
+      "command": "run_taelja %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "Taelja---0.2.0.0",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "Taelja",
+      "note": "Refutation to Proof converter",
+      "people": [
+        "Lydia Kondylidou"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/kondylidou/Taelja",
+      "version": "0.2.0.0"
+    },
+    {
+      "command": "tofof %d %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "ToFoF---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "ToFoF",
+      "note": "Prover and model finder",
+      "people": [
+        "Geoff Sutcliffe",
+        "Michael Schick"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0_NAR"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://tptp.org/ATPSystems/ToFoF/",
+      "version": "0.1"
+    },
+    {
+      "command": "tofof %d %s --model",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel for"
+      },
+      "format": "tptp:raw",
+      "id": "ToFoF-SAT---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "ToFoF-SAT",
+      "note": "Model finder",
+      "people": [
+        "Geoff Sutcliffe",
+        "Michael Schick"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel for"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable for",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable for"
+      },
+      "spcs": [
+        "TF0_NAR"
+      ],
+      "statistic": "Size = domain size[^0-9]*([0-9]*)",
+      "transform": "none",
+      "url": "http://tptp.org/ATPSystems/ToFoF/",
+      "version": "0.1"
+    },
+    {
+      "command": "run_toma %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "Toma---0.7",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "starexec"
+      ],
+      "name": "Toma",
+      "note": "Prover",
+      "people": [
+        "Teppei Saito"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Satisfiable": "SZS status Satisfiable",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "CNF_UEQ"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://www.jaist.ac.jp/project/maxcomp/",
+      "version": "0.7"
+    },
+    {
+      "command": "TPII %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "TPII---0.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "TPII",
+      "note": "Interpreter for TPI language",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "run_tptp2json %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "TPTP2JSON---0.1",
+      "interfaces": [
+        "system_b4_tptp",
+        "system_on_tstp",
+        "system_on_tmtp"
+      ],
+      "listings": [],
+      "name": "TPTP2JSON",
+      "note": "Converts to JSON",
+      "people": [
+        "Michael Rawson"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/MichaelRawson/tptp",
+      "version": "0.1"
+    },
+    {
+      "command": "tptp2X -q2 -d- %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "TPTP2X---0.0",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "TPTP2X",
+      "note": "Utility for transforming and formatting",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {},
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "tptp4X %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "TPTP4X---0.0",
+      "interfaces": [
+        "system_b4_tptp",
+        "system_on_tstp",
+        "system_on_tmtp"
+      ],
+      "listings": [],
+      "name": "TPTP4X",
+      "note": "Utility for transforming and formatting",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {},
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.0"
+    },
+    {
+      "command": "tptp_lean.sh %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "TPTPLean---0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "tstp",
+        "starexec"
+      ],
+      "name": "TPTPLean",
+      "note": "Prover",
+      "people": [
+        "Axel Polaczek"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem"
+      },
+      "spcs": [
+        "TF1",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.1"
+    },
+    {
+      "command": "run_TFF2Language %s --taelja",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "TSTP2NL---0.2",
+      "interfaces": [
+        "system_on_tstp"
+      ],
+      "listings": [],
+      "name": "TSTP2NL",
+      "note": "Refutation to language converter",
+      "people": [
+        "Geoff Sutcliffe"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {},
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.2"
+    },
+    {
+      "command": "run_twee %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Model": "SZS output start Model",
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "Twee---2.7",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "Twee",
+      "note": "Prover",
+      "people": [
+        "Nick Smallbone"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Model": "SZS output end Model",
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0_NAR",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://nick8325.github.io/twee/",
+      "version": "2.7"
+    },
+    {
+      "command": "run_valeadate %s %d",
+      "dataforms": {
+        "Verification": "SZS output start Verification"
+      },
+      "format": "tptp:raw",
+      "id": "VaLeaDate---0.1",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "casc"
+      ],
+      "name": "VaLeaDate",
+      "note": "Derivation verifier",
+      "people": [
+        "Jonas Bodingbauer"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Verification": "SZS output end Verification"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "VerifiedBad": "SZS status VerifiedBad",
+        "VerifiedGood": "SZS status VerifiedGood"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/i-am-a-teapot/VaLeaDate",
+      "version": "0.1"
+    },
+    {
+      "command": "run_vampire %s %d THM",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Refutation": "SZS output start Proof",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Vampire---5.0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "Vampire",
+      "note": "Prover and model finder",
+      "people": [
+        "Martin Suda",
+        "Michael Rawson",
+        "Andrei Voronkov"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Refutation": "SZS output end Proof",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH1_NAR",
+        "TH0_NAR",
+        "TX1_NAR",
+        "TX0",
+        "TF1_NAR",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://vprover.github.io/",
+      "version": "5.0.1"
+    },
+    {
+      "command": "vampire -sa fmb --forced_options bce=off:updr=off:fde=none:rp=off -m 16384 -t %d %s",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Refutation": "SZS output start Proof",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Vampire-FMo---5.0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "Vampire-FMo",
+      "note": "Finite model finder",
+      "people": [
+        "Martin Suda",
+        "Michael Rawson",
+        "Andrei Voronkov"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Refutation": "SZS output end Proof",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH1_NAR",
+        "TH0_NAR",
+        "TF1_NAR",
+        "TX0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://vprover.github.io/",
+      "version": "5.0.1"
+    },
+    {
+      "command": "vampire --mode vampire --forced_options av=off:nm=0:bce=off:updr=off:fde=none:rp=off --proof tptp -m 16384 -t %d %s",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Refutation": "SZS output start Proof",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Vampire-LIT---5.0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "Vampire-LIT",
+      "note": "Prover and model finder",
+      "people": [
+        "Martin Suda",
+        "Michael Rawson",
+        "Andrei Voronkov"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Refutation": "SZS output end Proof",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH1_NAR",
+        "TH0_NAR",
+        "TX1_NAR",
+        "TX0",
+        "TF1_NAR",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://vprover.github.io/",
+      "version": "5.0.1"
+    },
+    {
+      "command": "run_vlp %s",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "Vampire-LP---5.0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "Vampire-LP",
+      "note": "Prover with LambdaPi output",
+      "people": [
+        "Michael Rawson"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "TH1_NAR",
+        "TH0_NAR",
+        "TF1_NAR",
+        "TX0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "5.0.1"
+    },
+    {
+      "command": "run_vampire %s %d SAT",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Refutation": "SZS output start Proof",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Vampire-SAT---5.0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa",
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "Vampire-SAT",
+      "note": "Model finder",
+      "people": [
+        "Martin Suda",
+        "Michael Rawson",
+        "Andrei Voronkov"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Refutation": "SZS output end Proof",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TX0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://vprover.github.io/",
+      "version": "5.0.1"
+    },
+    {
+      "command": "vampire --mode vampire --intent sat --forced_options av=off:nm=0:bce=off:updr=off:fde=none:rp=off --proof tptp -m 16384 -t %d %s",
+      "dataforms": {
+        "FiniteModel": "SZS output start FiniteModel",
+        "Refutation": "SZS output start Proof",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Vampire-SATLIT---5.0.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [],
+      "name": "Vampire-SATLIT",
+      "note": "Prover and model finder",
+      "people": [
+        "Martin Suda",
+        "Michael Rawson",
+        "Andrei Voronkov"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "FiniteModel": "SZS output end FiniteModel",
+          "Refutation": "SZS output end Proof",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "ContradictoryAxioms": "SZS status ContradictoryAxioms",
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH1_NAR",
+        "TH0_NAR",
+        "TX1_NAR",
+        "TX0",
+        "TF1_NAR",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://vprover.github.io/",
+      "version": "5.0.1"
+    },
+    {
+      "command": "run_vclausify_rel %s %d",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "VCNF---4.8",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "VCNF",
+      "note": "Converts to CNF",
+      "people": [
+        "Andrei Voronkov",
+        "Krystof Hoder"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfClauses": "SZS output start ListOfCNF"
+        },
+        "end_soln": {
+          "ListOfClauses": "SZS output end ListOfCNF"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://vprover.github.io/",
+      "version": "4.8"
+    },
+    {
+      "command": "run_vip %s --time-limit %d",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation"
+      },
+      "format": "tptp:raw",
+      "id": "VIP---1.718",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "tstp",
+        "starexec",
+        "casc"
+      ],
+      "name": "VIP",
+      "note": "Prover",
+      "people": [
+        "Ilies Nokrani",
+        "David Delahaye",
+        "Clémence Gerardin"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/delahayd/ip.git",
+      "version": "1.718"
+    },
+    {
+      "command": "run_sine_select %s",
+      "dataforms": {
+        "ListOfFormulae": "SZS output start ListOfFormulae"
+      },
+      "format": "tptp:raw",
+      "id": "VSelect---4.4",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "VSelect",
+      "note": "Axiom selection",
+      "people": [
+        "Krystof Hoder"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "ListOfFormulae": "SZS output end ListOfFormulae"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": null,
+      "statistic": null,
+      "transform": "none",
+      "url": "https://vprover.github.io/",
+      "version": "4.4"
+    },
+    {
+      "command": "woody %s",
+      "dataforms": {
+        "CNFRefutation": "SZS output start CNFRefutation",
+        "Saturation": "SZS output start Saturation"
+      },
+      "format": "tptp:raw",
+      "id": "Waldmeister---710",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "sscpa",
+        "tstp"
+      ],
+      "name": "Waldmeister",
+      "note": "Prover",
+      "people": [
+        "Thomas Hillenbrand",
+        "Bernd Loechner (WEC)"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "CNFRefutation": "SZS output end CNFRefutation",
+          "Saturation": "SZS output end Saturation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "CNF_UEQ"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "710"
+    },
+    {
+      "command": "bin/why3 prove -F tptp -C /home/tptp/Systems/Why3---0.85/why3.conf -D /home/tptp/Systems/Why3---0.85/Source/drivers/tptp.gen %s",
+      "dataforms": {
+        "ListOfFormulae": "StartOfFile"
+      },
+      "format": "tptp:raw",
+      "id": "Why3-FOF---0.85",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Why3-FOF",
+      "note": "Converts to FOF",
+      "people": [
+        "Andrei Paskevich"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "ListOfFormulae": "EndOfFile"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "StartOfFile"
+      },
+      "spcs": [
+        "TF1"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.85"
+    },
+    {
+      "command": "bin/why3 prove -F tptp -C /home/tptp/Systems/Why3---0.85/why3.conf -D /home/tptp/Systems/Why3---0.85/Source/drivers/tptp-tff0.drv %s",
+      "dataforms": {
+        "ListOfFormulae": "StartOfFile"
+      },
+      "format": "tptp:raw",
+      "id": "Why3-TF0---0.85",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "Why3-TF0",
+      "note": "Converts to TF0",
+      "people": [
+        "Andrei Paskevich"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "ListOfFormulae": "EndOfFile"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "StartOfFile"
+      },
+      "spcs": [
+        "TF1"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": null,
+      "version": "0.85"
+    },
+    {
+      "command": "run_z3 -proof -model -t:%d -file:%s",
+      "dataforms": {
+        "Model": "SZS output start Model",
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp",
+      "id": "Z3---4.17.0.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa"
+      ],
+      "name": "Z3",
+      "note": "Prover and model finder",
+      "people": [
+        "Leonardo de Moura",
+        "Nikolaj Bjorner"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Model": "SZS output end Model",
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "CounterSatisfiable": "SZS status CounterSatisfiable",
+        "Satisfiable": "SZS status Satisfiable",
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/Z3Prover/z3",
+      "version": "4.17.0.0"
+    },
+    {
+      "command": "run_zenon %s %d",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "Zenon---0.7.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp",
+        "sscpa"
+      ],
+      "name": "Zenon",
+      "note": "Prover",
+      "people": [
+        "Damien Doligez"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": "NodesSearch = nodes searched: *([0-9]*) && MaxBranchF = max branch formulas: *([0-9]*) && ProofNodes = proof nodes created: *([0-9]*) && Formulas = formulas created: *([0-9]*)",
+      "transform": "none",
+      "url": null,
+      "version": "0.7.1"
+    },
+    {
+      "command": "run_zenon_modulo %d %s NONE",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "ZenonModulo---0.5.0",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "starexec",
+        "tstp"
+      ],
+      "name": "ZenonModulo",
+      "note": "Prover",
+      "people": [
+        "Guillaume Burel"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF1",
+        "TX0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "NodesSearch = nodes searched: *([0-9]*) && MaxBranchF = max branch formulas: *([0-9]*) && ProofNodes = proof nodes created: *([0-9]*) && Formulas = formulas created: *([0-9]*)",
+      "transform": "none",
+      "url": "https://github.com/Deducteam/zenon_modulo",
+      "version": "0.5.0"
+    },
+    {
+      "command": "run_zenon_modulo %d %s DK",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "ZenonModulo-DK---0.5.0",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "tstp"
+      ],
+      "name": "ZenonModulo-DK",
+      "note": "Prover",
+      "people": [
+        "Guillaume Burel"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF1",
+        "TX0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "NodesSearch = nodes searched: *([0-9]*) && MaxBranchF = max branch formulas: *([0-9]*) && ProofNodes = proof nodes created: *([0-9]*) && Formulas = formulas created: *([0-9]*)",
+      "transform": "none",
+      "url": "https://deducteam.gitlabpages.inria.fr/zenonmodulo/",
+      "version": "0.5.0"
+    },
+    {
+      "command": "run_zenon_modulo %d %s LP",
+      "dataforms": {
+        "Proof": "SZS output start Proof"
+      },
+      "format": "tptp:raw",
+      "id": "ZenonModulo-LP---0.5.0",
+      "interfaces": [],
+      "listings": [
+        "starexec",
+        "tstp"
+      ],
+      "name": "ZenonModulo-LP",
+      "note": "Prover",
+      "people": [
+        "Guillaume Burel"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Proof": "SZS output end Proof"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TF1",
+        "TX0",
+        "TF0",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": "NodesSearch = nodes searched: *([0-9]*) && MaxBranchF = max branch formulas: *([0-9]*) && ProofNodes = proof nodes created: *([0-9]*) && Formulas = formulas created: *([0-9]*)",
+      "transform": "none",
+      "url": "https://deducteam.gitlabpages.inria.fr/zenonmodulo/",
+      "version": "0.5.0"
+    },
+    {
+      "command": "run_zipperposition %s %d",
+      "dataforms": {
+        "Refutation": "SZS output start Refutation"
+      },
+      "format": "tptp:raw",
+      "id": "Zipperpin---2.1",
+      "interfaces": [
+        "system_on_tptp"
+      ],
+      "listings": [
+        "sscpa"
+      ],
+      "name": "Zipperpin",
+      "note": "Prover",
+      "people": [
+        "Petar Vukmirovic"
+      ],
+      "raw": {
+        "dataforms": {},
+        "end_soln": {
+          "Refutation": "SZS output end Refutation"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Theorem": "SZS status Theorem",
+        "Unsatisfiable": "SZS status Unsatisfiable"
+      },
+      "spcs": [
+        "TH1_NAR",
+        "TH0_NAR",
+        "TX0_NAR",
+        "TF1_NAR",
+        "TF0_NAR",
+        "FOF",
+        "CNF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "https://github.com/c-cube/zipperposition",
+      "version": "2.1"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+% START OF SYSTEM OUTPUT
+% Running in auto input_syntax mode. Trying TPTP
+% TRYING [1]
+% TRYING [2]
+% Finite Model Found!
+% SZS status Satisfiable for SOT_IHAiGK
+% SZS output start FiniteModel for SOT_IHAiGK
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('declare_$i2',type,'fmb_$i_2':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         X = 'fmb_$i_1' | X = 'fmb_$i_2'
+      ) ).
+
+tff('distinct_domain_$i',axiom,
+         'fmb_$i_1' != 'fmb_$i_2'
+).
+
+tff(declare_a,type,a:$i).
+tff(a_definition,axiom,a = 'fmb_$i_1').
+tff(declare_b,type,b:$i).
+tff(b_definition,axiom,b = 'fmb_$i_2').
+tff(declare_f,type,f: ($i) > $i).
+tff(function_f,axiom,
+           f('fmb_$i_1') = 'fmb_$i_2'
+         & f('fmb_$i_2') = 'fmb_$i_1'
+
+).
+
+tff(declare_p,type,p: ($i) > $o).
+tff(predicate_p,axiom,
+           p('fmb_$i_1')
+         & ~p('fmb_$i_2')
+
+).
+
+tff(declare_q,type,q: ($i * $i) > $o).
+tff(predicate_q,axiom,
+           ~q('fmb_$i_1','fmb_$i_1')
+         & q('fmb_$i_1','fmb_$i_2')
+         & q('fmb_$i_2','fmb_$i_1')
+         & ~q('fmb_$i_2','fmb_$i_2')
+
+).
+
+% SZS output end FiniteModel for SOT_IHAiGK
+% ------------------------------
+% Version: Vampire 5.0.1 (Release build, commit ea8961452 on 2026-07-16 15:14:34 +0200)
+% Linked with Z3 4.14.0.0 3c47fd96cf5645d0c42b2c819d9e9a84380aa721 z3-4.8.4-9178-g3c47fd96c
+% CaDiCaL version: 2.1.3
+% Termination reason: Satisfiable
+% Time elapsed: 0.177 s
+% Peak memory usage: 114 MB
+% ------------------------------
+% ------------------------------
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_IHAiGK - Vampire-FMo---5.0.1 says Satisfiable - CPU = 0.46 WC = 0.49 
+% OUTPUT: SOT_IHAiGK - Vampire-FMo---5.0.1 says FiniteModel - CPU = 0.46 WC = 0.49 

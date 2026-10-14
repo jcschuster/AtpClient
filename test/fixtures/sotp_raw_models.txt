@@ -1,0 +1,275 @@
+% START OF SYSTEM OUTPUT
+% Mace4 (64) version 2026-6A, July 2026, CASC-J13.
+% Process 258454 was started by an unknown user on quoll,
+% Wed Oct 14 08:39:16 2026
+% The command was "/home/tptp/Systems/Mace4---2026-6A/mace4 -casc 10 -f /tmp/LF2ZfFdEkb/SOT_rh_DbG".
+
+% SZS status Satisfiable for SOT_rh_DbG
+% SZS output start FiniteModel for SOT_rh_DbG
+fof(interp_domain, interpretation-domains,
+    ! [X] : ( X = "d0" | X = "d1" )).
+
+fof(interp_functions, interpretation-mappings, (
+    a = "d0" &
+    b = "d1" &
+    f("d0") = "d1" &
+    f("d1") = "d0" )).
+
+fof(interp_relations, interpretation-mappings, (
+    p("d0") &
+    ~p("d1") &
+    ~q("d0","d0") &
+    q("d0","d1") &
+    q("d1","d0") &
+    ~q("d1","d1") )).
+
+% SZS output end FiniteModel for SOT_rh_DbG
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_rh_DbG - Mace4---2026-6A says Satisfiable - CPU = 0.00 WC = 0.01 
+% OUTPUT: SOT_rh_DbG - Mace4---2026-6A says FiniteModel - CPU = 0.00 WC = 0.01 
+% START OF SYSTEM OUTPUT
+Paradox, version 4.0, 2010-06-29.
++++ PROBLEM: /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
+Reading '/tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short' ... OK
++++ SOLVING: /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
++++ BEGIN MODEL
+SZS output start FiniteModel for /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
+% domain size is 2
+fof(domain, fi_domain,
+  (![X] : (X = "1" | X = "2"))
+).
+
+fof(a, fi_functors,
+  ( (a = "1")
+  )
+).
+
+fof(b, fi_functors,
+  ( (b = "2")
+  )
+).
+
+fof(f, fi_functors,
+  ( (f("1") = "2")
+  & (f("2") = "2")
+  )
+).
+
+fof(p, fi_predicates,
+  ( (p("1") <=> $true)
+  & (p("2") <=> $false)
+  )
+).
+
+fof(q, fi_predicates,
+  ( ![X1,X2] : (q(X1,X2) <=> $true)
+  )
+).
+SZS output end FiniteModel for /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
++++ END MODEL
++++ RESULT: Satisfiable
+SZS status Satisfiable for /tmp/SystemOnTPTP258471/SOT_rh_DbG.tptp:short
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_rh_DbG - Paradox---4.0 says Satisfiable - CPU = 0.00 WC = 0.00  Size = 2
+% OUTPUT: SOT_rh_DbG - Paradox---4.0 says FiniteModel - CPU = 0.00 WC = 0.00 
+% START OF SYSTEM OUTPUT
+Running first-order model finding
+Running: /home/tptp/Systems/Vampire-SAT---5.0.1/vampire-ho --input_syntax tptp --output_axiom_names on --mode casc --intent sat -m 16384 --cores 7 -t 10 /tmp/LF2ZfFdEkb/SOT_rh_DbG
+% (258548)Will run a generic schedule for satisfiability detection.
+% (258554)% WARNING: option uhcvi not known.
+% (258559)ott-3_16_to=lpo:sil=16000:sp=arity:fd=off:rp=on:random_seed=2065773945:i=159:bs=unit_only:nicw=on:fsr=off:amm=off_1 on SOT_rh_DbG for (1ds/159Mi)
+% (258556)dis+10_1_sil=32000:sp=arity:random_seed=3438676662:i=103:fgj=on_1 on SOT_rh_DbG for (1ds/103Mi)
+% (258554)dis+11_61:31_drc=ordering:lsd=5:bsr=unit_only:rp=on:newcnf=on:random_seed=962033098:i=135531:add=off:rawr=on_100 on SOT_rh_DbG for (100ds/135531Mi)
+% (258558)ott+1_1_to=lpo:sil=16000:sp=reverse_arity:erd=off:random_seed=3606639650:i=131_1 on SOT_rh_DbG for (1ds/131Mi)
+% (258557)ott+31_1_sil=16000:lcm=predicate:bce=on:newcnf=on:random_seed=39376648:i=116_1 on SOT_rh_DbG for (1ds/116Mi)
+% (258559) found proof, printing to "/tmp/tmp.3p544ZzA1o/vampire-proof-258548-258559"...
+% (258556) found proof, printing to "/tmp/tmp.3p544ZzA1o/vampire-proof-258548-258556"...
+% (258554) found proof, printing to "/tmp/tmp.3p544ZzA1o/vampire-proof-258548-258554"...
+% (258558) found proof, printing to "/tmp/tmp.3p544ZzA1o/vampire-proof-258548-258558"...
+% (258557) found proof, printing to "/tmp/tmp.3p544ZzA1o/vampire-proof-258548-258557"...
+% (258559)...printing done.
+% (258556)...printing done.
+% (258554)...printing done.
+% (258558)...printing done.
+% (258557)...printing done.
+% SZS status Satisfiable for SOT_rh_DbG
+% SZS output start Saturation.
+cnf(u7,axiom,
+    p(a)).
+
+cnf(u8,axiom,
+    ~p(f(a))).
+
+cnf(u10,axiom,
+    q(a,f(a))).
+
+cnf(u12,axiom,
+    q(f(a),a)).
+
+cnf(u11,axiom,
+    a != b).
+
+cnf(u9,axiom,
+    ~q(X0,X1) | q(X1,X0)).
+
+% SZS output end Saturation.
+% SZS output start Definitions and Model Updates.
+% SZS output end Definitions and Model Updates.
+% (258556)------------------------------
+% (258556)Version: Vampire 5.0.1 (Release build, commit 5ef7c2677 on 2026-07-16 16:54:09 +0200)
+% (258556)Linked with Z3 4.14.0.0 3c47fd96cf5645d0c42b2c819d9e9a84380aa721 z3-4.8.4-9178-g3c47fd96c
+% (258556)CaDiCaL version: 2.1.3
+% (258556)Termination reason: Satisfiable
+% (258556)Time elapsed: 0.001 s
+% (258556)Peak memory usage: 10 MB
+% (258548)Success in time 0.019 s
+% Vampire exiting
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_rh_DbG - Vampire-SAT---5.0.1 says Satisfiable - CPU = 0.00 WC = 0.05 
+% OUTPUT: SOT_rh_DbG - Vampire-SAT---5.0.1 says Saturation - CPU = 0.00 WC = 0.05 
+% START OF SYSTEM OUTPUT
+Running first-order model finding
+Running: /home/tptp/Systems/E-SAT---3.5.1/eprover --delete-bad-limit=2000000000 --definitional-cnf=24 -s --print-statistics -R --print-version --proof-object --satauto-schedule=8 --cpu-limit=10 /tmp/LF2ZfFdEkb/SOT_rh_DbG
+% Version: 3.5.1
+% Preprocessing class: FSSSSMSSSSSNFFN.
+% Scheduled 4 strats onto 8 cores with 10 seconds (80 total)
+% Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 50s (5) cores
+% Starting new_bool_3 with 10s (1) cores
+% Starting new_bool_1 with 10s (1) cores
+% Starting sh5l with 10s (1) cores
+% G-E--_302_C18_F1_URBAN_RG_S04BN with pid 258613 completed with status 1
+% Result found by G-E--_302_C18_F1_URBAN_RG_S04BN
+% Preprocessing class: FSSSSMSSSSSNFFN.
+% Scheduled 4 strats onto 8 cores with 10 seconds (80 total)
+% Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 50s (5) cores
+% (lift_lambdas = 1, lambda_to_forall = 1,unroll_only_formulas = 1, sine = Auto)
+% No SInE strategy applied
+% Search class: FHUSF-FFSF11-SFFFFFNN
+% Scheduled 7 strats onto 5 cores with 50 seconds (50 total)
+% Starting SubtermCWHack with 5s (1) cores
+% Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 6s (1) cores
+% Starting G-E--_208_C18_F1_SE_CS_SP_PS_S5PRR_S0Y with 5s (1) cores
+% Starting new_bool_3 with 5s (1) cores
+% Starting new_bool_1 with 5s (1) cores
+% SubtermCWHack with pid 258620 completed with status 1
+% Result found by SubtermCWHack
+% Preprocessing class: FSSSSMSSSSSNFFN.
+% Scheduled 4 strats onto 8 cores with 10 seconds (80 total)
+% Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 50s (5) cores
+% (lift_lambdas = 1, lambda_to_forall = 1,unroll_only_formulas = 1, sine = Auto)
+% No SInE strategy applied
+% Search class: FHUSF-FFSF11-SFFFFFNN
+% Scheduled 7 strats onto 5 cores with 50 seconds (50 total)
+% Starting SubtermCWHack with 5s (1) cores
+% Preprocessing time       : 0.001 s
+
+% No proof found!
+% SZS status Satisfiable
+% SZS output start Saturation
+cnf(c_0_10, plain, (q(X2,X1)|~q(X1,X2)), inference(split_conjunct,[status(thm)],[c_0_7]), ['final']).
+cnf(c_0_11, plain, (q(a,f(a))), inference(split_conjunct,[status(thm)],[a4]), ['final']).
+cnf(c_0_12, plain, (~p(f(a))), inference(split_conjunct,[status(thm)],[c_0_8]), ['final']).
+cnf(c_0_13, plain, (a!=b), inference(split_conjunct,[status(thm)],[c_0_9]), ['final']).
+cnf(c_0_14, plain, (q(f(a),a)), inference(spm,[status(thm)],[c_0_10, c_0_11]), ['final']).
+cnf(c_0_15, plain, (p(a)), inference(split_conjunct,[status(thm)],[a1]), ['final']).
+% SZS output end Saturation
+% Parsed axioms                        : 5
+% Removed by relevancy pruning/SinE    : 0
+% Initial clauses                      : 5
+% Removed in clause preprocessing      : 0
+% Initial clauses in saturation        : 5
+% Processed clauses                    : 6
+% ...of these trivial                  : 0
+% ...subsumed                          : 0
+% ...remaining for further processing  : 6
+% Other redundant clauses eliminated   : 0
+% Clauses deleted for lack of memory   : 0
+% Backward-subsumed                    : 0
+% Backward-rewritten                   : 0
+% Generated clauses                    : 2
+% ...of the previous two non-redundant : 1
+% ...aggressively subsumed             : 0
+% Contextual simplify-reflections      : 0
+% Paramodulations                      : 2
+% Factorizations                       : 0
+% NegExts                              : 0
+% Equation resolutions                 : 0
+% Disequality decompositions           : 0
+% Total rewrite steps                  : 1
+% ...of those cached                   : 0
+% Propositional unsat checks           : 0
+%    Propositional check models        : 0
+%    Propositional check unsatisfiable : 0
+%    Propositional clauses             : 0
+%    Propositional clauses after purity: 0
+%    Propositional unsat core size     : 0
+%    Propositional preprocessing time  : 0.000
+%    Propositional encoding time       : 0.000
+%    Propositional solver time         : 0.000
+%    Success case prop preproc time    : 0.000
+%    Success case prop encoding time   : 0.000
+%    Success case prop solver time     : 0.000
+% Current number of processed clauses  : 6
+%    Positive orientable unit clauses  : 3
+%    Positive unorientable unit clauses: 0
+%    Negative unit clauses             : 2
+%    Non-unit-clauses                  : 1
+% Current number of unprocessed clauses: 0
+% ...number of literals in the above   : 0
+% Current number of archived formulas  : 0
+% Current number of archived clauses   : 0
+% Clause-clause subsumption calls (NU) : 0
+% Rec. Clause-clause subsumption calls : 0
+% Non-unit clause-clause subsumptions  : 0
+% Unit Clause-clause subsumption calls : 0
+% Rewrite failures with RHS unbound    : 0
+% BW rewrite match attempts            : 0
+% BW rewrite match successes           : 0
+% Condensation attempts                : 0
+% Condensation successes               : 0
+% Termbank termtop insertions          : 156
+% Search garbage collected termcells   : 15
+
+% -------------------------------------------------
+% User time                : 0.005 s
+% System time              : 0.002 s
+% Total time               : 0.007 s
+% Maximum resident set size: 3576 pages
+
+% -------------------------------------------------
+% User time                : 0.008 s
+% System time              : 0.014 s
+% Total time               : 0.022 s
+% Maximum resident set size: 4608 pages
+% E exiting
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_rh_DbG - E-SAT---3.5.1 says Satisfiable - CPU = 0.00 WC = 0.05 
+% OUTPUT: SOT_rh_DbG - E-SAT---3.5.1 says Saturation - CPU = 0.00 WC = 0.05 
+% START OF SYSTEM OUTPUT
+%----Disproving FOF, CNF
+--- Run --decision=internal --simplification=none --no-inst-no-entail --no-cbqi --full-saturate-quant at 0...
+--- Run --no-e-matching --full-saturate-quant at 0...
+--- Run --no-e-matching --enum-inst-sum --full-saturate-quant at 0...
+--- Run --finite-model-find --uf-ss=no-minimal at 1...
+% SZS status Satisfiable
+% SZS output start Model
+(
+; cardinality of $$unsorted is 2
+; rep: (as @$$unsorted_0 $$unsorted)
+; rep: (as @$$unsorted_1 $$unsorted)
+(define-fun tptp.a () $$unsorted (as @$$unsorted_0 $$unsorted))
+(define-fun tptp.p ((_arg_1 $$unsorted)) Bool (= (as @$$unsorted_0 $$unsorted) _arg_1))
+(define-fun tptp.f ((_arg_1 $$unsorted)) $$unsorted (as @$$unsorted_1 $$unsorted))
+(define-fun tptp.q (($x1 $$unsorted) ($x2 $$unsorted)) Bool true)
+(define-fun tptp.b () $$unsorted (as @$$unsorted_1 $$unsorted))
+)
+% SZS output end Model
+% cvc5 exiting
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_rh_DbG - cvc5-SAT---1.3.4 says Satisfiable - CPU = 0.08 WC = 0.75 
+% OUTPUT: SOT_rh_DbG - cvc5-SAT---1.3.4 says Model - CPU = 0.08 WC = 0.75 

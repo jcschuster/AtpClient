@@ -1,0 +1,117 @@
+{
+  "AGMV": {
+    "capabilities": ["verify", "verify_model"],
+    "reason": "Solved gives verify; only UserNote says model verifier, which no field distinguishes",
+    "since": "2026-10-14"
+  },
+  "CheckTyping": {
+    "capabilities": ["check"],
+    "reason": "Solved is Success = 0 errors, no SyntaxError/TypeError key; UserNote: Checks all symbols are typed",
+    "since": "2026-10-14"
+  },
+  "GetSymbols": {
+    "capabilities": ["inspect"],
+    "reason": "Solved and StartSoln are NO INFORMATION; UserNote: Extracts the symbols in formulae",
+    "since": "2026-10-14"
+  },
+  "ProblemStats": {
+    "capabilities": ["inspect"],
+    "reason": "Solved is Success only, dataform Comment; UserNote: Print problem statistics",
+    "since": "2026-10-14"
+  },
+  "SPCForProblem": {
+    "capabilities": ["inspect"],
+    "reason": "Solved is Success only, no dataform; UserNote: Computes the SPC",
+    "since": "2026-10-14"
+  },
+  "TPII": {
+    "capabilities": ["transform"],
+    "reason": "Solved is Success only, no dataform; UserNote: Interpreter for TPI language, which rewrites the problem",
+    "since": "2026-10-14"
+  },
+  "TPTP2X": {
+    "capabilities": ["transform"],
+    "reason": "Solved and StartSoln are NO INFORMATION; UserNote: Utility for transforming and formatting",
+    "since": "2026-10-14"
+  },
+  "cvc5-STC": {
+    "capabilities": ["check"],
+    "reason": "Status lists no interface and Solved is Success only; UserNote: Syntax and type checker (the keyword fallback also reads checker as verify)",
+    "since": "2026-10-14"
+  },
+  "Infinox": {
+    "capabilities": ["prove"],
+    "reason": "Solved is FiniteTheorem/FinitelyUnsatisfiable, outside the prove rule; no interpretation dataform backs UserNote's model finder",
+    "since": "2026-10-14"
+  },
+  "SleighQueen": {
+    "capabilities": ["prove"],
+    "reason": "Solved is Success only, dataforms Proof and FreeText; UserNote: Meta-prover",
+    "since": "2026-10-14"
+  },
+  "Vampire-LP": {
+    "capabilities": ["prove"],
+    "reason": "Solved is Success only, dataform Proof; UserNote: Prover with LambdaPi output",
+    "since": "2026-10-14"
+  },
+  "AGInTRater": {
+    "capabilities": ["inspect"],
+    "reason": "Solved is Rated/NotRated (outside the ontology), dataform Derivation; UserNote: Rates proof formulae for interestingness",
+    "since": "2026-10-14"
+  },
+  "IDV": {
+    "capabilities": ["inspect"],
+    "reason": "Solved is Success only, no dataform; UserNote: Interactive derivation viewer",
+    "since": "2026-10-14"
+  },
+  "IIV": {
+    "capabilities": ["inspect"],
+    "reason": "Solved is Success only, no dataform; UserNote: Interactive interpretation viewer",
+    "since": "2026-10-14"
+  },
+  "ProofSummary": {
+    "capabilities": ["inspect"],
+    "reason": "Solved is Success only, dataform Derivation; UserNote: Summarizes proof",
+    "since": "2026-10-14"
+  },
+  "PProofSummary": {
+    "capabilities": ["inspect"],
+    "reason": "Solved is Success only, dataform Derivation; UserNote: Summarizes proof in Prolog format",
+    "since": "2026-10-14"
+  },
+  "ProofStats": {
+    "capabilities": ["inspect"],
+    "reason": "Solved is Success only, dataform Comment; UserNote: Print proof statistics",
+    "since": "2026-10-14"
+  },
+  "SolutionStats": {
+    "capabilities": ["inspect"],
+    "reason": "Solved is Success only, dataform Comment; UserNote: Print solution statistics",
+    "since": "2026-10-14"
+  },
+  "Taelja": {
+    "capabilities": ["transform"],
+    "reason": "Solved is Success only, no dataform; UserNote: Refutation to Proof converter — a solution tool that rewrites the solution",
+    "since": "2026-10-14"
+  },
+  "TSTP2NL": {
+    "capabilities": ["transform"],
+    "reason": "Solved is Success only, no dataform; UserNote: Refutation to language converter",
+    "since": "2026-10-14"
+  },
+  "TPTP4X": {
+    "capabilities": ["transform"],
+    "reason": "every field is NO INFORMATION, offered on SB4TPTP, SoTSTP and SoTMTP; UserNote: Utility for transforming and formatting",
+    "since": "2026-10-14"
+  },
+  "TPTP2JSON": {
+    "capabilities": ["transform"],
+    "reason": "Solved is Success only, no dataform, offered on SB4TPTP, SoTSTP and SoTMTP; UserNote: Converts to JSON",
+    "since": "2026-10-14"
+  },
+  "InterpretByATP": {
+    "capabilities": ["verify_model"],
+    "reason": "Solved is Success/NoSuccess, no dataform, no keyword matches; UserNote: Evaluates formulae against a model, between SZS lines (ask Geoff) — read as model checking",
+    "since": "2026-10-14"
+  }
+}

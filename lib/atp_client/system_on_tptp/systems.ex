@@ -144,6 +144,24 @@ defmodule AtpClient.SystemOnTptp.Systems do
   end
 
   @doc """
+  What `AtpClient.Verdict` reads `system`'s output with: the record's `Solved`
+  and `GaveUp` patterns, when it is loaded, and the name whose prover-specific
+  messages apply (`:system_name`). `[]` for `nil`.
+  """
+  @spec verdict_options(binary() | nil) :: keyword()
+  def verdict_options(nil), do: []
+
+  def verdict_options(system) when is_binary(system) do
+    case get(system) do
+      %System{} = found ->
+        [solved: found.solved, gave_up: Map.values(found.raw.gave_up), system_name: found.name]
+
+      nil ->
+        [system_name: system]
+    end
+  end
+
+  @doc """
   When the systems loaded were generated, and where from: the snapshot's
   `generated_at`, or the time of the last successful refresh.
   """

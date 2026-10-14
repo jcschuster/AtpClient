@@ -1,0 +1,323 @@
+%------------------------------------------------------------------------------
+% File     : E---3.5.1
+% Problem  : SOT_YCnkLK : v?.?.?
+% Transfm  : none
+% Format   : tptp:raw
+% Command  : run_E %s %d THM
+
+% Computer : quoll
+% Model    : x86_64 x86_64
+% CPU      : Intel(R) Xeon(R) CPU E5-4610 0 @ 2.40GHz
+% Memory   : 128861MB
+% OS       : Linux 6.8.0-139-generic
+% CPULimit : 10s
+% WCLimit  : 0s
+% DateTime : Wed Oct 14 08:38:39 UTC 2026
+
+% Result   : Theorem 0.00s 0.03s
+% Output   : CNFRefutation 0.00s
+% Verified : 
+% SZS Type : Refutation
+%            Derivation depth      :    5
+%            Number of leaves      :    3
+% Syntax   : Number of formulae    :   11 (   8 unt;   0 def)
+%            Number of atoms       :   14 (   0 equ)
+%            Maximal formula atoms :    2 (   1 avg)
+%            Number of connectives :    9 (   6   ~;   2   |;   0   &)
+%                                         (   0 <=>;   1  =>;   0  <=;   0 <~>)
+%            Maximal formula depth :    4 (   2 avg)
+%            Maximal term depth    :    1 (   1 avg)
+%            Number of predicates  :    3 (   2 usr;   1 prp; 0-1 aty)
+%            Number of functors    :    1 (   1 usr;   1 con; 0-0 aty)
+%            Number of variables   :    3 (   0 sgn   2   !;   0   ?)
+
+% Comments : 
+%------------------------------------------------------------------------------
+fof(c,conjecture,
+    q(a),
+    file('/tmp/HKdDPqQXpc/SOT_YCnkLK',c) ).
+
+fof(a1,axiom,
+    ! [X1] :
+      ( p(X1)
+     => q(X1) ),
+    file('/tmp/HKdDPqQXpc/SOT_YCnkLK',a1) ).
+
+fof(a2,axiom,
+    p(a),
+    file('/tmp/HKdDPqQXpc/SOT_YCnkLK',a2) ).
+
+fof(c_0_3,negated_conjecture,
+    ~ q(a),
+    inference(assume_negation,[status(cth)],[c]) ).
+
+fof(c_0_4,negated_conjecture,
+    ~ q(a),
+    inference(fof_simplification,[status(thm)],[c_0_3]) ).
+
+fof(c_0_5,negated_conjecture,
+    ~ q(a),
+    inference(fof_nnf,[status(thm)],[c_0_4]) ).
+
+fof(c_0_6,plain,
+    ! [X2] :
+      ( ~ p(X2)
+      | q(X2) ),
+    inference(fof_nnf,[status(thm)],[inference(variable_rename,[status(thm)],[inference(fof_nnf,[status(thm)],[a1])])]) ).
+
+cnf(c_0_7,negated_conjecture,
+    ~ q(a),
+    inference(split_conjunct,[status(thm)],[c_0_5]) ).
+
+cnf(c_0_8,plain,
+    ( q(X1)
+    | ~ p(X1) ),
+    inference(split_conjunct,[status(thm)],[c_0_6]) ).
+
+cnf(c_0_9,plain,
+    p(a),
+    inference(split_conjunct,[status(thm)],[a2]) ).
+
+cnf(c_0_10,negated_conjecture,
+    $false,
+    inference(cn,[status(thm)],[inference(rw,[status(thm)],[inference(spm,[status(thm)],[c_0_7,c_0_8]),c_0_9])]),
+    [proof] ).
+
+%------------------------------------------------------------------------------
+%----ORIGINAL SYSTEM OUTPUT
+% Running first-order theorem proving
+% Running: /home/tptp/Systems/E---3.5.1/eprover --delete-bad-limit=2000000000 --definitional-cnf=24 -s --print-statistics -R --print-version --proof-object --auto-schedule=8 --cpu-limit=10 /tmp/HKdDPqQXpc/SOT_YCnkLK
+% % Version: 3.5.1
+% % Preprocessing class: FSSSSMSSSSSNFFN.
+% % Scheduled 4 strats onto 8 cores with 10 seconds (80 total)
+% % Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 50s (5) cores
+% % Starting new_bool_3 with 10s (1) cores
+% % Starting new_bool_1 with 10s (1) cores
+% % Starting sh5l with 10s (1) cores
+% % new_bool_3 with pid 257653 completed with status 0
+% % Result found by new_bool_3
+% % Preprocessing class: FSSSSMSSSSSNFFN.
+% % Scheduled 4 strats onto 8 cores with 10 seconds (80 total)
+% % Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 50s (5) cores
+% % Starting new_bool_3 with 10s (1) cores
+% % (lift_lambdas = 0, lambda_to_forall = 0,unroll_only_formulas = 0, sine = GSinE(CountFormulas,hypos,1.5,,3,20000,1.0))
+% % SinE strategy is GSinE(CountFormulas,hypos,1.5,,3,20000,1.0)
+% % Search class: FHUNF-FFSF00-SFFFFFNN
+% % Scheduled 3 strats onto 1 cores with 10 seconds (10 total)
+% % Starting SubtermCWHack with 2s (1) cores
+% % SubtermCWHack with pid 257664 completed with status 0
+% % Result found by SubtermCWHack
+% % Preprocessing class: FSSSSMSSSSSNFFN.
+% % Scheduled 4 strats onto 8 cores with 10 seconds (80 total)
+% % Starting G-E--_302_C18_F1_URBAN_RG_S04BN with 50s (5) cores
+% % Starting new_bool_3 with 10s (1) cores
+% % (lift_lambdas = 0, lambda_to_forall = 0,unroll_only_formulas = 0, sine = GSinE(CountFormulas,hypos,1.5,,3,20000,1.0))
+% % SinE strategy is GSinE(CountFormulas,hypos,1.5,,3,20000,1.0)
+% % Search class: FHUNF-FFSF00-SFFFFFNN
+% % Scheduled 3 strats onto 1 cores with 10 seconds (10 total)
+% % Starting SubtermCWHack with 2s (1) cores
+% % Preprocessing time       : 0.001 s
+% 
+% % Proof found!
+% % SZS status Theorem
+% % SZS output start CNFRefutation
+% See solution above
+% % Parsed axioms                        : 3
+% % Removed by relevancy pruning/SinE    : 0
+% % Initial clauses                      : 3
+% % Removed in clause preprocessing      : 0
+% % Initial clauses in saturation        : 3
+% % Processed clauses                    : 3
+% % ...of these trivial                  : 0
+% % ...subsumed                          : 0
+% % ...remaining for further processing  : 3
+% % Other redundant clauses eliminated   : 0
+% % Clauses deleted for lack of memory   : 0
+% % Backward-subsumed                    : 0
+% % Backward-rewritten                   : 0
+% % Generated clauses                    : 1
+% % ...of the previous two non-redundant : 0
+% % ...aggressively subsumed             : 0
+% % Contextual simplify-reflections      : 0
+% % Paramodulations                      : 1
+% % Factorizations                       : 0
+% % NegExts                              : 0
+% % Equation resolutions                 : 0
+% % Disequality decompositions           : 0
+% % Total rewrite steps                  : 1
+% % ...of those cached                   : 0
+% % Propositional unsat checks           : 0
+% %    Propositional check models        : 0
+% %    Propositional check unsatisfiable : 0
+% %    Propositional clauses             : 0
+% %    Propositional clauses after purity: 0
+% %    Propositional unsat core size     : 0
+% %    Propositional preprocessing time  : 0.000
+% %    Propositional encoding time       : 0.000
+% %    Propositional solver time         : 0.000
+% %    Success case prop preproc time    : 0.000
+% %    Success case prop encoding time   : 0.000
+% %    Success case prop solver time     : 0.000
+% % Current number of processed clauses  : 3
+% %    Positive orientable unit clauses  : 1
+% %    Positive unorientable unit clauses: 0
+% %    Negative unit clauses             : 1
+% %    Non-unit-clauses                  : 1
+% % Current number of unprocessed clauses: 0
+% % ...number of literals in the above   : 0
+% % Current number of archived formulas  : 0
+% % Current number of archived clauses   : 0
+% % Clause-clause subsumption calls (NU) : 0
+% % Rec. Clause-clause subsumption calls : 0
+% % Non-unit clause-clause subsumptions  : 0
+% % Unit Clause-clause subsumption calls : 0
+% % Rewrite failures with RHS unbound    : 0
+% % BW rewrite match attempts            : 0
+% % BW rewrite match successes           : 0
+% % Condensation attempts                : 0
+% % Condensation successes               : 0
+% % Termbank termtop insertions          : 93
+% % Search garbage collected termcells   : 9
+% 
+% % -------------------------------------------------
+% % User time                : 0.002 s
+% % System time              : 0.001 s
+% % Total time               : 0.003 s
+% % Maximum resident set size: 3624 pages
+% 
+% % -------------------------------------------------
+% % User time                : 0.003 s
+% % System time              : 0.005 s
+% % Total time               : 0.008 s
+% % Maximum resident set size: 4608 pages
+% % E exiting
+% 
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% File     : Vampire---5.0.1
+% Problem  : SOT_YCnkLK : v?.?.?
+% Transfm  : none
+% Format   : tptp:raw
+% Command  : run_vampire %s %d THM
+
+% Computer : quoll
+% Model    : x86_64 x86_64
+% CPU      : Intel(R) Xeon(R) CPU E5-4610 0 @ 2.40GHz
+% Memory   : 128861MB
+% OS       : Linux 6.8.0-139-generic
+% CPULimit : 10s
+% WCLimit  : 0s
+% DateTime : Wed Oct 14 08:38:40 UTC 2026
+
+% Result   : Theorem 2.94s 0.79s
+% Output   : Refutation 2.94s
+% Verified : 
+% SZS Type : Refutation
+%            Derivation depth      :    5
+%            Number of leaves      :    3
+% Syntax   : Number of formulae    :   11 (   8 unt;   0 def)
+%            Number of atoms       :   14 (   0 equ)
+%            Maximal formula atoms :    2 (   1 avg)
+%            Number of connectives :    9 (   6   ~;   2   |;   0   &)
+%                                         (   0 <=>;   1  =>;   0  <=;   0 <~>)
+%            Maximal formula depth :    4 (   2 avg)
+%            Maximal term depth    :    1 (   1 avg)
+%            Number of predicates  :    3 (   2 usr;   1 prp; 0-1 aty)
+%            Number of functors    :    1 (   1 usr;   1 con; 0-0 aty)
+%            Number of variables   :    3 (   3   !;   0   ?)
+
+% Comments : 
+%------------------------------------------------------------------------------
+fof(f1,axiom,
+    ! [X0] :
+      ( p(X0)
+     => q(X0) ),
+    file('/tmp/HKdDPqQXpc/SOT_YCnkLK',a1) ).
+
+fof(f2,axiom,
+    p(a),
+    file('/tmp/HKdDPqQXpc/SOT_YCnkLK',a2) ).
+
+fof(f3,conjecture,
+    q(a),
+    file('/tmp/HKdDPqQXpc/SOT_YCnkLK',c) ).
+
+fof(f4,negated_conjecture,
+    ~ q(a),
+    inference(negated_conjecture,[status(cth)],[f3]) ).
+
+fof(f5,plain,
+    ~ q(a),
+    inference(flattening,[],[f4]) ).
+
+fof(f6,plain,
+    ! [X0] :
+      ( q(X0)
+      | ~ p(X0) ),
+    inference(ennf_transformation,[],[f1]) ).
+
+fof(f7,plain,
+    ~ q(a),
+    inference(cnf_transformation,[],[f5]) ).
+
+fof(f8,plain,
+    p(a),
+    inference(cnf_transformation,[],[f2]) ).
+
+fof(f9,plain,
+    ! [X0] :
+      ( q(X0)
+      | ~ p(X0) ),
+    inference(cnf_transformation,[],[f6]) ).
+
+fof(f10,plain,
+    ~ p(a),
+    inference(resolution,[],[f9,f7]) ).
+
+fof(f11,plain,
+    $false,
+    inference(forward_subsumption_resolution,[],[f10,f8]) ).
+
+%------------------------------------------------------------------------------
+%----ORIGINAL SYSTEM OUTPUT
+% Running first-order theorem proving
+% Running: /home/tptp/Systems/Vampire---5.0.1/vampire --input_syntax tptp --output_axiom_names on --mode casc -m 16384 --cores 7 -t 10 /tmp/HKdDPqQXpc/SOT_YCnkLK
+% % (257922)Detected formulas, will run a generic FOF schedule.
+% % (257937)lrs+10_1_ncem=casc2026/models/loop8.pt:sil=128000:tgt=full:npcc=on:drc=off:sp=weighted_frequency:spb=goal:fd=preordered:foolp=on:random_seed=2166956123:i=141193_100 on SOT_YCnkLK for (100ds/141193Mi)
+% % (257940)lrs+1010_1_to=lpo:sil=32000:sos=on:spb=goal_then_units:bce=on:random_seed=647241633:i=109:sd=1:ins=1:gsp=on:ss=axioms_1 on SOT_YCnkLK for (1ds/109Mi)
+% % (257940)Refutation not found, incomplete strategy
+% % (257940)------------------------------
+% % (257940)Version: Vampire 5.0.1 (Release build, commit ea8961452 on 2026-07-16 15:14:34 +0200)
+% % (257940)Linked with Z3 4.14.0.0 3c47fd96cf5645d0c42b2c819d9e9a84380aa721 z3-4.8.4-9178-g3c47fd96c
+% % (257940)CaDiCaL version: 2.1.3
+% % (257940)Termination reason: Refutation not found, incomplete strategy
+% % (257940)Time elapsed: 0.001 s
+% % (257940)Peak memory usage: 87 MB
+% % (257941)dis-1010_2:3_sil=16000:sp=reverse_frequency:random_seed=1419204598:i=119:av=off:ss=axioms_1 on SOT_YCnkLK for (1ds/119Mi)
+% % (257938)lrs+11_1_ncem=casc2026/models/loop8.pt:sil=128000:npcc=on:lma=off:spb=units:urr=ec_only:bce=on:s2agt=64:updr=off:random_seed=2468574160:i=134677:sd=20:aac=none:nm=16:ss=included:sgt=10_100 on SOT_YCnkLK for (100ds/134677Mi)
+% % (257941)First to succeed.
+% % (257941)Solution written to "/tmp/tmp.wNar4dPPfN/vampire-proof-257922"
+% % (257942)dis-1011_1_sil=16000:fde=unused:s2agt=70:random_seed=4190235152:s2a=on:i=139:gtg=position_1 on SOT_YCnkLK for (1ds/139Mi)
+% % (257939)lrs+1010_1_anc=all:sfv=off:to=kbo:ncem=casc2026/models/loop7.pt:sil=128000:npcc=on:prc=on:sos=all:bsr=unit_only:sac=on:random_seed=4095572747:i=141695:sd=1:nm=32:gsp=on:ss=included_100 on SOT_YCnkLK for (100ds/141695Mi)
+% % (257942)Also succeeded, but the first one will report.
+% % (257943)dis-21_1_sil=8000:lcm=predicate:random_seed=3973192589:st=5:avsq=on:i=129:avsqr=1,16:sd=3:aac=none:ep=RS:fsr=off:ss=included_1 on SOT_YCnkLK for (1ds/129Mi)
+% % (257943)Also succeeded, but the first one will report.
+% % (257940)------------------------------
+% % (257940)------------------------------
+% % (257941)Refutation found. Thanks to Tanya!
+% % SZS status Theorem for SOT_YCnkLK
+% % SZS output start Proof for SOT_YCnkLK
+% See solution above
+% % (257941)------------------------------
+% % (257941)Version: Vampire 5.0.1 (Release build, commit ea8961452 on 2026-07-16 15:14:34 +0200)
+% % (257941)Linked with Z3 4.14.0.0 3c47fd96cf5645d0c42b2c819d9e9a84380aa721 z3-4.8.4-9178-g3c47fd96c
+% % (257941)CaDiCaL version: 2.1.3
+% % (257941)Termination reason: Refutation
+% % (257941)Time elapsed: 0.001 s
+% % (257941)Peak memory usage: 87 MB
+% % (257941)------------------------------
+% % (257941)------------------------------
+% % (257922)Success in time 0.371 s
+% % Vampire exiting
+% 
+%------------------------------------------------------------------------------

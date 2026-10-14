@@ -1,0 +1,28 @@
+% RESULT: SOT_psIzqK - Satallax---3.5 says Inappropriate - CPU = 0 WC = 0 
+% OUTPUT: SOT_psIzqK - Satallax---3.5 says None - CPU = 0 WC = 0 
+% START OF SYSTEM OUTPUT
+Command-line arguments: --lhs-weight 1 --flip-ordering --normalise-queue-percent 10 --cp-renormalise-threshold 10 --complete-subsets --ground-joining-incomplete-limit 15 --flatten-every 2
+
+% SZS status Theorem
+
+% SZS output start Proof
+Axiom 1 (a2): p(a) = true.
+Axiom 2 (ifeq_axiom): ifeq(X, X, Y, Z) = Y.
+Axiom 3 (a1): ifeq(p(X), true, q(X), true) = true.
+
+Goal 1 (c): q(a) = true.
+Proof:
+  q(a)
+= { by axiom 2 (ifeq_axiom) R->L }
+  ifeq(true, true, q(a), true)
+= { by axiom 1 (a2) R->L }
+  ifeq(p(a), true, q(a), true)
+= { by axiom 3 (a1) }
+  true
+% SZS output end Proof
+
+RESULT: Theorem (the conjecture is true).
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_psIzqK - Twee---2.7 says Theorem - CPU = 0.00 WC = 0.06 
+% OUTPUT: SOT_psIzqK - Twee---2.7 says Proof - CPU = 0.00 WC = 0.06 

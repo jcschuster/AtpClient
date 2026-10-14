@@ -1,0 +1,18 @@
+% START OF SYSTEM OUTPUT
+% No problem file supplied
+Run in plain GDV mode
+Running: /home/tptp/ServiceTools/GDV -T  -t 30   /tmp/tbv8ViuhQu/SOT_DMRNlq
+ NOTICE: Checking the syntax of the derivation file /tmp/tbv8ViuhQu/SOT_DMRNlq
+ RESULT: SOT_DMRNlq - BNFParser---0.0 says SyntaxError - CPU = 0.00
+ OUTPUT:
+% SZS status SyntaxError : syntax error in line 1 at item ".".
+% BNFParser exiting
+
+  ERROR: Syntax error in /tmp/tbv8ViuhQu/SOT_DMRNlq
+STOPPED: Something bad happened
+% SZS status GaveUp
+GDV ended, cleaning up
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_DMRNlq - GDV---2.0 says GaveUp - CPU = 0.00 WC = 0.23 
+% OUTPUT: SOT_DMRNlq - GDV---2.0 says None - CPU = 0.00 WC = 0.23 
