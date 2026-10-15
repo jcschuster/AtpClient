@@ -8,18 +8,6 @@ and this project adheres to
 
 ## [Unreleased]
 
-### Added
-
-- **Which dialects a SystemOnTPTP system accepts.** `AtpClient.System.dialects/1`
-  reads the record's `SPCs` into `t:Tptp.Query.dialect/0` values, each with the
-  other components of its SPC word: E is `[th0: ["NAR"], tx0: ["NAR"], tf0:
-  ["NAR"], fof: [], cnf: []]`, TH0 only without arithmetic. `nil` when the record
-  gives no SPCs. `SystemOnTptp.systems(dialect: d)` filters by it, so a problem's
-  `Tptp.Analysis.dialect/1` picks the systems that take it.
-- `mix atp_client.systems.audit` reports an SPC word whose form `dialects/1`
-  does not read, `{:unread_spc, word}`, so a new TPTP form does not drop out of
-  the systems' dialects unnoticed.
-
 ## [0.8.0] - 2026-10-14
 
 ### Breaking
@@ -112,12 +100,27 @@ and this project adheres to
   `priv/system_on_tptp/overrides.json` (keyed by system name, each entry with
   its `reason` and `since`) over both. The file starts with 23 entries, one
   per system the 2026-10-14 report cannot classify by its fields.
-  `SystemOnTptp.systems/1` filters by `capability:`, `interface:`, `spc:`,
-  `name:`.
+  `SystemOnTptp.systems/1` filters by `capability:`, `interface:`, `dialect:`,
+  `spc:`, `name:`.
+- **Dialects**: `AtpClient.System.dialects/1` reads the record's `SPCs` into
+  `t:Tptp.Query.dialect/0` values, each with the other components of its SPC
+  word as written: E is `[th0: ["NAR"], tx0: ["NAR"], tf0: ["NAR"], fof: [],
+  cnf: []]`, so TH0, TX0 and TF0 only without arithmetic (`NAR`; `ARI` is
+  with). A word applies to a problem whose SPC has all of its components,
+  which is how SystemOnTPTP's `RecommendSystems` matches them. `nil` when the
+  record gives no SPCs (29 of the 174 systems of 2026-10-14, mostly tools).
+  The families `THF`, `TFF`, `TXF` and `NTF` stand for their forms; NX0/NX1
+  read as `:nxf` and NH0/NH1 as `:nhf`, as `Tptp.Query` names them.
+  `systems(dialect: d)` keeps the systems whose SPCs name `d`, so a problem's
+  `Tptp.Analysis.dialect/1` picks the systems that take it; the other
+  components are not checked, since a problem's dialect does not say whether
+  it uses arithmetic.
 - **Snapshot and tasks** (R9): `mix atp_client.systems.refresh` writes
   `systems.json` and `SYSTEMS.md`; `mix atp_client.systems.audit [--strict]`
-  prints what needs attention. `Systems.snapshot_age/0` says when what is
-  loaded was generated.
+  prints what needs attention, including an SPC word of a form `dialects/1`
+  does not read (`AtpClient.System.unread_spcs/1`), so a new TPTP form does not
+  drop out of the systems' dialects unnoticed. `Systems.snapshot_age/0` says
+  when what is loaded was generated.
 - **Nightly workflow** (R10): `.github/workflows/systems.yml` refreshes the
   snapshot, opens or updates the `systems/refresh` pull request titled with
   the delta, and fails when the audit finds something.
