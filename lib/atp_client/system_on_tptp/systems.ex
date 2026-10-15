@@ -35,6 +35,13 @@ defmodule AtpClient.SystemOnTptp.Systems do
 
   @snapshot "system_on_tptp/systems.json"
 
+  # Read at compile time and carried in the module's binary: an escript (AtpMcp)
+  # does not package `priv/`, so `snapshot_path/0` only resolves in a Mix
+  # project or a release.
+  @snapshot_file Path.join([__DIR__, "..", "..", "..", "priv", @snapshot])
+  @external_resource @snapshot_file
+  @snapshot_text File.read!(@snapshot_file)
+
   @typedoc "What the agent holds."
   @type state :: %{
           systems: [System.t()],
@@ -250,7 +257,9 @@ defmodule AtpClient.SystemOnTptp.Systems do
   end
 
   @doc """
-  The path of the snapshot shipped with the library.
+  The path of the snapshot shipped with the library. The agent starts from the
+  copy compiled into this module, not from this path, which does not resolve
+  inside an escript.
   """
   @spec snapshot_path() :: Path.t()
   def snapshot_path, do: :atp_client |> Application.app_dir("priv") |> Path.join(@snapshot)
@@ -260,21 +269,33 @@ defmodule AtpClient.SystemOnTptp.Systems do
   """
   @spec read_snapshot(Path.t()) :: state()
   def read_snapshot(path) do
-    with {:ok, text} <- File.read(path),
-         {:ok, %{"systems" => systems} = snapshot} <- Jason.decode(text) do
-      generated_at =
-        case DateTime.from_iso8601(Map.get(snapshot, "generated_at", "")) do
-          {:ok, datetime, _offset} -> datetime
-          {:error, _} -> nil
-        end
+    case File.read(path) do
+      {:ok, text} -> decode_snapshot(text)
+      {:error, _} -> %{systems: [], generated_at: nil, source: nil}
+    end
+  end
 
-      %{
-        systems: Enum.map(systems, &System.from_json/1),
-        generated_at: generated_at,
-        source: Map.get(snapshot, "source")
-      }
-    else
-      _otherwise -> %{systems: [], generated_at: nil, source: nil}
+  @doc """
+  Decodes the text of a snapshot file; an invalid one is an empty state.
+  """
+  @spec decode_snapshot(binary()) :: state()
+  def decode_snapshot(text) do
+    case Jason.decode(text) do
+      {:ok, %{"systems" => systems} = snapshot} ->
+        generated_at =
+          case DateTime.from_iso8601(Map.get(snapshot, "generated_at", "")) do
+            {:ok, datetime, _offset} -> datetime
+            {:error, _} -> nil
+          end
+
+        %{
+          systems: Enum.map(systems, &System.from_json/1),
+          generated_at: generated_at,
+          source: Map.get(snapshot, "source")
+        }
+
+      _otherwise ->
+        %{systems: [], generated_at: nil, source: nil}
     end
   end
 
@@ -304,7 +325,7 @@ defmodule AtpClient.SystemOnTptp.Systems do
   defp ordered(list) when is_list(list), do: Enum.map(list, &ordered/1)
   defp ordered(value), do: value
 
-  defp load_snapshot, do: read_snapshot(snapshot_path())
+  defp load_snapshot, do: decode_snapshot(@snapshot_text)
 
   @doc """
   The `SYSTEMS.md` table: one row per system, sorted by name, with its

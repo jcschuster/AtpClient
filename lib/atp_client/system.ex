@@ -187,7 +187,11 @@ defmodule AtpClient.System do
     "NTF" => ~w(NX0 NX1 NH0 NH1)
   }
 
-  @overrides_path "system_on_tptp/overrides.json"
+  # Read at compile time, like the snapshot in `AtpClient.SystemOnTptp.Systems`:
+  # an escript does not package `priv/`.
+  @overrides_file Path.join([__DIR__, "..", "..", "priv", "system_on_tptp", "overrides.json"])
+  @external_resource @overrides_file
+  @overrides_text File.read!(@overrides_file)
 
   @doc "Every capability, in the order `capabilities/2` documents them."
   @spec all_capabilities() :: [capability()]
@@ -382,11 +386,7 @@ defmodule AtpClient.System do
   def overrides do
     case :persistent_term.get({__MODULE__, :overrides}, nil) do
       nil ->
-        overrides =
-          :atp_client
-          |> Application.app_dir("priv")
-          |> Path.join(@overrides_path)
-          |> read_overrides()
+        overrides = @overrides_text |> Jason.decode!() |> decode_overrides()
 
         :persistent_term.put({__MODULE__, :overrides}, overrides)
         overrides

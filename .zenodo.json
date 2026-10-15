@@ -1,7 +1,7 @@
 {
   "title": "AtpClient",
   "upload_type": "software",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "license": "MIT",
   "description": "AtpClient is an Elixir client library for external automated theorem provers. It provides a uniform interface to multiple backends (SystemOnTPTP, StarExec, Isabelle, and locally installed TPTP-compliant binaries) and reads every system's output into a result carrying its SZS status as a value of the SZS ontology, enabling straightforward cross-prover comparison. It is built on the tptp library, which provides the TPTP language and the SZS ontology.",
   "creators": [

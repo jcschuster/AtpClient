@@ -8,6 +8,17 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-15
+
+### Fixed
+
+- The SystemOnTPTP snapshot (`priv/system_on_tptp/systems.json`) and the
+  capability overrides (`overrides.json`) are compiled into
+  `AtpClient.SystemOnTptp.Systems` and `AtpClient.System` rather than read from
+  `priv/` at runtime, so an escript (AtpMcp), which does not package `priv/`,
+  starts with the shipped systems instead of none. `Systems.decode_snapshot/1`
+  is new; `snapshot_path/0` and `read_snapshot/1` remain for the Mix tasks.
+
 ## [0.8.0] - 2026-10-14
 
 ### Breaking
