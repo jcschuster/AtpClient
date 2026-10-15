@@ -285,6 +285,25 @@ defmodule AtpClient.SystemOnTptpTest do
     end
   end
 
+  describe "systems/1" do
+    test "dialect: names the systems whose SPCs name it, whatever the other components" do
+      with_report(fn ->
+        ids = Enum.map(SystemOnTptp.systems(dialect: :th1), & &1.id)
+
+        # Vampire's TH1_NAR counts; E's TH0_NAR does not make it TH1.
+        assert "Vampire---5.0.1" in ids
+        refute "E---3.5.1" in ids
+        assert length(ids) == 14
+
+        assert "E---3.5.1" in Enum.map(SystemOnTptp.systems(dialect: :th0), & &1.id)
+        assert SystemOnTptp.systems(dialect: :tcf) == []
+
+        # spc: stays an exact word: E lists TH0_NAR, not TH0.
+        refute "E---3.5.1" in Enum.map(SystemOnTptp.systems(spc: "TH0"), & &1.id)
+      end)
+    end
+  end
+
   describe "the reply shapes" do
     test "X2TPTP=-S is sent by default and not with x2tptp: false" do
       url = start_canned_server(File.read!("test/fixtures/sotp_x2tptp_e_vampire.txt"))

@@ -213,10 +213,11 @@ defmodule AtpClient.SystemOnTptp do
 
   @doc """
   The systems the deployment offers, as `AtpClient.System` records, filtered by
-  `capability:`, `interface:`, `spc:` (an exact SPC word) and `name:`; see
+  `capability:`, `interface:`, `dialect:` (a `t:Tptp.Query.dialect/0` the system's
+  SPCs name), `spc:` (an exact SPC word) and `name:`; see
   `AtpClient.SystemOnTptp.Systems.systems/1`.
 
-      AtpClient.SystemOnTptp.systems(capability: :find_model, spc: "FOF")
+      AtpClient.SystemOnTptp.systems(capability: :find_model, dialect: :fof)
   """
   @spec systems([Systems.filter()]) :: [AtpClient.System.t()]
   def systems(filters \\ []), do: Systems.systems(filters)
@@ -225,7 +226,8 @@ defmodule AtpClient.SystemOnTptp do
   Queries one system via SystemOnTPTP, given by name (`"E"`) or identifier
   (`"E---3.5.1"`); see "Systems" in the module documentation. Available
   systems can be looked up with `systems/1`. The problem is an
-  `AtpClient.Input` in a dialect the selected system accepts; SystemOnTPTP
+  `AtpClient.Input` in a dialect the selected system accepts
+  (`AtpClient.System.dialects/1`; it is not checked here); SystemOnTPTP
   resolves `include` directives against its own copy of the TPTP library, so a
   `Tptp.File` is sent as it is.
 

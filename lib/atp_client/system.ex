@@ -17,7 +17,8 @@ defmodule AtpClient.System do
       (converters into TPTP).
     * `listings` — the archives the system appears in, from `Status`: `:tstp`,
       `:starexec`, `:casc`, `:sscpa`, `:answers`.
-    * `spcs` — the SPCs it accepts, `nil` when the record gives none.
+    * `spcs` — the SPCs it accepts, `nil` when the record gives none; read by
+      `dialects/1`.
     * `solved` — the SZS values the system reports, each with the text that shows
       it in the output (`:theorem => "SZS status Theorem"`).
     * `dataforms` — the SZS dataforms it outputs, each with the text that opens one
@@ -32,6 +33,22 @@ defmodule AtpClient.System do
   from: `:rule` from the record's machine-readable fields, `:note` from keywords
   in `UserNote` where the rules find nothing, `:override` from
   `priv/system_on_tptp/overrides.json`. See `capabilities/2` for the rules.
+
+  ## Dialects
+
+  `dialects/1` says which TPTP dialects the system takes, read from `spcs`. An
+  SPC word is a form and the components a problem must also have — `TH0_NAR` is
+  TH0 without arithmetic — and SystemOnTPTP's `RecommendSystems` offers a system
+  for a problem when every component of one of its words is in the problem's SPC
+  (iProver's `TF0_NDT` for `TF0_THM_NEQ_ARI_NDT`). The form is read as the
+  `Tptp.Query.dialect/1` of a problem in it, so the two compare directly:
+
+      dialect = Tptp.Analysis.dialect(Tptp.analyze(problem))
+      AtpClient.SystemOnTptp.systems(dialect: dialect)
+
+  By membership, not `Tptp.Query.within?/2`: the records name every form they
+  take, and a TF0 file is not a TH0 file to a prover. The other components are
+  kept as written, since a problem's dialect does not say whether it has them.
   """
 
   alias Tptp.Szs.Ontology
@@ -78,6 +95,12 @@ defmodule AtpClient.System do
 
   @typedoc "An entry of the overrides file."
   @type override :: %{capabilities: [capability()], reason: binary(), since: binary()}
+
+  @typedoc """
+  A dialect the system accepts, with the other components of the SPC word that
+  names it, as written: `{:th0, ["NAR"]}`.
+  """
+  @type accepted :: {Tptp.Query.dialect(), [binary()]}
 
   @type t :: %__MODULE__{
           id: binary(),
@@ -135,6 +158,34 @@ defmodule AtpClient.System do
     {"statistics", :inspect},
     {"rates", :inspect}
   ]
+
+  # The form of an SPC word, its first component, as `Tptp.Query` names the
+  # dialect of a problem in it.
+  @forms %{
+    "CNF" => :cnf,
+    "FOF" => :fof,
+    "TF0" => :tf0,
+    "TF1" => :tf1,
+    "TX0" => :tx0,
+    "TX1" => :tx1,
+    "TH0" => :th0,
+    "TH1" => :th1,
+    "DH0" => :dh0,
+    "DH1" => :dh1,
+    "NX0" => :nxf,
+    "NX1" => :nxf,
+    "NH0" => :nhf,
+    "NH1" => :nhf
+  }
+
+  # The families of the TPTP technical report, which a record may name in place
+  # of their forms: SPCForProblem's SPCs are `NTF THF TXF TFF FOF CNF`.
+  @families %{
+    "THF" => ~w(TH0 TH1),
+    "TFF" => ~w(TF0 TF1 TX0 TX1),
+    "TXF" => ~w(TX0 TX1),
+    "NTF" => ~w(NX0 NX1 NH0 NH1)
+  }
 
   @overrides_path "system_on_tptp/overrides.json"
 
@@ -265,6 +316,60 @@ defmodule AtpClient.System do
           do: capability
 
     fired
+  end
+
+  @doc """
+  The dialects the system accepts, each with the other components of the SPC
+  word that names it: `{:th0, ["NAR"]}` is TH0 without arithmetic, `{:fof, []}`
+  all of FOF. In the record's order, once per word. `nil` when the record gives
+  no SPCs: nothing is known, which is not nothing accepted.
+
+  The components, after the TPTP technical report: the status `THM`, `CAX`,
+  `CSA`, `UNS`, `SAT`, `UNK`, `OPN`; the order `PRP`, `EPR`, `RFO`; equality
+  `EQU`, `SEQ`, `PEQ`, `UEQ`, `NUE`, `NEQ`; arithmetic `ARI`, `NAR`; Hornness
+  `HRN`, `NHN`; and, newer than its list, datatypes `DAT`, `NDT`.
+
+  A family stands for its forms: `THF` for TH0 and TH1, `TFF` for TF0, TF1, TX0
+  and TX1, `TXF` for TX0 and TX1, `NTF` for NX0, NX1, NH0 and NH1. NX0 and NX1
+  both read as `:nxf`, NH0 and NH1 as `:nhf`, since `Tptp.Query` does not split
+  the non-classical dialects by polymorphism; `spcs` keeps the word. A word of
+  any other form is left out and listed by `unread_spcs/1`.
+
+      iex> system = %AtpClient.System{id: "E---3.5.1", spcs: ~w(TH0_NAR TX0_NAR TF0_NAR FOF CNF)}
+      iex> AtpClient.System.dialects(system)
+      [th0: ["NAR"], tx0: ["NAR"], tf0: ["NAR"], fof: [], cnf: []]
+
+      iex> system = %AtpClient.System{id: "Paradox---4.0", spcs: ~w(FOF_CSA FOF_SAT CNF_SAT)}
+      iex> AtpClient.System.dialects(system)
+      [fof: ["CSA"], fof: ["SAT"], cnf: ["SAT"]]
+
+      iex> AtpClient.System.dialects(%AtpClient.System{id: "TPTP4X---0.0"})
+      nil
+  """
+  @spec dialects(t()) :: [accepted()] | nil
+  def dialects(%__MODULE__{spcs: nil}), do: nil
+
+  def dialects(%__MODULE__{spcs: spcs}) do
+    for word <- spcs,
+        [form | components] = String.split(word, "_"),
+        form <- Map.get(@families, form, [form]),
+        dialect = @forms[form],
+        uniq: true,
+        do: {dialect, components}
+  end
+
+  @doc """
+  The SPC words whose form `dialects/1` does not read.
+
+      iex> AtpClient.System.unread_spcs(%AtpClient.System{id: "X---1", spcs: ~w(TC0_NAR FOF)})
+      ["TC0_NAR"]
+  """
+  @spec unread_spcs(t()) :: [binary()]
+  def unread_spcs(%__MODULE__{spcs: spcs}) do
+    for word <- spcs || [],
+        [form | _components] = String.split(word, "_"),
+        not Map.has_key?(@forms, form) and not Map.has_key?(@families, form),
+        do: word
   end
 
   @doc """

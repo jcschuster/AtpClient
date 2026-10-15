@@ -46,6 +46,7 @@ defmodule AtpClient.SystemOnTptp.Systems do
   @type filter ::
           {:capability, System.capability()}
           | {:interface, System.interface()}
+          | {:dialect, Tptp.Query.dialect()}
           | {:spc, binary()}
           | {:name, binary()}
 
@@ -106,6 +107,8 @@ defmodule AtpClient.SystemOnTptp.Systems do
 
     * `capability:` — `AtpClient.System.capabilities/1` has it;
     * `interface:` — offered through it;
+    * `dialect:` — `AtpClient.System.dialects/1` names it, whatever the other
+      components of the word;
     * `spc:` — the record lists that SPC word exactly;
     * `name:` — the system's name.
 
@@ -120,6 +123,10 @@ defmodule AtpClient.SystemOnTptp.Systems do
     do: Map.has_key?(System.capabilities(system), capability)
 
   defp keep?(system, {:interface, interface}), do: interface in system.interfaces
+
+  defp keep?(system, {:dialect, dialect}),
+    do: Keyword.has_key?(System.dialects(system) || [], dialect)
+
   defp keep?(system, {:spc, spc}), do: spc in (system.spcs || [])
   defp keep?(system, {:name, name}), do: system.name == name
 

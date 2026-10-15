@@ -12,12 +12,15 @@ defmodule AtpClient.SystemOnTptp.Audit do
       system (its derived capabilities are non-empty and all `:rule`);
     * `:unadvertised_override` — an override names a system the snapshot does not
       list;
+    * `{:unread_spc, word}` — an SPC word whose form `AtpClient.System.dialects/1`
+      does not read, so the dialect it names is missing from the system's;
     * `{:new_word, field, word}` — a `Status`, `Solved` or `StartSoln` word kept
       in `raw` that the previous snapshot did not have anywhere.
 
   Each finding names the system and the override that would silence it; adding,
   removing or editing that entry in `priv/system_on_tptp/overrides.json` is the
-  only way to silence a line, except a new word, which is new only once.
+  only way to silence a line, except a new word, which is new only once, and an
+  unread SPC word, whose form `AtpClient.System` has to learn.
   """
 
   alias AtpClient.System
@@ -27,6 +30,7 @@ defmodule AtpClient.SystemOnTptp.Audit do
           | :none
           | :stale_override
           | :unadvertised_override
+          | {:unread_spc, binary()}
           | {:new_word, :status | :solved | :dataforms, binary()}
 
   @typedoc "One line of the attention list."
@@ -74,7 +78,18 @@ defmodule AtpClient.SystemOnTptp.Audit do
         line(name, :unadvertised_override, "remove the #{inspect(name)} entry")
       end
 
-    classified ++ Enum.sort_by(unadvertised, & &1.system) ++ new_words(systems, previous)
+    classified ++
+      Enum.sort_by(unadvertised, & &1.system) ++ unread(systems) ++ new_words(systems, previous)
+  end
+
+  defp unread(systems) do
+    for system <- systems, word <- System.unread_spcs(system) do
+      line(
+        system.id,
+        {:unread_spc, word},
+        "add its form to @forms or @families in lib/atp_client/system.ex"
+      )
+    end
   end
 
   defp new_words(_systems, nil), do: []
@@ -136,5 +151,6 @@ defmodule AtpClient.SystemOnTptp.Audit do
   defp describe(:none), do: "no capabilities"
   defp describe(:stale_override), do: "override may be stale"
   defp describe(:unadvertised_override), do: "override for a system no longer advertised"
+  defp describe({:unread_spc, word}), do: "SPC word #{inspect(word)} of no known form"
   defp describe({:new_word, field, word}), do: "new #{field} word #{inspect(word)}"
 end

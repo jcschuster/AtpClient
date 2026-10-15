@@ -134,6 +134,11 @@ fof(goal, conjecture, q).
 AtpClient.SystemOnTptp.systems(capability: :prove) |> Enum.map(& &1.id)
 # => ["Alt-Ergo---0.95.2", "Beagle---0.9.52", ...]
 
+# The dialects a system takes, read from its SPCs: E does TH0, TX0 and TF0
+# only without arithmetic. systems(dialect: :th1) lists those that take TH1.
+AtpClient.System.dialects(AtpClient.SystemOnTptp.Systems.get("E"))
+# => [th0: ["NAR"], tx0: ["NAR"], tf0: ["NAR"], fof: [], cnf: []]
+
 # A bare name runs the version SystemOnTPTP currently advertises; an
 # identifier from systems/1 names one exactly.
 {:ok, result} = AtpClient.SystemOnTptp.query_system(problem, "cvc5", time_limit_sec: 10)

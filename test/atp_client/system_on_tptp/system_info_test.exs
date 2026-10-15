@@ -163,6 +163,60 @@ defmodule AtpClient.SystemOnTptp.SystemInfoTest do
     end
   end
 
+  describe "dialects/1 over the 2026-10-14 report" do
+    test "counts per dialect, every SPC word read", %{systems: systems} do
+      dialects = Enum.map(systems, &System.dialects/1)
+
+      counts =
+        for dialect <- Tptp.Query.dialects(),
+            into: %{},
+            do: {dialect, Enum.count(dialects, &Keyword.has_key?(&1 || [], dialect))}
+
+      assert counts == %{
+               unknown: 0,
+               cnf: 100,
+               fof: 116,
+               tcf: 0,
+               tf0: 52,
+               tf1: 18,
+               tx0: 21,
+               tx1: 7,
+               th0: 31,
+               th1: 14,
+               dh0: 2,
+               dh1: 2,
+               nxf: 11,
+               nhf: 7
+             }
+
+      assert Enum.count(dialects, &is_nil/1) == 29
+      assert Enum.flat_map(systems, &System.unread_spcs/1) == []
+    end
+
+    test "the readings by example", %{by_name: by_name} do
+      assert System.dialects(by_name["iProver"]) == [tf0: ["NDT"], fof: [], cnf: []]
+      assert System.dialects(by_name["MiniSAT"]) == [cnf: ["PRP"], cnf: ["EPR"]]
+      # NX1 and NX0 are both :nxf, and listed once.
+      assert Keyword.get_values(System.dialects(by_name["Leo-III"]), :nxf) == [[]]
+      # SPCForProblem names families: NTF THF TXF TFF FOF CNF.
+      assert System.dialects(by_name["SPCForProblem"]) ==
+               [
+                 nxf: [],
+                 nhf: [],
+                 th0: [],
+                 th1: [],
+                 tx0: [],
+                 tx1: [],
+                 tf0: [],
+                 tf1: [],
+                 fof: [],
+                 cnf: []
+               ]
+
+      assert System.dialects(by_name["TPTP4X"]) == nil
+    end
+  end
+
   describe "Audit.findings/3" do
     test "the committed overrides silence the 2026-10-14 report", %{systems: systems} do
       assert Audit.findings(systems, @overrides, systems) == []
@@ -188,6 +242,15 @@ defmodule AtpClient.SystemOnTptp.SystemInfoTest do
 
       assert [%{system: "CSE_E---1.7", finding: {:new_word, :status, "SCCPA"}}] =
                Audit.findings(systems, @overrides, previous)
+    end
+
+    test "an SPC word of no known form", %{by_name: by_name} do
+      e = %{by_name["E"] | spcs: ~w(TC0_NAR FOF CNF)}
+
+      assert [%{system: "E---3.5.1", finding: {:unread_spc, "TC0_NAR"}} = line] =
+               Audit.findings([e], %{})
+
+      assert Audit.format([line]) =~ ~s(SPC word "TC0_NAR")
     end
 
     test "each line names the override that would silence it", %{systems: systems} do

@@ -8,6 +8,18 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Which dialects a SystemOnTPTP system accepts.** `AtpClient.System.dialects/1`
+  reads the record's `SPCs` into `t:Tptp.Query.dialect/0` values, each with the
+  other components of its SPC word: E is `[th0: ["NAR"], tx0: ["NAR"], tf0:
+  ["NAR"], fof: [], cnf: []]`, TH0 only without arithmetic. `nil` when the record
+  gives no SPCs. `SystemOnTptp.systems(dialect: d)` filters by it, so a problem's
+  `Tptp.Analysis.dialect/1` picks the systems that take it.
+- `mix atp_client.systems.audit` reports an SPC word whose form `dialects/1`
+  does not read, `{:unread_spc, word}`, so a new TPTP form does not drop out of
+  the systems' dialects unnoticed.
+
 ## [0.8.0] - 2026-10-14
 
 ### Breaking
