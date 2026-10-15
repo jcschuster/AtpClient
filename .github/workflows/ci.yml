@@ -1,0 +1,171 @@
+# Continuous integration, on every push to main and every pull request.
+#
+# - checks: version mentions (scripts/check_versions.exs), formatting, unused
+#   lock entries, a forced compile with warnings as errors, Credo, ExDoc with
+#   warnings as errors, and the Hex package.
+# - test: the default suite on the .tool-versions toolchain and on the newest
+#   OTP and Elixir 1.20. The tags test/test_helper.exs excludes stay excluded.
+# - local-prover: the :local_prover tests against E, built from source by
+#   scripts/build_eprover.sh at the tag .claude/Containerfile installs and
+#   cached by that tag.
+# - dialyzer: with its PLTs cached.
+#
+# The suites that need a live service run in live.yml.
+#
+# The systems/refresh pull request does not trigger this workflow: it is
+# opened with GITHUB_TOKEN, whose events start no workflows.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Version mentions
+        run: elixir scripts/check_versions.exs
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: checks-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: checks-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - run: mix deps.get
+      - run: mix deps.unlock --check-unused
+      - run: mix format --check-formatted
+      # Forced: a module restored from the cache is not recompiled, and its
+      # warnings would go unseen.
+      - run: mix compile --warnings-as-errors --force
+      - run: mix credo --all
+      - run: mix docs --warnings-as-errors
+      - run: mix hex.build
+
+  test:
+    name: test (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: .tool-versions
+            version-file: .tool-versions
+            version-type: strict
+          - name: OTP 29, Elixir 1.20
+            otp: "29"
+            elixir: "1.20"
+            version-type: loose
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          version-file: ${{ matrix.version-file }}
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+          version-type: ${{ matrix.version-type }}
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - run: mix deps.get
+      - run: mix test --warnings-as-errors
+
+  local-prover:
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+      E_TAG: E-3.5.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - uses: actions/cache@v4
+        id: eprover
+        with:
+          path: priv/bin/eprover
+          key: eprover-${{ runner.os }}-${{ env.E_TAG }}
+
+      - name: Build E
+        if: steps.eprover.outputs.cache-hit != 'true'
+        run: scripts/build_eprover.sh
+
+      - name: Put E on PATH
+        run: |
+          echo "$GITHUB_WORKSPACE/priv/bin" >> "$GITHUB_PATH"
+          priv/bin/eprover --version
+
+      - run: mix deps.get
+      - run: mix test --only local_prover
+
+  dialyzer:
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      # The project PLT is under _build; the Erlang and Elixir ones are under
+      # MIX_HOME.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+            ~/.mix/dialyxir_*.plt
+          key: dialyzer-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: dialyzer-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - run: mix deps.get
+      - run: mix dialyzer --plt
+      - run: mix dialyzer --format github

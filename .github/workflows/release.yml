@@ -1,0 +1,121 @@
+# Release, on a pushed tag v<version>.
+#
+# 1. verify: scripts/check_versions.exs with the tag — mix.exs, CITATION.cff,
+#    .zenodo.json, the CHANGELOG section and the documented requirements all
+#    name the tag's version, and nothing is left under [Unreleased] — then the
+#    test suite and the Hex package build.
+# 2. hex: mix hex.publish, package and docs, through Hex's workload identity
+#    ("trusted publishing", https://hex.pm/docs/workload-identity): GitHub's
+#    OIDC token for this job is exchanged for a Hex token that can publish
+#    atp_client and nothing else, for 15 minutes. No API key is stored. The
+#    identity on hex.pm names this file and the `hex` environment, whose
+#    required reviewer approves every publish.
+# 3. github: a draft GitHub release, its notes the version's CHANGELOG section.
+#    Publishing the draft is left to a person: that is what makes Zenodo mint
+#    the version's DOI.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Version mentions
+        run: elixir scripts/check_versions.exs "$GITHUB_REF_NAME"
+
+      - run: mix deps.get
+      - run: mix test --warnings-as-errors
+      - run: MIX_ENV=dev mix hex.build
+
+  hex:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: hex
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      MIX_ENV: dev
+      HEX_API_URL: https://hex.pm/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - run: mix deps.get
+
+      # Mix sends HEX_API_KEY as the Authorization header as it is, hence the
+      # `Bearer`. An OIDC token is exchanged once; a rerun of this job asks
+      # for a new one.
+      - name: Publish
+        run: |
+          set -euo pipefail
+
+          audience=$(curl -fsS "$HEX_API_URL/oidc/audience" | jq -r .audience)
+          oidc_token=$(curl -fsS \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${audience}" | jq -r .value)
+
+          # Not -f: on a refusal, Hex's error body is what says why.
+          response=$(curl -sS -X POST "$HEX_API_URL/oauth/token" \
+            -H "content-type: application/x-www-form-urlencoded" \
+            --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
+            --data-urlencode "assertion=$oidc_token" \
+            --data-urlencode "scope=package:hexpm/atp_client")
+
+          access_token=$(printf '%s' "$response" | jq -r '.access_token // empty' 2>/dev/null || true)
+          if [ -z "$access_token" ]; then
+            echo "::error::Hex refused the token exchange: $response"
+            echo "The workload identity on hex.pm must name jcschuster/AtpClient, release.yml and environment hex."
+            exit 1
+          fi
+          echo "::add-mask::$access_token"
+
+          HEX_API_KEY="Bearer $access_token" mix hex.publish --yes
+
+  github:
+    needs: hex
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Release notes from the CHANGELOG
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v heading="## [$version]" '
+            index($0, heading) == 1 { on = 1; next }
+            on && /^## \[/ { exit }
+            on
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          test -s "$RUNNER_TEMP/notes.md"
+
+      - name: Draft the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"

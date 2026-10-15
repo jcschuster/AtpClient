@@ -29,9 +29,14 @@ mix credo --all                    # lints
 mix dialyzer                       # type checks (slow first run)
 mix docs                           # ExDoc → ./doc/
 scripts/build_eprover.sh           # builds E from source into priv/bin/eprover (for LocalExec)
+elixir scripts/check_versions.exs [vX.Y.Z]  # every version mention agrees with mix.exs (and the tag)
 ```
 
 Fixtures under `test/fixtures/` are captured live; their provenance (request, date) is in `test/fixtures/README.md` — add a row for every new one. Tests tagged `:local_prover` require a real prover binary on `PATH` (see `test/atp_client/local_exec_test.exs`); `:isabelle_server` a running Isabelle server (`ISABELLE_PORT`, `ISABELLE_PASSWORD`); `:starexec_live` a StarExec instance (`STAREXEC_URL`, `STAREXEC_USER`, `STAREXEC_PASS`, optionally `STAREXEC_SPACE_ID`/`STAREXEC_QUEUE_ID`); `:sotptp_live` tptp.org. `test/test_helper.exs` excludes all four by default.
+
+## CI
+
+`.github/workflows/`: `ci.yml` (push to main, PRs) runs `check_versions.exs`, format, `deps.unlock --check-unused`, a forced `compile --warnings-as-errors`, credo, `docs --warnings-as-errors`, `hex.build`, the default suite on `.tool-versions` and on OTP 29/Elixir 1.20, `--only local_prover` against E 3.5.1 built by `scripts/build_eprover.sh` (cached by tag), and dialyzer. `live.yml` (weekly, manual) runs `--only sotptp_live` and `--only isabelle_server`, the latter against Isabelle2025-2 copied out of `makarius/isabelle` and started in the background — `isabelle server -n` stays in the foreground once it has started one, so `isabelle server -l` is polled for its line. StarExec is not run in CI: the containerised StarExec runs jobs through the host's podman over SSH. `release.yml` (tag `v*`) runs `check_versions.exs` with the tag (which also requires an empty `[Unreleased]`), the tests, then `mix hex.publish` in the `hex` environment (a required reviewer approves it) through Hex's workload identity — the job's GitHub OIDC token is exchanged for a 15-minute Hex token scoped to `package:hexpm/atp_client`, so no API key is stored; the identity on hex.pm (package page, "Workload identities") must name `jcschuster/AtpClient`, `release.yml` and `hex` — then drafts the GitHub release from the CHANGELOG section; publishing the draft is what makes Zenodo mint the DOI, so a person does it. `systems.yml` is the nightly snapshot refresh (below). `config/config.exs` sets `auto_refresh: false` in the test env only: the tests set `Systems` state themselves, and a refresh landing mid-run would replace it.
 
 ## Container
 

@@ -1,0 +1,104 @@
+# The gated suites that need a live service, weekly and on demand.
+#
+# - sotptp: the :sotptp_live tests against tptp.org. Weekly, so the shared
+#   deployment sees one run a week beside the nightly systems refresh.
+# - isabelle: the :isabelle_server tests against an Isabelle2025-2 server on
+#   the runner, the distribution (HOL heaps prebuilt) copied out of the official
+#   image as .claude/Containerfile does. The server reads the theory files the
+#   tests write to /tmp, so it has to share the runner's filesystem.
+#
+# :starexec_live is not run here: the containerised StarExec runs its jobs
+# through podman on the host over SSH (make ssh-setup in
+# external/starexec-containerised), which a hosted runner does not offer.
+name: live
+
+on:
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sotptp:
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - run: mix deps.get
+      - run: mix test --only sotptp_live
+
+  isabelle:
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+      ISABELLE_IMAGE: docker.io/makarius/isabelle:Isabelle2025-2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - name: Install Isabelle
+        run: |
+          docker create --name isabelle "$ISABELLE_IMAGE"
+          docker cp isabelle:/home/isabelle/Isabelle "$RUNNER_TEMP/isabelle"
+          docker rm isabelle
+          echo "$RUNNER_TEMP/isabelle/bin" >> "$GITHUB_PATH"
+
+      # `isabelle server -n` stays in the foreground once it has started a
+      # server, so it runs in the background, and `isabelle server -l` is asked
+      # for its line:
+      #   server "NAME" = HOST:PORT (password "PASSWORD")
+      - name: Start an Isabelle server
+        run: |
+          nohup isabelle server -n ci > "$RUNNER_TEMP/isabelle-server.log" 2>&1 &
+          info=""
+          for _ in $(seq 90); do
+            info=$(isabelle server -l | grep '^server "ci"' || true)
+            [ -n "$info" ] && break
+            sleep 2
+          done
+          if [[ "$info" =~ =\ ([0-9.]+):([0-9]+)\ \(password\ \"([^\"]+)\"\) ]]; then
+            echo "::add-mask::${BASH_REMATCH[3]}"
+            {
+              echo "ISABELLE_HOST=${BASH_REMATCH[1]}"
+              echo "ISABELLE_PORT=${BASH_REMATCH[2]}"
+              echo "ISABELLE_PASSWORD=${BASH_REMATCH[3]}"
+            } >> "$GITHUB_ENV"
+          else
+            echo "::error::no Isabelle server came up"
+            cat "$RUNNER_TEMP/isabelle-server.log"
+            exit 1
+          fi
+
+      - run: mix deps.get
+      - run: mix test --only isabelle_server

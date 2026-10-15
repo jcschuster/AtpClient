@@ -124,6 +124,20 @@ and this project adheres to
 - **Nightly workflow** (R10): `.github/workflows/systems.yml` refreshes the
   snapshot, opens or updates the `systems/refresh` pull request titled with
   the delta, and fails when the audit finds something.
+- **CI and release workflows.** `.github/workflows/ci.yml` checks formatting,
+  warnings, Credo, docs, the Hex package and Dialyzer, and runs the suite on
+  the `.tool-versions` toolchain and on OTP 29 with Elixir 1.20, and the
+  `:local_prover` tests against E 3.5.1 built from source. `live.yml` runs the
+  `:sotptp_live` and `:isabelle_server` tests weekly and on demand.
+  `release.yml`, on a `v*` tag, checks the version mentions, publishes to Hex
+  through Hex's trusted publishing once a reviewer approves the `hex`
+  environment, and drafts the GitHub release from this file. `scripts/check_versions.exs`
+  checks that `mix.exs`, `CITATION.cff`, `.zenodo.json`, the latest section
+  here and the `{:atp_client, …}` requirements in the README and examples
+  agree.
+- The test environment no longer refreshes the systems from tptp.org in the
+  background (`config/config.exs`): the tests set the systems they need, and
+  the agent holds the shipped snapshot.
 - **Fixtures**: SystemOnTPTP replies in both shapes, the SystemInfo report of
   2026-10-14, models from Mace4, Paradox, Vampire, E and cvc5, GDV and ECNF
   replies, and two Nitpick payloads, under `test/fixtures/` with their
