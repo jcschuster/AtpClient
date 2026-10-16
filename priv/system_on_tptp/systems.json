@@ -1,6 +1,6 @@
 {
   "count": 174,
-  "generated_at": "2026-10-14T09:09:05Z",
+  "generated_at": "2026-10-16T09:09:16Z",
   "source": "https://tptp.org/cgi-bin/SystemOnTPTPFormReply",
   "systems": [
     {
@@ -3296,7 +3296,7 @@
         "CNFRefutation": "SZS output start CNFRefutation"
       },
       "format": "tptp:raw",
-      "id": "LEO-II---2.3.1",
+      "id": "LEO-II---2.3.2",
       "interfaces": [
         "system_on_tptp"
       ],
@@ -3334,7 +3334,7 @@
       "statistic": null,
       "transform": "none",
       "url": "http://www.leoprover.org",
-      "version": "2.3.1"
+      "version": "2.3.2"
     },
     {
       "command": "run_Leo-III %s %d THM",
