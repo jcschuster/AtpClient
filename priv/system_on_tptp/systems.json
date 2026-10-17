@@ -1,6 +1,6 @@
 {
   "count": 174,
-  "generated_at": "2026-10-16T09:09:16Z",
+  "generated_at": "2026-10-17T07:45:12Z",
   "source": "https://tptp.org/cgi-bin/SystemOnTPTPFormReply",
   "systems": [
     {
@@ -742,7 +742,7 @@
         "Saturation": "SZS output start Saturation"
       },
       "format": "tptp:raw",
-      "id": "cvc5---1.3.4",
+      "id": "cvc5---1.4.2",
       "interfaces": [
         "system_on_tptp"
       ],
@@ -785,7 +785,7 @@
       "statistic": null,
       "transform": "none",
       "url": "https://cvc5.github.io/",
-      "version": "1.3.4"
+      "version": "1.4.2"
     },
     {
       "command": "do_cvc5 %s %d SAT",
@@ -839,7 +839,7 @@
         "Saturation": "SZS output start Saturation"
       },
       "format": "tptp:raw",
-      "id": "cvc5-SAT---1.3.4",
+      "id": "cvc5-SAT---1.4.2",
       "interfaces": [
         "system_on_tptp"
       ],
@@ -878,13 +878,13 @@
       "statistic": null,
       "transform": "none",
       "url": "https://cvc5.github.io/",
-      "version": "1.3.4"
+      "version": "1.4.2"
     },
     {
       "command": "run_stc %s",
       "dataforms": {},
       "format": "tptp:raw",
-      "id": "cvc5-STC---1.3.4",
+      "id": "cvc5-STC---1.4.2",
       "interfaces": [],
       "listings": [],
       "name": "cvc5-STC",
@@ -912,7 +912,7 @@
       "statistic": null,
       "transform": "none",
       "url": "https://cvc5.github.io/",
-      "version": "1.3.4"
+      "version": "1.4.2"
     },
     {
       "command": "darwin -pl 0 -pmc true -to %d %s",
