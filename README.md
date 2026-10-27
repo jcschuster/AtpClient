@@ -2,6 +2,13 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21839442.svg)](https://doi.org/10.5281/zenodo.21839442)
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img alt="AtpClient" src="assets/logo-light.svg" height="72">
+  </picture>
+</p>
+
 Elixir client for external automated theorem provers. Four backends are
 supported:
 
@@ -36,7 +43,7 @@ statements sliced from their files — so the direct path from TPTP text to
 prover costs nothing beyond the transport. `AtpClient.preflight/1` is the
 explicit check for callers who want one before a round-trip.
 
-What the output *says* is read on demand, never while the backend runs:
+What the output _says_ is read on demand, never while the backend runs:
 `AtpClient.Result.derivation/1` gives the proof as a `Tptp.Derivation` (a
 graph over the TSTP `source` annotations), `interpretation/1` a model as an
 `AtpClient.Interpretation` — one structure whether Mace4, Paradox, Vampire or
