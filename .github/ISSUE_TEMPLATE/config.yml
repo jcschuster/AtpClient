@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://hexdocs.pm/atp_client
+    about: The published documentation for the latest release.
+  - name: Security report
+    url: https://github.com/jcschuster/AtpClient/security/advisories/new
+    about: Report a vulnerability privately; see SECURITY.md.

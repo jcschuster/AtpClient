@@ -7,9 +7,8 @@
 #   image as .claude/Containerfile does. The server reads the theory files the
 #   tests write to /tmp, so it has to share the runner's filesystem.
 #
-# :starexec_live is not run here: the containerised StarExec runs its jobs
-# through podman on the host over SSH (make ssh-setup in
-# external/starexec-containerised), which a hosted runner does not offer.
+# :starexec_live is not run here: StarExec is a podman sidecar of the
+# claude-env container (CLAUDE.md), which a hosted runner does not offer.
 name: live
 
 on:
@@ -26,15 +25,15 @@ jobs:
     env:
       MIX_ENV: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             deps
@@ -51,15 +50,15 @@ jobs:
       MIX_ENV: test
       ISABELLE_IMAGE: docker.io/makarius/isabelle:Isabelle2025-2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             deps

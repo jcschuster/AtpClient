@@ -27,7 +27,7 @@ version: "0.8.1"
 date-released: "2026-10-15"
 license: MIT
 repository-code: "https://github.com/jcschuster/AtpClient"
-url: "https://atp-client.hexdocs.pm"
+url: "https://hexdocs.pm/atp_client"
 keywords:
   - automated theorem proving
   - Elixir
@@ -35,4 +35,11 @@ keywords:
   - SZS
   - Isabelle
   - StarExec
-doi: 10.5281/zenodo.21839442
+doi: 10.5281/zenodo.21839441
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21839441
+    description: "Concept DOI of the software; resolves to the latest version. Each release has its own DOI under it."
+  - type: url
+    value: "https://hex.pm/packages/atp_client"
+    description: "Hex package"

@@ -3,7 +3,8 @@
 # Run: mix run examples/starexec_smoke_test.exs
 #
 # Prerequisites (complete in the StarExec web UI at https://localhost:7827 before running):
-#   1. StarExec container is up: external/starexec-containerised/start.sh start
+#   1. A StarExec reachable as STAREXEC_URL/STAREXEC_USER/STAREXEC_PASS, e.g.
+#      the claude-env sidecar (`claude-env starexec start`, see CLAUDE.md)
 #   2. Log in as admin:admin and create a Space (note its numeric ID).
 #   3. Upload E prover (from priv/bin/eprover, packaged as a StarExec .tgz solver) into the space.
 #      Note the solver config ID shown in "View Solver".

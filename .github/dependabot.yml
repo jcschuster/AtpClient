@@ -1,0 +1,19 @@
+# Keeps the pinned action SHAs and the Mix dependencies current. Actions are
+# pinned to commits (the version is the comment after the SHA), and Dependabot
+# updates both the SHA and the comment.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: mix
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev-dependencies:
+        dependency-type: development

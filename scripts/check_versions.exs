@@ -4,7 +4,10 @@
 #   * .zenodo.json `version`;
 #   * the CHANGELOG's latest release section;
 #   * every `{:atp_client, "~> …"}` in README.md and examples/*.livemd, which
-#     the version must satisfy.
+#     the version must satisfy;
+#   * every Zenodo DOI in README.md, CITATION.cff and mix.exs is the concept DOI
+#     named by CITATION.cff `doi`, which resolves to the latest version. A
+#     version DOI only exists once the release is published, so none is pinned.
 #
 # With a tag (`v0.8.0`), the tag must name the version too, and nothing may be
 # left under `## [Unreleased]`.
@@ -37,6 +40,14 @@ requirements =
       [requirement] <- Regex.scan(~r/\{:atp_client, "([^"]+)"\}/, read.(path), capture: :all_but_first),
       do: {"#{path} requires #{requirement}", Version.match?(version, requirement)}
 
+concept_doi = capture.(citation, ~r/^doi: (10\.5281\/zenodo\.\d+)$/m, "CITATION.cff doi")
+
+dois =
+  for path <- ["README.md", "CITATION.cff", "mix.exs"],
+      [doi] <- Regex.scan(~r/(10\.5281\/zenodo\.\d+)/, read.(path), capture: :all_but_first),
+      uniq: true,
+      do: {"#{path} names #{doi}", doi == concept_doi}
+
 unreleased =
   case Regex.run(~r/^## \[Unreleased\]\n(.*?)^## \[/ms, changelog, capture: :all_but_first) do
     [entries] -> String.trim(entries)
@@ -63,7 +74,7 @@ checks =
      capture.(citation, ~r/^date-released: "([^"]+)"$/m, "CITATION.cff date-released") == date},
     {".zenodo.json version", JSON.decode!(read.(".zenodo.json"))["version"] == version},
     {"CHANGELOG latest release [#{released}]", released == version}
-  ] ++ requirements ++ tag_checks
+  ] ++ requirements ++ dois ++ tag_checks
 
 IO.puts("mix.exs @version #{version}")
 

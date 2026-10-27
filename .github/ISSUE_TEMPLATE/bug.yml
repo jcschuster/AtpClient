@@ -1,0 +1,47 @@
+name: Bug report
+description: A backend, result reading or system record that behaves wrongly.
+labels: [bug]
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "`mix hex.info atp_client`-style: atp_client, tptp, Elixir and OTP."
+      placeholder: "atp_client 0.8.1, tptp 0.3.0, Elixir 1.20.3, OTP 29"
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Backend
+      options: [SystemOnTPTP, StarExec, Isabelle, LocalExec, "Not backend-specific"]
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System
+      description: The prover or tool and its version, as the backend names it.
+      placeholder: "E---3.5.1"
+  - type: textarea
+    id: input
+    attributes:
+      label: Input and call
+      description: The TPTP input (or how to get it) and the exact call made.
+      render: elixir
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: The return value, and `result.output` where a verdict or reading is wrong.
+      render: text
+    validations:
+      required: true

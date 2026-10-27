@@ -1,0 +1,23 @@
+name: Feature request
+description: A backend, reading, or system capability the library should offer.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The task, not the solution; the right API often follows from it.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What the call and its result would look like, if you have a shape in mind.
+      render: elixir
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Where a system's behaviour is involved, its actual output or the SystemOnTPTP record it comes from. The library never hand-maintains a list of systems or their kinds; see CONTRIBUTING.md.
+      render: text

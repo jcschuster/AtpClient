@@ -34,6 +34,17 @@
       "identifier": "https://github.com/jcschuster/AtpClient",
       "relation": "isSupplementTo",
       "scheme": "url"
+    },
+    {
+      "identifier": "https://hexdocs.pm/atp_client",
+      "relation": "isDocumentedBy",
+      "scheme": "url"
+    },
+    {
+      "identifier": "10.5281/zenodo.23063474",
+      "relation": "requires",
+      "scheme": "doi",
+      "resource_type": "software"
     }
   ]
 }

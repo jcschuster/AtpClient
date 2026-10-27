@@ -49,7 +49,12 @@ defmodule AtpClient.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      links: %{"GitHub" => @source_url},
+      links: %{
+        "GitHub" => @source_url,
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md",
+        "DOI" => "https://doi.org/10.5281/zenodo.21839441",
+        "tptp" => "https://hex.pm/packages/tptp"
+      },
       files:
         ~w(lib priv/system_on_tptp mix.exs README* LICENSE* CHANGELOG* CITATION.cff examples/*.livemd)
     ]
@@ -58,6 +63,7 @@ defmodule AtpClient.MixProject do
   defp docs do
     [
       main: "AtpClient",
+      logo: "assets/logo.svg",
       extras: [
         "README.md",
         "CHANGELOG.md",

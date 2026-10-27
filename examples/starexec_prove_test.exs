@@ -3,7 +3,8 @@
 # Run: mix run examples/starexec_prove_test.exs
 #
 # Prerequisites (set up once in the StarExec web UI):
-#   1. Container running: external/starexec-containerised/start.sh start
+#   1. A StarExec reachable as STAREXEC_URL/STAREXEC_USER/STAREXEC_PASS, e.g.
+#      the claude-env sidecar (`claude-env starexec start`, see CLAUDE.md)
 #   2. A solver uploaded (e.g. priv/bin/eprover.zip) into a space, with an
 #      auto-discovered configuration named `default`.
 #

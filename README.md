@@ -1,13 +1,20 @@
 # AtpClient
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21839442.svg)](https://doi.org/10.5281/zenodo.21839442)
-
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
-    <img alt="AtpClient" src="assets/logo-light.svg" height="72">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/jcschuster/AtpClient/main/assets/logo-dark.svg">
+    <img alt="AtpClient" src="https://raw.githubusercontent.com/jcschuster/AtpClient/main/assets/logo-light.svg" height="72">
   </picture>
 </p>
+
+[![Hex.pm](https://img.shields.io/hexpm/v/atp_client.svg)](https://hex.pm/packages/atp_client)
+[![Documentation](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/atp_client)
+[![CI](https://github.com/jcschuster/AtpClient/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jcschuster/AtpClient/actions/workflows/ci.yml)
+[![Systems snapshot](https://github.com/jcschuster/AtpClient/actions/workflows/systems.yml/badge.svg)](https://github.com/jcschuster/AtpClient/actions/workflows/systems.yml)
+[![License](https://img.shields.io/hexpm/l/atp_client.svg)](https://github.com/jcschuster/AtpClient/blob/main/LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21839441.svg)](https://doi.org/10.5281/zenodo.21839441)
+[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Fjcschuster%2FAtpClient%2Fblob%2Fmain%2Fexamples%2Fdemo.livemd)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/jcschuster/AtpClient/badge)](https://scorecard.dev/viewer/?uri=github.com/jcschuster/AtpClient)
 
 Elixir client for external automated theorem provers. Four backends are
 supported:

@@ -22,8 +22,9 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 atp_client-*.tar
 
-
+# Local Claude tooling.
 .claude-config
+.start_claudeman.sh
 
 # Built prover binaries (see scripts/build_eprover.sh).
 /priv/bin/
