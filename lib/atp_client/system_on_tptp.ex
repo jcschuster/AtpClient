@@ -8,6 +8,7 @@ defmodule AtpClient.SystemOnTptp do
         url: "tptp.example.org/SystemOnTPTPFormReply",
         auto_refresh: true,
         refresh_timeout_ms: 100_000,
+        refresh_wait_ms: 10_000,
         default_time_limit_sec: 10
 
   ## Example

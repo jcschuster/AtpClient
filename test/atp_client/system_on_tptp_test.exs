@@ -120,11 +120,11 @@ defmodule AtpClient.SystemOnTptpTest do
     read_body(sock, body <> chunk, length)
   end
 
-  # The agent holds whatever the last refresh produced — nothing, in a test
+  # The server holds whatever the last refresh produced — nothing, in a test
   # run with no route to tptp.org. These tests need a list to resolve
   # against, so they put one in and restore the previous state afterwards.
   defp with_advertised(systems, fun) do
-    previous = Agent.get(Systems, & &1)
+    previous = :sys.get_state(Systems)
 
     records =
       Enum.map(
@@ -132,12 +132,12 @@ defmodule AtpClient.SystemOnTptpTest do
         &%AtpClient.System{id: &1, name: AtpClient.System.name(&1), interfaces: [:system_on_tptp]}
       )
 
-    Agent.update(Systems, fn state -> %{state | systems: records} end)
+    :sys.replace_state(Systems, &put_in(&1.loaded.systems, records))
 
     try do
       fun.()
     after
-      Agent.update(Systems, fn _ -> previous end)
+      :sys.replace_state(Systems, fn _ -> previous end)
     end
   end
 
@@ -275,13 +275,13 @@ defmodule AtpClient.SystemOnTptpTest do
                   )
 
   defp with_report(fun) do
-    previous = Agent.get(Systems, & &1)
-    Agent.update(Systems, fn state -> %{state | systems: @report_systems} end)
+    previous = :sys.get_state(Systems)
+    :sys.replace_state(Systems, &put_in(&1.loaded.systems, @report_systems))
 
     try do
       fun.()
     after
-      Agent.update(Systems, fn _ -> previous end)
+      :sys.replace_state(Systems, fn _ -> previous end)
     end
   end
 

@@ -22,9 +22,13 @@ defmodule AtpClient.Application do
       }
     }
 
-    # Starts from the shipped snapshot; refreshes in the background only under
-    # `auto_refresh: true`.
-    children = [finch_child, {AtpClient.SystemOnTptp.Systems, nil}]
+    # Systems starts from the shipped snapshot; under `auto_refresh: true` it
+    # refreshes in a task of AtpClient.TaskSupervisor.
+    children = [
+      finch_child,
+      {Task.Supervisor, name: AtpClient.TaskSupervisor},
+      {AtpClient.SystemOnTptp.Systems, nil}
+    ]
 
     opts = [strategy: :one_for_one, name: AtpClient.Supervisor]
     Supervisor.start_link(children, opts)
