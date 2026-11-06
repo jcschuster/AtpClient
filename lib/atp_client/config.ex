@@ -51,6 +51,7 @@ defmodule AtpClient.Config do
       default_system: "E",
       auto_refresh: true,
       refresh_timeout_ms: 60_000,
+      refresh_wait_ms: 30_000,
       default_time_limit_sec: 5,
       network_overhead_ms: 30_000,
       x2tptp: true

@@ -6,7 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
+
+## [0.8.2] - 2026-11-06
+
+### Fixed
+
+- `AtpClient.SystemOnTptp.Systems` no longer answers from the shipped
+  snapshot while the startup refresh is still running: under
+  `auto_refresh: true` reads wait for it for up to `:sotptp,
+:refresh_wait_ms` (new, default 30 s), then answer from the snapshot while
+  the refresh carries on in the background. An exception in the refresh is
+  logged and keeps the snapshot instead of crashing the server. `Systems` is
+  now a `GenServer`; its fetch runs under the new `AtpClient.TaskSupervisor`.
 
 ### Changed
 
@@ -62,11 +74,11 @@ and this project adheres to
   no longer replaces the loaded systems.
 - `AtpClient.Verdict` reads the SZS status line outside output blocks only: a
   status line inside a block is the block's data (ECNF prints `SZS status
-  Unknown` inside its `ListOfCNF`). A `says` summary is read from the last
+Unknown` inside its `ListOfCNF`). A `says` summary is read from the last
   `% RESULT:` line before any other `says`.
 - **Prover-specific patterns are read for their own system only.**
   `AtpClient.Verdict.patterns/0` returns the table grouped by system (`%{names,
-  binaries, patterns}`), and `patterns/1` gives the messages for one system —
+binaries, patterns}`), and `patterns/1` gives the messages for one system —
   by SystemOnTPTP identifier or name, or LocalExec binary. Alt-Ergo's
   `": Unknown"` no longer reads SystemOnTPTP's `ERROR: Unknown procedure` as a
   verdict for E. A system no group claims gets none; only output read with no
@@ -132,7 +144,7 @@ and this project adheres to
 - **Dialects**: `AtpClient.System.dialects/1` reads the record's `SPCs` into
   `t:Tptp.Query.dialect/0` values, each with the other components of its SPC
   word as written: E is `[th0: ["NAR"], tx0: ["NAR"], tf0: ["NAR"], fof: [],
-  cnf: []]`, so TH0, TX0 and TF0 only without arithmetic (`NAR`; `ARI` is
+cnf: []]`, so TH0, TX0 and TF0 only without arithmetic (`NAR`; `ARI` is
   with). A word applies to a problem whose SPC has all of its components,
   which is how SystemOnTPTP's `RecommendSystems` matches them. `nil` when the
   record gives no SPCs (29 of the 174 systems of 2026-10-14, mostly tools).
@@ -206,7 +218,7 @@ and this project adheres to
   `202` with JSON progress that these builds answer instead of the 302.
 - The live tests for a bogus `:format` and `:transform` (`:sotptp_live`) record
   tptp.org as of 2026-10-14: a bogus transform still gives `ERROR: Formatter
-  did not create …`, now read as `{:unrecognized_output, body}` again; a bogus
+did not create …`, now read as `{:unrecognized_output, body}` again; a bogus
   format, for a multi-line problem, runs the system on a truncated file and
   reads as `:unknown`.
 
@@ -303,7 +315,7 @@ findings.
   block as TPTP; `Result.success?/1` follows the ontology.
 - **`AtpClient.Verdict`**, the reader behind every result: the SZS status
   line through `Tptp.Szs.status/1`, then SystemOnTPTP's `<system> says
-  <Value>` summary, then the prover-specific patterns for systems that print
+<Value>` summary, then the prover-specific patterns for systems that print
   no SZS line. The pattern table is `patterns/0`.
 - **`AtpClient.query/3`** and **`AtpClient.preflight/1`**. `preflight/1`
   reads and lints a problem with `Tptp.analyze/2` and rejects it on any
@@ -332,7 +344,7 @@ findings.
   `query_all_systems/2`, `StarExec.prove/3`, `StarExec.upload_benchmark/4`,
   `Isabelle.prove_tptp/3` and `LocalExec.query/2` take one.
 - **A status word outside the SZS ontology is `{:error,
-  {:unknown_szs_status, word}}`.** Previously it was converted to an atom
+{:unknown_szs_status, word}}`.** Previously it was converted to an atom
   with `String.to_atom/1`, creating atoms from prover output. The ontology's
   112 values cover every status a system can legitimately print.
 - **The last status line in an output is the system's answer**, as
@@ -340,7 +352,7 @@ findings.
   refining its answer prints the refinement afterwards.
 - **`AtpClient.LocalExec`'s wall-clock kill** appends
   `Tptp.Szs.status_line(:timeout, nil, "wall-clock kill by
-  AtpClient.LocalExec")` to whatever the prover printed, so the result's
+AtpClient.LocalExec")` to whatever the prover printed, so the result's
   `output` keeps the partial output and its `comment` says what happened.
   Previously the output was replaced by a line of the backend's own.
 - **`AtpClient.Isabelle`** returns a `Result` from every proving call.
@@ -394,8 +406,6 @@ per-downstream workaround. No API changes.
   behaviour on `TPTP.thy` changes now follows `:isabelle_elixir`'s
   build, not this library's.
 
-
-
 Point release focused on making 0.6 escript-ready, adding editor-grade
 option validation, and exposing the per-system flag overrides that
 `SystemOnTPTPFormReply` has always accepted. Nothing about the backend
@@ -410,16 +420,16 @@ that could affect an existing caller are called out under **Changed**.
   corresponding `Command___<sysid>`, `Format___<sysid>`, and
   `Transform___<sysid>` form fields on the SystemOnTPTPFormReply POST:
 
-    * `:command` — override the per-system command line (e.g.
-      `"run_E %s %d THM"`). **Note**: the public `tptp.org` deployment
-      currently ignores this field and runs the default wrapper; the
-      option is still transmitted for self-hosted SystemOnTPTP instances
-      that honour it. Verified against
-      `https://tptp.org/cgi-bin/SystemOnTPTPFormReply` at release time
-      and locked in by `test/atp_client/system_on_tptp_live_test.exs`.
-    * `:format` — override the input-format module (e.g. `"tptp:raw"`).
-    * `:transform` — override the input-transformation stage (e.g.
-      `"none"`).
+  - `:command` — override the per-system command line (e.g.
+    `"run_E %s %d THM"`). **Note**: the public `tptp.org` deployment
+    currently ignores this field and runs the default wrapper; the
+    option is still transmitted for self-hosted SystemOnTPTP instances
+    that honour it. Verified against
+    `https://tptp.org/cgi-bin/SystemOnTPTPFormReply` at release time
+    and locked in by `test/atp_client/system_on_tptp_live_test.exs`.
+  - `:format` — override the input-format module (e.g. `"tptp:raw"`).
+  - `:transform` — override the input-transformation stage (e.g.
+    `"none"`).
 
   All three default to unset; when omitted, the SystemOnTPTP deployment
   picks its per-system default and existing behaviour is unchanged.
@@ -438,7 +448,7 @@ that could affect an existing caller are called out under **Changed**.
   from the beam. Mix escripts bundle only `ebin/` (the escript is a
   single zip file), so any runtime read against
   `Application.app_dir(:isabelle_elixir, "priv/...")` used to resolve
-  *through* the escript file and fail with `:enotdir` — visible as
+  _through_ the escript file and fail with `:enotdir` — visible as
   `{:error, {:tptp_thy_copy_failed, :enotdir}}` from every
   `prove_tptp/3` / `query_tptp/2` call in escript-packaged
   downstreams (notably `atp_mcp`). The compile-time embed removes the
@@ -482,7 +492,7 @@ that could affect an existing caller are called out under **Changed**.
   obviously-wrong value shapes are rejected. Two escape hatches remain:
   `AtpClient.StarExec.request/4` still passes any Req option through
   verbatim (documented escape hatch), and `AtpClient.LocalExec` only
-  validates the *shape* of `:args` (list-of-strings) — the flag
+  validates the _shape_ of `:args` (list-of-strings) — the flag
   contents are prover-specific and stay opaque.
 
   If you get a `NimbleOptions.ValidationError` after upgrading, check
@@ -639,6 +649,7 @@ still works, and only the following patterns need to change:
 
   Match on `{:error, _}` for both isabelle-side failures (e.g.
   `{:isabelle_failed, _, _}`) and connection errors as before.
+
 - If you match `{:ok, %Req.Response{} = resp} = StarExec.create_job(...)`
   and pull the job id out of `resp.headers` yourself, switch to matching
   `{:ok, job_id} = StarExec.create_job(...)`. For rich failure
@@ -679,6 +690,7 @@ still works, and only the following patterns need to change:
   `:counter_satisfiable` ("a model of the negated conjecture was found").
   See <https://tptp.org/Seminars/SZSOntologies/Summary.html> for the full
   ontology.
+
 - **Prover-specific patterns are reclassified to honest SZS atoms** rather
   than sledgehammer's negated-conjecture reading. SPASS "Completion found"
   becomes `:satisfiable` (was `:gave_up`); iProver "CNFRefutation" becomes
@@ -814,7 +826,7 @@ end
   imported theories that previously produced phantom lemma rows.
 - **Lemma names always come through** on the per-lemma path — the name
   comes from the body (via `lemma_specs/1`), not from parsing `theorem
-  name:` out of Isabelle messages. Sledgehammer / Nitpick verdicts no
+name:` out of Isabelle messages. Sledgehammer / Nitpick verdicts no
   longer surface as `name: nil`.
 
 ### Added
@@ -862,8 +874,8 @@ end
   or per-lemma detail.
 - **`AtpClient.Config.Field` struct** carrying the UI metadata each
   backend exposes via `config_schema/0`: logical `:type` (`:string |
-  :integer | :boolean | :string_list`), layout `:group` (`:connection |
-  :defaults | :advanced`), `:required?`, `:secret?`, `:default`, `:label`,
+:integer | :boolean | :string_list`), layout `:group` (`:connection |
+:defaults | :advanced`), `:required?`, `:secret?`, `:default`, `:label`,
   and `:doc`. The library performs no coercion; values flow into
   `Application.put_env/3` and the per-call opts as-is.
 - **`AtpClient.backends/0`** returns the list of behaviour-implementing
