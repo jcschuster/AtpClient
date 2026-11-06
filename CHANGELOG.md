@@ -6,7 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased]
+
+## [0.8.3] - 2026-11-06
+
+### Changed
+
+- `{:tptp, "~> 0.3.1"}` (was `~> 0.2`). tptp 0.3 names a non-associative
+  binary formula (`<=>`, `=>`, …) `:fof_binary_pair` / `:tff_binary_pair`;
+  `AtpClient.Interpretation` reads those for the `<=>` mappings of FiRoles
+  models (Paradox).
 
 ## [0.8.2] - 2026-11-06
 
@@ -1031,7 +1040,9 @@ only needed if you:
 Prior versions are not retroactively documented here. See git history for
 changes before 0.2.0.
 
-[Unreleased]: https://github.com/jcschuster/AtpClient/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/jcschuster/AtpClient/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/jcschuster/AtpClient/compare/v0.8.2...v0.8.3
+[0.8.2]: https://github.com/jcschuster/AtpClient/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/jcschuster/AtpClient/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/jcschuster/AtpClient/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/jcschuster/AtpClient/compare/v0.7.1...v0.7.2

@@ -27,7 +27,7 @@ defmodule AtpClient.Interpretation.Formula do
   @ors [:fof_or_formula, :tff_or_formula, :cnf_disjunction]
   @eqs [:fof_defined_infix_formula, :tff_defined_infix]
   @neqs [:fof_infix_unary, :tff_infix_unary]
-  @binaries [:fof_binary_nonassoc, :tff_binary_nonassoc]
+  @binaries [:fof_binary_pair, :tff_binary_pair]
   @quantified [:fof_quantified_formula, :tff_quantified_formula]
   @applications [:fof_plain_term, :tff_plain_atomic, :fof_defined_plain_term, :tff_defined_plain]
   @arguments [:fof_arguments, :tff_arguments]
