@@ -33,6 +33,7 @@ defmodule AtpClient.SystemOnTptpTest do
 
   describe "cancellation" do
     test "killing the calling Task does not leave the Finch pool wedged" do
+      [%{id: system} | _] = Systems.systems(interface: :system_on_tptp)
       {port_no, _acceptor, listen} = start_slow_server()
       url = "http://127.0.0.1:#{port_no}/SystemOnTPTPFormReply"
 
@@ -40,7 +41,7 @@ defmodule AtpClient.SystemOnTptpTest do
         Task.async(fn ->
           SystemOnTptp.query_system(
             "fof(a, conjecture, p).",
-            "Vampire-FMo---5.0.1",
+            system,
             url: url,
             time_limit_sec: 60
           )
@@ -63,7 +64,7 @@ defmodule AtpClient.SystemOnTptpTest do
       result =
         SystemOnTptp.query_system(
           "fof(a, conjecture, p).",
-          "Vampire-FMo---5.0.1",
+          system,
           url: url,
           time_limit_sec: 0,
           network_overhead_ms: 100

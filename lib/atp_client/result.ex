@@ -258,7 +258,6 @@ defmodule AtpClient.Result do
 
   defp region_formulae(_result), do: :none
 
-  # The opening and closing text of the first `ListOf…` dataform in the record.
   defp list_region(record) do
     known =
       for {value, start} <- record.dataforms,
@@ -272,9 +271,6 @@ defmodule AtpClient.Result do
     end)
   end
 
-  # Between the line containing `start` and the line containing `stop`, both
-  # excluded; `StartOfFile` and `EndOfFile` are the ends of the output. `nil`
-  # when either line is missing.
   defp region(text, start, stop) do
     with {:ok, lines} <- after_line(String.split(text, ~r/(?<=\n)/), start),
          {:ok, body} <- before_line(lines, stop) do
@@ -300,7 +296,6 @@ defmodule AtpClient.Result do
     end
   end
 
-  # A raw SystemOnTPTP section's output without its delimiters and summary lines.
   defp system_output(text) do
     case Regex.run(~r/^% START OF SYSTEM OUTPUT[^\n]*\n(.*?)^% END OF SYSTEM OUTPUT/ms, text) do
       [_, output] -> output
