@@ -30,7 +30,7 @@ defmodule AtpClient.MixProject do
 
   defp deps do
     [
-      {:tptp, "~> 0.3.1"},
+      {:tptp, "~> 0.4.0"},
       {:jason, "~> 1.4"},
       {:req, "~> 0.7"},
       {:nimble_options, "~> 1.1"},
