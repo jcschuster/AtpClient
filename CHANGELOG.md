@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-11-19
+
+### Added
+
+- `AtpClient.Result.formulae/1` reads, when the output has no `ListOf…` block,
+  the region the system's SystemOnTPTP record names for its `ListOf…` dataform
+  (`StartSoln` to `EndSoln`), so EGround's clauses are read.
+
 ## [0.8.3] - 2026-11-06
 
 ### Changed
@@ -1040,7 +1048,8 @@ only needed if you:
 Prior versions are not retroactively documented here. See git history for
 changes before 0.2.0.
 
-[Unreleased]: https://github.com/jcschuster/AtpClient/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/jcschuster/AtpClient/compare/v0.8.4...HEAD
+[0.8.4]: https://github.com/jcschuster/AtpClient/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/jcschuster/AtpClient/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/jcschuster/AtpClient/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/jcschuster/AtpClient/compare/v0.8.0...v0.8.1

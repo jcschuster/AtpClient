@@ -26,6 +26,7 @@ Problems used:
 | `e_sat_saturation.txt` | lines 133–251 of `sotp_raw_models.txt`: E-SAT's section, a `Saturation` |
 | `vampire_sat_finite_model.txt` | `RunSelectedSystems`, P2, Vampire-FMo---5.0.1, 10 s (Vampire-SAT answers with a `Saturation.` instead) |
 | `ecnf_process_problem.txt` | `SubmitButton=ProcessProblem`, `InputFormat=TPTP`, P1, ECNF---3.5.1, 10 s; note the `SZS status Unknown` inside the `ListOfCNF` block |
+| `eground_process_problem.txt` | 2026-11-19: `SubmitButton=ProcessProblem`, `InputFormat=TPTP`, `cnf(a1,axiom,~p(X)\|q(X)\|r(X)). cnf(a2,axiom,p(a)\|p(b)). cnf(c,negated_conjecture,~q(a)).`, EGround---3.5.1, 10 s; the clauses are in no SZS block (`says ListOfClauses`) |
 | `gdv_verified_good.txt` | `SubmitButton=ProcessSolution`, `SolutionFormat=TPTP`, the solution region (lines 36–85) of E's section in `sotp_x2tptp_e_vampire.txt`, GDV---2.0, 30 s |
 | `gdv_syntax_error.txt` | the same with `FORMULAEProblem=fof(a,axiom,p(.` |
 | `agmv_mace4_model_crash.txt` | `ProcessSolution`, P2 plus `fof(c,conjecture,q(f(a),a)).` plus the model of `mace4_finite_model.txt` (lines 9–24), AGMV---1.0, 30 s: AGMV dies with `Illegal division by zero` and `says Unknown`. With the model alone it answers `SZS status Error … Missing problem or model formulae`. No AGMV `Verified` reply has been observed. |

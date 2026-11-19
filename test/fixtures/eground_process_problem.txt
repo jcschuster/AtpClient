@@ -1,0 +1,14 @@
+% START OF SYSTEM OUTPUT
+cnf(i_0_9, plain, (~q(a))).
+cnf(i_0_10, plain, (p(a)|p(b))).
+% Full and complete proof state written!
+
+% -------------------------------------------------
+% User time                : 0.001 s
+% System time              : 0.002 s
+% Total time               : 0.003 s
+% Maximum resident set size: 2688 pages
+
+% END OF SYSTEM OUTPUT
+% RESULT: SOT_jJX8DP - EGround---3.5.1 says Success - CPU = 0.00 WC = 0.00 
+% OUTPUT: SOT_jJX8DP - EGround---3.5.1 says ListOfClauses - CPU = 0.00 WC = 0.00 

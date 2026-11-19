@@ -135,6 +135,19 @@ defmodule AtpClient.SystemOnTptp.ReplyTest do
       assert length(statements) == 3
     end
 
+    test "EGround: no block, the region its record names" do
+      assert [{"EGround---3.5.1", {:ok, result}}] = read("eground_process_problem.txt")
+      assert result.status == :success
+      assert result.blocks == []
+      assert {:ok, %Tptp.File{statements: [_, _]}, []} = Result.formulae(result)
+    end
+
+    test "EGround: no region without its closing line" do
+      assert [{"EGround---3.5.1", {:ok, result}}] = read("eground_process_problem.txt")
+      output = String.replace(result.output, "Full and complete proof state written", "")
+      assert Result.formulae(%{result | output: output}) == :none
+    end
+
     test ":none without one" do
       [{_, {:ok, result}} | _] = read("sotp_raw_e_vampire.txt")
       assert Result.formulae(result) == :none

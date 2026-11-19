@@ -218,8 +218,17 @@ defmodule AtpClient.Result do
   The source is the first block whose dataform is within `ListOfFormulae`. The
   SystemOnTPTP tools name their blocks by the language they hold, `ListOfCNF`,
   `ListOfFOF`, `ListOfTFF`, and those names are not in the ontology; a block named
-  `ListOf<anything>` is read as a `ListOfFormulae`. `:none` when there is no such
-  block.
+  `ListOf<anything>` is read as a `ListOfFormulae`.
+
+  Without such a block, the source is the region the system's SystemOnTPTP
+  record names for its `ListOf…` dataform, when the record is loaded
+  (`AtpClient.SystemOnTptp.Systems.get/1` of `system`): from the line holding
+  its `StartSoln` text to the line holding its `EndSoln` text, both excluded,
+  `StartOfFile` and `EndOfFile` meaning the ends of the system's output.
+  EGround prints its clauses that way, from `StartOfFile` to `Full and complete
+  proof state written`. A region is read only when it holds statements.
+
+  `:none` when there is neither.
   """
   @list_of ~r/(SZS output (?:start|end)[ \t]+)ListOf[A-Za-z0-9]+/
 
@@ -231,8 +240,71 @@ defmodule AtpClient.Result do
     |> Tptp.Szs.blocks(prefix: prefix(result))
     |> Enum.find(&Ontology.isa?(&1.dataform, :list_of_formulae))
     |> case do
-      nil -> :none
+      nil -> region_formulae(result)
       %{body: body} -> read(body)
+    end
+  end
+
+  defp region_formulae(%__MODULE__{system: system} = result) when is_binary(system) do
+    with %AtpClient.System{} = record <- AtpClient.SystemOnTptp.Systems.get(system),
+         {start, stop} <- list_region(record),
+         body when is_binary(body) <- region(system_output(text(result)), start, stop),
+         {:ok, %Tptp.File{statements: [_ | _]}, _diagnostics} = read <- read(body) do
+      read
+    else
+      _otherwise -> :none
+    end
+  end
+
+  defp region_formulae(_result), do: :none
+
+  # The opening and closing text of the first `ListOf…` dataform in the record.
+  defp list_region(record) do
+    known =
+      for {value, start} <- record.dataforms,
+          Ontology.isa?(value, :list_of_formulae),
+          do: {Ontology.name(value), start}
+
+    raw = for {"ListOf" <> _ = word, start} <- record.raw.dataforms, do: {word, start}
+
+    Enum.find_value(known ++ raw, fn {word, start} ->
+      with stop when is_binary(stop) <- Map.get(record.raw.end_soln, word), do: {start, stop}
+    end)
+  end
+
+  # Between the line containing `start` and the line containing `stop`, both
+  # excluded; `StartOfFile` and `EndOfFile` are the ends of the output. `nil`
+  # when either line is missing.
+  defp region(text, start, stop) do
+    with {:ok, lines} <- after_line(String.split(text, ~r/(?<=\n)/), start),
+         {:ok, body} <- before_line(lines, stop) do
+      IO.iodata_to_binary(body)
+    end
+  end
+
+  defp after_line(lines, "StartOfFile"), do: {:ok, lines}
+
+  defp after_line(lines, start) do
+    case Enum.drop_while(lines, &(not String.contains?(&1, start))) do
+      [_start | rest] -> {:ok, rest}
+      [] -> nil
+    end
+  end
+
+  defp before_line(lines, "EndOfFile"), do: {:ok, lines}
+
+  defp before_line(lines, stop) do
+    case Enum.split_while(lines, &(not String.contains?(&1, stop))) do
+      {body, [_stop | _rest]} -> {:ok, body}
+      {_body, []} -> nil
+    end
+  end
+
+  # A raw SystemOnTPTP section's output without its delimiters and summary lines.
+  defp system_output(text) do
+    case Regex.run(~r/^% START OF SYSTEM OUTPUT[^\n]*\n(.*?)^% END OF SYSTEM OUTPUT/ms, text) do
+      [_, output] -> output
+      nil -> text
     end
   end
 
