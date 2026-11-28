@@ -1,6 +1,6 @@
 {
-  "count": 176,
-  "generated_at": "2026-11-19T11:33:53Z",
+  "count": 177,
+  "generated_at": "2026-11-28T11:40:33Z",
   "source": "https://tptp.org/cgi-bin/SystemOnTPTPFormReply",
   "systems": [
     {
@@ -1330,7 +1330,7 @@
         "Saturation": "SZS output start Saturation"
       },
       "format": "tptp:raw",
-      "id": "E---3.5.1",
+      "id": "E---3.5.13",
       "interfaces": [
         "system_on_tptp"
       ],
@@ -1375,7 +1375,43 @@
       "statistic": null,
       "transform": "none",
       "url": "http://www.eprover.org/",
-      "version": "3.5.1"
+      "version": "3.5.13"
+    },
+    {
+      "command": "run_ECNF %d %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "E-CNF---3.5.13",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "E-CNF",
+      "note": "Converts FOF to CNF",
+      "people": [
+        "Stephan Schulz"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfCNF": "SZS output start ListOfCNF"
+        },
+        "end_soln": {
+          "ListOfCNF": "SZS output end ListOfCNF"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "SZS status Success"
+      },
+      "spcs": [
+        "FOF"
+      ],
+      "statistic": null,
+      "transform": "none",
+      "url": "http://www.eprover.org/",
+      "version": "3.5.13"
     },
     {
       "command": "e-darwin -pev \"TPTP\" -pmd true -if tptp -pl 2 -pc false -ps false %s",
@@ -1418,13 +1454,49 @@
       "version": "1.5"
     },
     {
+      "command": "eground --tstp-in --tstp-out --silent --resources-info --split-tries=100 --memory-limit=200 --soft-cpu-limit=%d --add-one-instance --constraints %s",
+      "dataforms": {},
+      "format": "tptp:raw",
+      "id": "E-Ground---3.5.13",
+      "interfaces": [
+        "system_b4_tptp"
+      ],
+      "listings": [],
+      "name": "E-Ground",
+      "note": "Grounds a set of EPR clauses",
+      "people": [
+        "Stephan Schulz"
+      ],
+      "raw": {
+        "dataforms": {
+          "ListOfClauses": "StartOfFile"
+        },
+        "end_soln": {
+          "ListOfClauses": "Full and complete proof state written"
+        },
+        "gave_up": {},
+        "solved": {},
+        "status": []
+      },
+      "solved": {
+        "Success": "Full and complete proof state written"
+      },
+      "spcs": [
+        "CNF_EPR"
+      ],
+      "statistic": null,
+      "transform": "add_equality",
+      "url": "http://www.eprover.org/",
+      "version": "3.5.13"
+    },
+    {
       "command": "run_E %s %d SAT",
       "dataforms": {
         "CNFRefutation": "SZS output start CNFRefutation",
         "Saturation": "SZS output start Saturation"
       },
       "format": "tptp:raw",
-      "id": "E-SAT---3.5.1",
+      "id": "E-SAT---3.5.13",
       "interfaces": [
         "system_on_tptp"
       ],
@@ -1464,79 +1536,44 @@
       "statistic": null,
       "transform": "none",
       "url": "http://www.eprover.org/",
-      "version": "3.5.1"
+      "version": "3.5.13"
     },
     {
-      "command": "run_ECNF %d %s",
-      "dataforms": {},
+      "command": "eprover --sine=Auto --prune %s",
+      "dataforms": {
+        "ListOfFormulae": "SInE strategy"
+      },
       "format": "tptp:raw",
-      "id": "ECNF---3.5.1",
+      "id": "E-Select---3.5.13",
       "interfaces": [
         "system_b4_tptp"
       ],
       "listings": [],
-      "name": "ECNF",
-      "note": "Converts FOF to CNF",
+      "name": "E-Select",
+      "note": "Axiom selection",
       "people": [
         "Stephan Schulz"
       ],
       "raw": {
-        "dataforms": {
-          "ListOfCNF": "SZS output start ListOfCNF"
-        },
+        "dataforms": {},
         "end_soln": {
-          "ListOfCNF": "SZS output end ListOfCNF"
+          "ListOfFormulae": "Pruning successful"
         },
         "gave_up": {},
         "solved": {},
         "status": []
       },
       "solved": {
-        "Success": "SZS status Success"
+        "Success": "Pruning successful"
       },
       "spcs": [
-        "FOF"
+        "FOF",
+        "CNF"
       ],
       "statistic": null,
       "transform": "none",
       "url": "http://www.eprover.org/",
-      "version": "3.5.1"
-    },
-    {
-      "command": "eground --tstp-in --tstp-out --silent --resources-info --split-tries=100 --memory-limit=200 --soft-cpu-limit=%d --add-one-instance --constraints %s",
-      "dataforms": {},
-      "format": "tptp:raw",
-      "id": "EGround---3.5.1",
-      "interfaces": [
-        "system_b4_tptp"
-      ],
-      "listings": [],
-      "name": "EGround",
-      "note": "Grounds a set of EPR clauses",
-      "people": [
-        "Stephan Schulz"
-      ],
-      "raw": {
-        "dataforms": {
-          "ListOfClauses": "StartOfFile"
-        },
-        "end_soln": {
-          "ListOfClauses": "Full and complete proof state written"
-        },
-        "gave_up": {},
-        "solved": {},
-        "status": []
-      },
-      "solved": {
-        "Success": "Full and complete proof state written"
-      },
-      "spcs": [
-        "CNF_EPR"
-      ],
-      "statistic": null,
-      "transform": "add_equality",
-      "url": "http://www.eprover.org/",
-      "version": "3.5.1"
+      "version": "3.5.13"
     },
     {
       "command": "enigmatic-eprover.py %s %d 8",
